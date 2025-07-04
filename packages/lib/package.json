@@ -1,0 +1,25 @@
+{
+  "name": "@ethos/lib",
+  "version": "1.0.0",
+  "description": "Core scraping and analysis library for Ethos",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "vitest",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "scrape": "ts-node src/cli/index.ts scrape"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "playwright": "^1.53.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
