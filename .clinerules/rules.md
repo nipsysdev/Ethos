@@ -12,6 +12,7 @@ The `.ai` folder contains comprehensive documentation to help AI agents quickly 
 4. `cli_interface.md` - CLI command structure
 5. `waku_integration.md` - Waku messaging protocol
 6. `codex_integration.md` - Codex storage implementation
+7. `monorepo_setup.md` - Monorepo structure and tooling documentation
 
 ## Usage Guidelines
 
