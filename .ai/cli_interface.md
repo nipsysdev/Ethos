@@ -13,7 +13,8 @@ config [options]
 
 1. **crawl**:
 
-   - Crawl data from specified source
+   - Start interactive menu to select a source for crawling
+   - Displays list of available sources from documentation
    - Options:
      - --output: Output file path
      - --headless: Run in headless mode
