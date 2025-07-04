@@ -13,6 +13,7 @@ The `.ai` folder contains comprehensive documentation to help AI agents quickly 
 5. `waku_integration.md` - Waku messaging protocol
 6. `codex_integration.md` - Codex storage implementation
 7. `monorepo_setup.md` - Monorepo structure and tooling documentation
+8. `sources.md` - List of data sources for scraping
 
 ## Usage Guidelines
 
