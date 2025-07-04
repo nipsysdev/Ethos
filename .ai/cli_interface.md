@@ -3,15 +3,15 @@
 ## Core Commands
 
 ```bash
-logos-crawl [options] <source>
-logos-analyze [options] <input>
-logos-run [options]
-logos-config [options]
+crawl [options] <source>
+analyze [options] <input>
+run [options]
+config [options]
 ```
 
 ## Command Details
 
-1. **logos-crawl**:
+1. **crawl**:
 
    - Crawl data from specified source
    - Options:
@@ -19,7 +19,7 @@ logos-config [options]
      - --headless: Run in headless mode
      - --retries: Number of retry attempts
 
-2. **logos-analyze**:
+2. **analyze**:
 
    - Analyze crawled data
    - Options:
@@ -27,14 +27,14 @@ logos-config [options]
      - --format: Output format (json, csv)
      - --topics: Specific topics to analyze
 
-3. **logos-run**:
+3. **run**:
 
    - Run continuous crawling and analysis
    - Options:
      - --interval: Crawling interval
      - --daemon: Run as background process
 
-4. **logos-config**:
+4. **config**:
    - Manage configuration
    - Subcommands:
      - set <key> <value>
