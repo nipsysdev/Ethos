@@ -1,6 +1,6 @@
 # @ethos/lib
 
-Core scraping and analysis library for Ethos
+Core crawling and analysis library for Ethos
 
 ## Installation
 
@@ -16,10 +16,10 @@ pnpm add @ethos/lib
 
 ## CLI
 
-Run the scraper CLI:
+Run the crawler CLI:
 
 ```bash
-npx ethos-scraper scrape <url>
+npx ethos-crawler crawl <url>
 ```
 
 ## Development

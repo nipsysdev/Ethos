@@ -1,12 +1,12 @@
-# Scraping Implementation
+# Crawling Implementation
 
 ## Core Requirements
 
 - Support for 20+ human rights/digital freedom websites
-- Playwright-based scraping
+- Puppeteer-based crawling
 - Metadata extraction (URL, timestamp, source, content)
 
-## Playwright Configuration
+## Puppeteer Configuration
 
 - Headless mode by default
 - Custom user agent
@@ -16,7 +16,7 @@
 ## Data Structure
 
 ```typescript
-interface ScrapedData {
+interface CrawledData {
   url: string;
   timestamp: Date;
   source: string;
@@ -28,7 +28,7 @@ interface ScrapedData {
 
 ## Website Specifics
 
-- Each source gets dedicated scraper
+- Each source gets dedicated crawler
 - Common extraction patterns:
   - Article content
   - Publication date

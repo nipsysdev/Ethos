@@ -3,7 +3,7 @@
 ## Core Commands
 
 ```bash
-logos-scrape [options] <source>
+logos-crawl [options] <source>
 logos-analyze [options] <input>
 logos-run [options]
 logos-config [options]
@@ -11,9 +11,9 @@ logos-config [options]
 
 ## Command Details
 
-1. **logos-scrape**:
+1. **logos-crawl**:
 
-   - Scrape data from specified source
+   - Crawl data from specified source
    - Options:
      - --output: Output file path
      - --headless: Run in headless mode
@@ -21,7 +21,7 @@ logos-config [options]
 
 2. **logos-analyze**:
 
-   - Analyze scraped data
+   - Analyze crawled data
    - Options:
      - --output: Analysis results file
      - --format: Output format (json, csv)
@@ -29,9 +29,9 @@ logos-config [options]
 
 3. **logos-run**:
 
-   - Run continuous scraping and analysis
+   - Run continuous crawling and analysis
    - Options:
-     - --interval: Scraping interval
+     - --interval: Crawling interval
      - --daemon: Run as background process
 
 4. **logos-config**:

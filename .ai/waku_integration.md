@@ -23,7 +23,7 @@ interface WakuMessage {
 
 1. **Topics**:
 
-   - /logos/scraped-data
+   - /logos/crawled-data
    - /logos/analysis-results
    - /logos/notifications
 

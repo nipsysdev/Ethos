@@ -20,7 +20,7 @@ interface AnalysisResult {
 }
 
 interface Analyzer {
-  analyze(data: ScrapedData): Promise<AnalysisResult>;
+  analyze(data: CrawledData): Promise<AnalysisResult>;
 }
 ```
 

@@ -11,14 +11,14 @@
 - Waku: Decentralized messaging
 - Codex: Decentralized storage
 - TypeScript: Primary development language
-- Playwright: Web scraping
+- Puppeteer: Web crawling
 - Commander.js: CLI interface
 
 ## Architecture
 
 1. **Library**:
 
-   - Core scraping and analysis logic
+   - Core crawling and analysis logic
    - Modular design for reuse
    - Includes CLI for testing
 
@@ -38,7 +38,7 @@
 
 - Monorepo structure for code organization
 - TypeScript for type safety and maintainability
-- Playwright for reliable web scraping
+- Puppeteer for reliable web crawling
 - Modular library design for flexibility
 
 ## References
