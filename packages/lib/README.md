@@ -22,13 +22,23 @@ pnpm add @ethos/lib
 ### Using the CLI
 
 ```bash
-# Interactive mode
-node dist/cli/index.js
+# Quick way - build and run in one command
+pnpm run cli
 
-# Or build and run
+# Or do it step by step
 pnpm run build
 node dist/cli/index.js
+
+# Check available options
+node dist/cli/index.js --help
 ```
+
+### Available Commands
+
+- `crawl` - Start crawling a source (interactive selection)
+- `analyze` - Analyze crawled data
+- `run` - Run continuous crawling
+- `config` - Manage configuration
 
 ### Programmatic Usage
 
