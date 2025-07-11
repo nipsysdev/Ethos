@@ -1,17 +1,29 @@
 # Crawling Implementation
 
-## Core Requirements
+## Architecture
 
-- Support for 20+ human rights/digital freedom websites
-- Puppeteer-based crawling
-- Metadata extraction (URL, timestamp, source, content)
+Config-driven crawling with two-step pattern: listing page → individual articles
 
-## Puppeteer Configuration
+## Primary Crawler: Article Listing
 
-- Headless mode by default
-- Custom user agent
-- Request interception for efficiency
-- Automatic retry logic
+```yaml
+sources:
+  - id: "eff"
+    type: "article-listing"
+    listing:
+      url: "https://eff.org/updates"
+      itemSelector: ".views-row"
+      pagination: { type: "load-more", selector: ".pager-next" }
+    extraction:
+      inline: # Data on listing page
+        title: ".views-field-title a"
+        date: ".views-field-created"
+      detail: # Data on article page
+        url: ".views-field-title a@href"
+        title: "h1.page-title"
+        content: ".field-name-body"
+    processingStrategies: ["digital-rights-classifier"]
+```
 
 ## Data Structure
 
@@ -22,15 +34,20 @@ interface CrawledData {
   source: string;
   title: string;
   content: string;
+  excerpt?: string;
+  author?: string;
+  tags?: string[];
   metadata: Record<string, unknown>;
 }
 ```
 
-## Website Specifics
+## Source Categories
 
-- Each source gets dedicated crawler
-- Common extraction patterns:
-  - Article content
-  - Publication date
-  - Author information
-  - Tags/categories
+- **Search/Filter**: Civicus, Acled, Privacy International, Court Listener, Lumen
+- **News/Updates**: AccessNow, EFF, Torrentfreak, Big Brother Watch
+- **Archives**: Citizenlab, Declassified UK, Freedom Press
+- **Databases**: Crisisgroup, Global Protest Tracker
+
+## Puppeteer Config
+
+Headless mode, stealth plugins, adblocker, retry logic

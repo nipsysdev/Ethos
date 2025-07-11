@@ -1,44 +1,18 @@
 # CLI Interface
 
-## Core Commands
+## Commands
 
 ```bash
-crawl [options] <source>
-analyze [options] <input>
-run [options]
-config [options]
+crawl <source>     # Interactive source selection + crawling
+analyze <input>    # Analyze crawled data
+run                # Continuous crawling/analysis
+config             # Manage configuration
 ```
 
-## Command Details
+## Options
 
-1. **crawl**:
-
-   - Start interactive menu to select a source for crawling
-   - Displays list of available sources from documentation
-   - Options:
-     - --output: Output file path
-     - --headless: Run in headless mode
-     - --retries: Number of retry attempts
-
-2. **analyze**:
-
-   - Analyze crawled data
-   - Options:
-     - --output: Analysis results file
-     - --format: Output format (json, csv)
-     - --topics: Specific topics to analyze
-
-3. **run**:
-
-   - Run continuous crawling and analysis
-   - Options:
-     - --interval: Crawling interval
-     - --daemon: Run as background process
-
-4. **config**:
-   - Manage configuration
-   - Subcommands:
-     - set <key> <value>
-     - get <key>
-     - list
-     - reset
+- `--output`: Output file path
+- `--headless`: Run in headless mode
+- `--retries`: Number of retry attempts
+- `--interval`: Crawling interval
+- `--daemon`: Run as background process

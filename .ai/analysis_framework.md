@@ -1,54 +1,65 @@
 # Analysis Framework
 
-## Core Capabilities
-
-- Text analysis
-- Topic classification
-- Sentiment analysis
-- Trend detection
-- Relevance scoring
-
 ## Architecture
 
+Pluggable processing strategies configured per source in YAML
+
+## Strategy Interface
+
 ```typescript
+interface ProcessingStrategy {
+  id: string;
+  name: string;
+  process(data: CrawledData): Promise<AnalysisResult>;
+}
+
 interface AnalysisResult {
   topics: string[];
   sentiment: number;
   relevance: number;
   keywords: string[];
+  confidence: number;
   metadata: Record<string, unknown>;
-}
-
-interface Analyzer {
-  analyze(data: CrawledData): Promise<AnalysisResult>;
 }
 ```
 
-## Planned Features
+## Example Strategies
 
-1. **Text Analysis**:
+### Digital Rights Classifier
 
-   - Keyword extraction
-   - Named entity recognition
-   - Summarization
+```typescript
+export class DigitalRightsClassifier implements ProcessingStrategy {
+  id = "digital-rights-classifier";
 
-2. **Topic Classification**:
+  async process(data: CrawledData): Promise<AnalysisResult> {
+    return {
+      topics: ["privacy", "surveillance", "censorship"],
+      confidence: 0.85,
+      relevance: 0.92,
+      keywords: ["encryption", "data protection"],
+      sentiment: 0.1,
+      metadata: { categories: ["digital-rights", "policy"] },
+    };
+  }
+}
+```
 
-   - Predefined categories:
-     - Privacy
-     - Censorship
-     - Digital rights
-     - Network state
-     - Hardware wallets
-   - Custom category support
+## Configuration
 
-3. **Sentiment Analysis**:
+```yaml
+sources:
+  - id: "eff"
+    # ...crawler config...
+    processingStrategies:
+      - "digital-rights-classifier"
+      - "sentiment-analyzer"
+      - "keyword-extractor"
+```
 
-   - Positive/negative/neutral classification
-   - Emotion detection
-   - Intensity scoring
+## Strategy Categories
 
-4. **Trend Detection**:
-   - Frequency analysis
-   - Topic popularity tracking
-   - Anomaly detection
+- **Text Analysis**: Keyword extraction, NER, summarization
+- **Classification**: Digital rights topics, multi-label classification
+- **Sentiment**: Positive/negative/neutral, emotion detection
+- **Trends**: Frequency analysis, anomaly detection
+- **Relevance**: Quality assessment, urgency detection
