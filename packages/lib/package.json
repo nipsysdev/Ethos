@@ -12,7 +12,7 @@
     "test": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "cli": "vite build && node --no-warnings=ExperimentalWarning dist/index.js"
+    "cli": "tsc && node dist/cli/index.js"
   },
   "dependencies": {
     "commander": "^14.0.0",
