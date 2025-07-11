@@ -1,0 +1,30 @@
+sources:
+  - id: "test-simple"
+    name: "Test Simple Site"
+    type: "article-listing"
+    listing:
+      url: "https://example.com"
+      itemSelector: "body"
+    extraction:
+      inline:
+        title: "title"
+        content: "body"
+    processingStrategies:
+      - "keyword-extractor"
+
+  - id: "torrentfreak"
+    name: "TorrentFreak"
+    type: "article-listing"
+    listing:
+      url: "https://torrentfreak.com"
+      itemSelector: "article"
+    extraction:
+      inline:
+        title: "h2 a"
+        content: ".excerpt"
+      detail:
+        url: "h2 a@href"
+        title: "h1"
+        content: ".post-content"
+    processingStrategies:
+      - "keyword-extractor"
