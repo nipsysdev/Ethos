@@ -1,0 +1,43 @@
+{
+  "name": "ethos",
+  "version": "1.0.0",
+  "description": "Persuasion and trust building tools for network states. Part of the Logos (logos.co) ecosystem",
+  "main": "index.js",
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "commit": "git-cz",
+    "prepare": "lefthook install",
+    "watch": "lerna run watch",
+    "build": "lerna run build",
+    "clean": "lerna clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JosiahWarren/Ethos/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JosiahWarren/Ethos/issues"
+  },
+  "homepage": "https://github.com/JosiahWarren/Ethos#readme",
+  "engines": {
+    "node": "^22.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.6",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "commitizen": "^4.3.1",
+    "lefthook": "^1.11.16",
+    "lerna": "^8.2.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "whatwg-url": "^14.0.0"
+    }
+  }
+}
