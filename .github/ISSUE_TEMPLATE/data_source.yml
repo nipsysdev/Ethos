@@ -1,0 +1,103 @@
+name: Data Source Request
+description: Request a new website or data source to be added to Ethos
+title: "[SOURCE] "
+labels: ["data-source", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new data source! Please provide details about the website or source you'd like to see added.
+
+  - type: input
+    id: website
+    attributes:
+      label: Website/Source Name
+      description: What is the name of the website or organization?
+      placeholder: e.g., Electronic Frontier Foundation, ACLU, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Website URL
+      description: What is the main URL of the website?
+      placeholder: https://example.com
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source_type
+    attributes:
+      label: Source Type
+      description: What type of content source is this?
+      options:
+        - News/Blog Articles
+        - RSS Feed
+        - API
+        - Social Media
+        - Government Site
+        - Legal Documents
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevance
+    attributes:
+      label: Digital Rights Relevance
+      description: How is this source relevant to digital rights monitoring?
+      placeholder: Explain why this source would be valuable for tracking digital rights issues
+    validations:
+      required: true
+
+  - type: textarea
+    id: content_examples
+    attributes:
+      label: Content Examples
+      description: What kind of content would we be crawling?
+      placeholder: |
+        - Privacy policy updates
+        - Security breach notifications
+        - Legislative analysis
+        - Court decisions
+    validations:
+      required: true
+
+  - type: input
+    id: listing_page
+    attributes:
+      label: Article Listing Page
+      description: URL of the page that lists articles/posts
+      placeholder: https://example.com/news or https://example.com/blog
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: Technical Notes
+      description: Any technical details about the website structure?
+      placeholder: |
+        - Uses JavaScript for loading content
+        - Has pagination
+        - Requires authentication
+        - Has rate limiting
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this source for digital rights monitoring?
+      options:
+        - Low - Nice to have
+        - Medium - Would be useful
+        - High - Important source
+        - Critical - Essential for monitoring
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information about this source
+      placeholder: Add any other context that might help with implementation
