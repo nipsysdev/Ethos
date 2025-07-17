@@ -1,5 +1,7 @@
 # Contributing to Ethos
 
+Thanks for your interest in contributing to Ethos! Please take a moment to review our [Code of Conduct](./CODE_OF_CONDUCT.md) before getting started.
+
 ## Workflow
 
 1. **Find an issue** - Look for `good first issue` or `help wanted` labels
