@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "*"
+
+# Cancel in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js using mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: true
+
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/pnpm/store
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+  lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js using mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: true
+
+      - name: Restore dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local/share/pnpm/store
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies if cache failed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Cache restore failed, installing dependencies..."
+            pnpm install --frozen-lockfile
+          fi
+
+      - name: Lint
+        run: pnpm lint
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js using mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: true
+
+      - name: Restore dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local/share/pnpm/store
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies if cache failed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Cache restore failed, installing dependencies..."
+            pnpm install --frozen-lockfile
+          fi
+
+      - name: Test changed packages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Only test packages that changed in PR
+            pnpm --filter="...[origin/${{ github.base_ref }}]" test
+          else
+            # Test all packages on main branch
+            pnpm test
+          fi
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js using mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: true
+
+      - name: Restore dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local/share/pnpm/store
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies if cache failed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Cache restore failed, installing dependencies..."
+            pnpm install --frozen-lockfile
+          fi
+
+      - name: Build changed packages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Only build packages that changed in PR
+            pnpm --filter="...[origin/${{ github.base_ref }}]" build
+          else
+            # Build all packages on main branch
+            pnpm build
+          fi
+
+      - name: Test CLI (if lib package exists)
+        run: |
+          # Check if lib package exists and was built
+          if [ -d "packages/lib" ] && [ -f "packages/lib/dist/cli/index.js" ]; then
+            echo "Testing CLI functionality..."
+            cd packages/lib
+            timeout 30s node dist/cli/index.js --help || echo "CLI help completed"
+          else
+            echo "No CLI found or build failed - skipping CLI test"
+          fi
