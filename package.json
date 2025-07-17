@@ -33,11 +33,17 @@
 		"@commitlint/cli": "^19.8.1",
 		"@commitlint/config-conventional": "^19.8.1",
 		"commitizen": "^4.3.1",
+		"cz-conventional-changelog": "^3.3.0",
 		"lefthook": "^1.11.16"
 	},
 	"pnpm": {
 		"overrides": {
 			"whatwg-url": "^14.0.0"
+		}
+	},
+	"config": {
+		"commitizen": {
+			"path": "./node_modules/cz-conventional-changelog"
 		}
 	}
 }
