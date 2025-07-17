@@ -8,22 +8,23 @@
     "format": "biome format --write .",
     "commit": "git-cz",
     "prepare": "lefthook install",
-    "watch": "lerna run watch",
-    "build": "lerna run build",
-    "clean": "lerna clean"
+    "watch": "pnpm -r run watch",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "clean": "pnpm -r run clean"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JosiahWarren/Ethos/"
+    "url": "https://github.com/nipsysdev/Ethos/"
   },
   "keywords": [],
   "author": "",
   "license": "Apache-2.0",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/JosiahWarren/Ethos/issues"
+    "url": "https://github.com/nipsysdev/Ethos/issues"
   },
-  "homepage": "https://github.com/JosiahWarren/Ethos#readme",
+  "homepage": "https://github.com/nipsysdev/Ethos#readme",
   "engines": {
     "node": "^22.0.0"
   },
@@ -32,8 +33,7 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "commitizen": "^4.3.1",
-    "lefthook": "^1.11.16",
-    "lerna": "^8.2.3"
+    "lefthook": "^1.11.16"
   },
   "pnpm": {
     "overrides": {
