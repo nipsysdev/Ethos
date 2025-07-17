@@ -114,7 +114,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # Only test packages that changed in PR
-            pnpm --filter="...[HEAD~1]" test
+            pnpm --filter="...[${{ github.event.pull_request.base.sha }}]" test
           else
             # Test all packages on main branch
             pnpm test
@@ -156,7 +156,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # Only build packages that changed in PR
-            pnpm --filter="...[HEAD~1]" build
+            pnpm --filter="...[${{ github.event.pull_request.base.sha }}]" build
           else
             # Build all packages on main branch
             pnpm build
