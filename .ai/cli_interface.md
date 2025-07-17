@@ -2,13 +2,17 @@
 
 ## Core Commands
 
-````ba## Configuration
+### Configuration
 
 ```bash
 ethos config list             # Show current configuration
 ethos config set <key> <val>  # Set configuration value
 ethos config sources          # Manage source configurations
-```awling
+```
+
+### Crawling
+
+```bash
 ethos crawl <source>           # Crawl specific source
 ethos crawl --all              # Crawl all sources
 
@@ -20,7 +24,7 @@ ethos show <cid>               # Show content by CID
 # Management
 ethos status                   # Storage status and stats
 ethos clean                    # Clean up failed uploads
-````
+```
 
 ## Common Options
 
@@ -50,8 +54,6 @@ ethos config list             # Show current configuration
 ethos config set <key> <val>  # Set configuration value
 ethos config sources          # Manage source configurations
 ```
-
-## Output Formats
 
 ## Output Formats
 
