@@ -1,5 +1,5 @@
+import { join } from "node:path";
 import { Command } from "commander";
-import { join } from "path";
 import {
 	ArticleListingCrawler,
 	CrawlerRegistry,

@@ -1,0 +1,70 @@
+version: 2
+updates:
+  # Main package.json (root level)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+    reviewers:
+      - "nipsysdev"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@*"
+          - "biome"
+          - "lefthook"
+          - "commitizen"
+          - "vitest"
+          - "typescript"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # lib package
+  - package-ecosystem: "npm"
+    directory: "/packages/lib"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(lib)"
+      prefix-development: "deps-dev(lib)"
+    reviewers:
+      - "nipsysdev"
+    groups:
+      lib-dependencies:
+        patterns:
+          - "yaml"
+          - "commander"
+        update-types:
+          - "minor"
+          - "patch"
+      lib-dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "vitest"
+          - "typescript"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    reviewers:
+      - "nipsysdev"
