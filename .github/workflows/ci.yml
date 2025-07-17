@@ -164,7 +164,18 @@ jobs:
           if [ -d "packages/lib" ] && [ -f "packages/lib/dist/cli/index.js" ]; then
             echo "Testing CLI functionality..."
             cd packages/lib
-            timeout 30s node dist/cli/index.js --help || echo "CLI help completed"
+            if timeout 30s node dist/cli/index.js --help; then
+              echo "CLI help completed successfully"
+            else
+              exit_code=$?
+              if [ $exit_code -eq 124 ]; then
+                echo "CLI help timed out after 30 seconds"
+                exit 1
+              else
+                echo "CLI help failed with exit code $exit_code"
+                exit 1
+              fi
+            fi
           else
             echo "No CLI found or build failed - skipping CLI test"
           fi
