@@ -1,37 +1,37 @@
 {
-  "type": "module",
-  "name": "@ethos/lib",
-  "version": "1.0.0",
-  "description": "Core crawling and analysis library for Ethos",
-  "license": "Apache-2.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "cli": "tsc && node dist/cli/index.js"
-  },
-  "dependencies": {
-    "commander": "^14.0.0",
-    "inquirer": "^9.2.12",
-    "puppeteer": "^24.11.2",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-adblocker": "^2.13.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "yaml": "^2.6.1"
-  },
-  "devDependencies": {
-    "@types/inquirer": "^9.0.7",
-    "@types/node": "^24.0.10",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "tsx": "^4.7.0",
-    "vite": "^5.2.0",
-    "vitest": "^3.2.4"
-  }
+	"type": "module",
+	"name": "@ethos/lib",
+	"version": "1.0.0",
+	"description": "Core crawling and analysis library for Ethos",
+	"license": "Apache-2.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc --watch",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:watch": "vitest --watch",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"cli": "tsc && node dist/cli/index.js"
+	},
+	"dependencies": {
+		"commander": "^14.0.0",
+		"inquirer": "^9.2.12",
+		"puppeteer": "^24.11.2",
+		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-adblocker": "^2.13.6",
+		"puppeteer-extra-plugin-stealth": "^2.11.2",
+		"yaml": "^2.6.1"
+	},
+	"devDependencies": {
+		"@types/inquirer": "^9.0.7",
+		"@types/node": "^24.0.10",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.8.3",
+		"tsx": "^4.7.0",
+		"vite": "^5.2.0",
+		"vitest": "^3.2.4"
+	}
 }
