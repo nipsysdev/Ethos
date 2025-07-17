@@ -9,7 +9,9 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest run --watch",
     "lint": "biome check .",
     "format": "biome format --write .",
     "cli": "tsc && node dist/cli/index.js"
