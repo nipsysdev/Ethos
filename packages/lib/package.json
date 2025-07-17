@@ -11,7 +11,7 @@
     "watch": "tsc --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest run --watch",
+    "test:watch": "vitest --watch",
     "lint": "biome check .",
     "format": "biome format --write .",
     "cli": "tsc && node dist/cli/index.js"
