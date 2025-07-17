@@ -56,34 +56,6 @@ updates:
           - "minor"
           - "patch"
 
-  # node package (when it gets created)
-  - package-ecosystem: "npm"
-    directory: "/packages/node"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps(node)"
-      prefix-development: "deps-dev(node)"
-    reviewers:
-      - "nipsysdev"
-
-  # notifier package (when it gets created)
-  - package-ecosystem: "npm"
-    directory: "/packages/notifier"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps(notifier)"
-      prefix-development: "deps-dev(notifier)"
-    reviewers:
-      - "nipsysdev"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
