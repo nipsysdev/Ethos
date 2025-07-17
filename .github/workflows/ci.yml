@@ -169,20 +169,8 @@ jobs:
             echo "Testing CLI functionality..."
             cd packages/lib
             
-            # Use Node.js to handle timeout portably
-            if node -e "
-              const { exec } = require('child_process');
-              const child = exec('node dist/cli/index.js --help');
-              const timeout = setTimeout(() => { 
-                child.kill(); 
-                console.log('CLI help timed out after 30 seconds');
-                process.exit(124); 
-              }, 30000);
-              child.on('exit', (code) => { 
-                clearTimeout(timeout); 
-                process.exit(code); 
-              });
-            "; then
+            # Use our timeout script to test CLI
+            if node ../../.github/scripts/test-cli-timeout.js "node dist/cli/index.js --help"; then
               echo "CLI help completed successfully"
             else
               exit_code=$?
