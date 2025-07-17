@@ -2,57 +2,46 @@
 
 ## Core Commands
 
-### Storage & Crawling
+````ba## Configuration
 
 ```bash
-ethos crawl <source>           # Crawl and store data from source
-ethos crawl --all              # Crawl all configured sources
-ethos store <file>             # Store external data file
-ethos status                   # Show storage status and stats
-```
+ethos config list             # Show current configuration
+ethos config set <key> <val>  # Set configuration value
+ethos config sources          # Manage source configurations
+```awling
+ethos crawl <source>           # Crawl specific source
+ethos crawl --all              # Crawl all sources
 
-### Querying & Analysis
-
-```bash
+# Querying
 ethos query [options]          # Query stored events
-ethos analyze [options]        # Run analysis on stored data
-ethos monitor [options]        # Monitor for critical events
-```
-
-### Data Management
-
-```bash
 ethos list                     # List stored events
 ethos show <cid>               # Show content by CID
+
+# Management
+ethos status                   # Storage status and stats
 ethos clean                    # Clean up failed uploads
-ethos export <format>          # Export data in various formats
-```
+````
 
-## Query Options
-
-```bash
-# Filter by source and time
-ethos query --source eff --since "2024-01-01"
-
-# Apply analysis strategies
-ethos query --analyze sentiment,keywords --output results.json
-
-# Monitor for alerts
-ethos monitor --strategies urgency-detector --threshold 0.8
-```
-
-## Storage Options
+## Common Options
 
 ```bash
-# Crawl with custom analysis
-ethos crawl eff --analyze digital-rights-classifier
+# Crawl options
+ethos crawl eff --max-pages 5 --since "2024-01-01" --parallel 2
 
-# Force re-crawl (skip deduplication)
-ethos crawl eff --force
-
-# Batch crawl with interval
-ethos crawl --all --interval 1h --daemon
+# Query options
+ethos query --source eff --since "2024-01-01" --output results.json
 ```
+
+## Runtime Parameters
+
+- `--max-pages`: Limit pagination depth
+- `--since`: Filter by date
+- `--parallel`: Concurrent processing
+- `--dry-run`: Validate without crawling
+- `--verbose`: Detailed logging
+- `--force`: Force re-crawl without deduplication
+- `--interval`: Batch crawl interval (e.g., 1h, 30m)
+- `--daemon`: Run as background daemon
 
 ## Configuration
 
@@ -61,6 +50,8 @@ ethos config list             # Show current configuration
 ethos config set <key> <val>  # Set configuration value
 ethos config sources          # Manage source configurations
 ```
+
+## Output Formats
 
 ## Output Formats
 

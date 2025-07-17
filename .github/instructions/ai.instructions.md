@@ -8,27 +8,21 @@ applyTo: "**"
 
 **BEFORE doing ANYTHING, you MUST:**
 
-1. **Read ALL applicable `.ai` documentation in this order:**
+1. **Read the applicable `.ai` documentation:**
 
-   - `.ai/project_context.md` - Project overview and development phases
-   - `.ai/library_architecture.md` - Core architecture and patterns
-   - `.ai/storage_architecture.md` - Storage design and migration
-   - `.ai/cli_interface.md` - CLI commands and usage
-   - `.ai/analysis_framework.md` - Data analysis components
-   - `.ai/codex_integration.md` - Codex storage integration (if working with node/notifier)
+   - `.ai/project_context.md` - Current phase and key decisions
+   - `.ai/library_architecture.md` - Core architecture patterns
+   - `.ai/scraping_details.md` - Crawler implementation (if working with crawlers)
+   - `.ai/storage_architecture.md` - Storage patterns (if working with storage)
+   - `.ai/sources.md` - Data sources (if adding/modifying sources)
+   - `.ai/yaml_schema.md` - YAML configuration schemas (if working with configs)
+   - `.ai/cli_interface.md` - CLI commands and usage (if working with CLI)
+   - `.ai/analysis_framework.md` - Analysis strategies (if working with analysis)
 
-2. **Acknowledge understanding by stating:**
-
-   - "After reading .ai/[FILE].md, I understand that..."
-   - Reference specific patterns you'll follow
+2. **Acknowledge understanding** by referencing specific patterns you'll follow
 
 3. **THEN proceed with your task**
 
-## Key Points
+## Key Context
 
-- Ethos is a decentralized digital rights data collection system
-- Uses three-phase pipeline: crawling → storage → analysis
-- Currently in Phase 0 (project setup) of 5 development phases
-- Storage-first architecture with on-demand analysis
-- Migration path: SQLite/JSON → Sepolia/Codex
-- Follow established patterns from the documentation
+Ethos is a decentralized digital rights data collection system. Currently in Phase 1 building YAML-driven crawlers with strict error handling. Follow established patterns from the documentation.

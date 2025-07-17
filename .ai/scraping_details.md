@@ -1,53 +1,70 @@
 # Crawling Implementation
 
-## Architecture
+## Phase 1 Focus: Listing Crawler
 
-Config-driven crawling with two-step pattern: listing page → individual articles
-
-## Primary Crawler: Article Listing
+For paginated sites with item listings → detail pages. Current YAML schema expects detail page configuration.
 
 ```yaml
-sources:
-  - id: "eff"
-    type: "article-listing"
-    listing:
-      url: "https://eff.org/updates"
-      itemSelector: ".views-row"
-      pagination: { type: "load-more", selector: ".pager-next" }
-    extraction:
-      inline: # Data on listing page
-        title: ".views-field-title a"
-        date: ".views-field-created"
-      detail: # Data on article page
-        url: ".views-field-title a@href"
-        title: "h1.page-title"
-        content: ".field-name-body"
-    processingStrategies: ["digital-rights-classifier"]
+type: "listing"
+url: "https://www.eff.org/updates"
+pagination:
+  nextSelector: ".pager-next"
+items:
+  selector: ".views-row"
+  fields:
+    required:
+      detailUrl: ".views-field-title a@href" # Required for detail page extraction
+    optional:
+      title: ".views-field-title a"
+detail:
+  fields:
+    required:
+      title: "h1.page-title"
+      content: ".field-name-body"
+    optional:
+      author: ".field-name-author"
 ```
 
-## Data Structure
+## Future Crawler Types
 
-```typescript
-interface CrawledData {
-  url: string;
-  timestamp: Date;
-  source: string;
-  title: string;
-  content: string;
-  excerpt?: string;
-  author?: string;
-  tags?: string[];
-  metadata: Record<string, unknown>;
-}
+RSS, API, and social media crawlers will be added in future phases.
+
+```yaml
+type: "rss"
+url: "https://ooni.org/blog/feed.xml"
+fields:
+  required:
+    title: "title"
+    content: "content"
+    url: "link"
 ```
 
-## Source Categories
+### API Crawler
 
-- **Search/Filter**: Civicus, Acled, Privacy International, Court Listener, Lumen
-- **News/Updates**: AccessNow, EFF, Torrentfreak, Big Brother Watch
-- **Archives**: Citizenlab, Declassified UK, Freedom Press
-- **Databases**: Crisisgroup, Global Protest Tracker
+```yaml
+type: "api"
+url: "https://api.example.com/data"
+authentication:
+  type: "apikey"
+  key: "${API_KEY}"
+fields:
+  required:
+    title: "title"
+    content: "content"
+```
 
-## Puppeteer Config
+## Error Handling Philosophy
 
-Headless mode, stealth plugins, adblocker, retry logic
+- **Required Fields**: Extraction failure = abort current page/item
+- **Optional Fields**: Missing data = continue extraction
+- **Per-Page Validation**: Errors evaluated at end of each page
+- **Graceful Degradation**: Failed pages logged, crawl continues
+
+## Runtime vs Config
+
+- **YAML Config**: Crawler behavior, selectors, field definitions
+- **Runtime Args**: Execution params (`--max-pages`, `--since`, `--parallel`)
+
+## Validation
+
+Each crawler type has JSON schema validation. CSS selectors use `@` for attributes (`a@href`). XPath supported with `/` prefix.
