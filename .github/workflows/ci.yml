@@ -86,6 +86,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js using mise
         uses: jdx/mise-action@v2
@@ -112,7 +114,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # Only test packages that changed in PR
-            pnpm --filter="...[origin/${{ github.base_ref }}]" test
+            pnpm --filter="...[HEAD~1]" test
           else
             # Test all packages on main branch
             pnpm test
@@ -126,6 +128,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js using mise
         uses: jdx/mise-action@v2
@@ -152,7 +156,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # Only build packages that changed in PR
-            pnpm --filter="...[origin/${{ github.base_ref }}]" build
+            pnpm --filter="...[HEAD~1]" build
           else
             # Build all packages on main branch
             pnpm build
