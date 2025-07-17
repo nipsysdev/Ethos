@@ -168,7 +168,21 @@ jobs:
           if [ -d "packages/lib" ] && [ -f "packages/lib/dist/cli/index.js" ]; then
             echo "Testing CLI functionality..."
             cd packages/lib
-            if timeout 30s node dist/cli/index.js --help; then
+            
+            # Use Node.js to handle timeout portably
+            if node -e "
+              const { exec } = require('child_process');
+              const child = exec('node dist/cli/index.js --help');
+              const timeout = setTimeout(() => { 
+                child.kill(); 
+                console.log('CLI help timed out after 30 seconds');
+                process.exit(124); 
+              }, 30000);
+              child.on('exit', (code) => { 
+                clearTimeout(timeout); 
+                process.exit(code); 
+              });
+            "; then
               echo "CLI help completed successfully"
             else
               exit_code=$?
