@@ -1,30 +1,35 @@
 sources:
-  - id: "test-simple"
-    name: "Test Simple Site"
-    type: "article-listing"
-    listing:
-      url: "https://example.com"
-      itemSelector: "body"
-    extraction:
-      inline:
-        title: "title"
-        content: "body"
-    processingStrategies:
-      - "keyword-extractor"
+  - id: "eff"
+    name: "Electronic Frontier Foundation"
+    type: "listing"
 
-  - id: "torrentfreak"
-    name: "TorrentFreak"
-    type: "article-listing"
     listing:
-      url: "https://torrentfreak.com"
-      itemSelector: "article"
-    extraction:
-      inline:
-        title: "h2 a"
-        content: ".excerpt"
-      detail:
-        url: "h2 a@href"
-        title: "h1"
-        content: ".post-content"
-    processingStrategies:
-      - "keyword-extractor"
+      url: "https://eff.org/updates"
+
+      pagination:
+        next_button_selector: ".pager__item.pager__item--next"
+        current_page_selector: ".pager__item.pager__item--current"
+
+      items:
+        container_selector: ".views-row article.node"
+        fields:
+          title:
+            selector: ".node__title"
+            attribute: "text"
+          url:
+            selector: ".node__title a"
+            attribute: "href"
+          date:
+            selector: ".node-date"
+            attribute: "text"
+          excerpt:
+            selector: ".node__content"
+            attribute: "text"
+          author:
+            selector: ".node-author"
+            attribute: "text"
+            optional: true
+          image:
+            selector: ".teaser-thumbnail img"
+            attribute: "src"
+            optional: true

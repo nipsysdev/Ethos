@@ -1,5 +1,3 @@
-// Core type definitions for the Ethos crawling library
-
 export interface CrawledData {
 	url: string;
 	timestamp: Date;
@@ -8,6 +6,8 @@ export interface CrawledData {
 	content: string;
 	excerpt?: string;
 	author?: string;
+	publishedDate?: string;
+	image?: string;
 	tags?: string[];
 	metadata: Record<string, unknown>;
 }
@@ -25,49 +25,39 @@ export interface ProcessedData extends CrawledData {
 	analysis: AnalysisResult[];
 }
 
-// Source configuration interfaces
-export interface PaginationConfig {
-	type: "load-more" | "numbered" | "infinite-scroll";
+export interface FieldConfig {
 	selector: string;
+	attribute: string;
+	optional?: boolean;
+}
+
+export interface PaginationConfig {
+	next_button_selector?: string;
+	current_page_selector?: string;
 	maxPages?: number;
 }
 
-export interface FilterConfig {
-	dateRange?: {
-		start?: Date;
-		end?: Date;
-	};
-	categories?: string[];
-	keywords?: string[];
+export interface ItemsConfig {
+	container_selector: string;
+	fields: Record<string, FieldConfig>;
 }
 
 export interface ListingConfig {
 	url: string;
-	itemSelector: string;
 	pagination?: PaginationConfig;
-	filters?: FilterConfig;
+	items: ItemsConfig;
 }
 
-export interface ExtractionConfig {
-	inline?: Record<string, string>; // Data available on listing page
-	detail?: Record<string, string>; // Data requiring navigation to article
+export interface DetailConfig {
+	fields: Record<string, FieldConfig>;
 }
 
 export interface SourceConfig {
 	id: string;
 	name: string;
-	type: "article-listing" | "rss" | "api" | "social";
+	type: "listing";
 	listing: ListingConfig;
-	extraction: ExtractionConfig;
-	processingStrategies: string[];
-}
-
-// Strategy and crawler interfaces
-export interface ProcessingStrategy {
-	id: string;
-	name: string;
-	description: string;
-	process(data: CrawledData): Promise<AnalysisResult>;
+	detail?: DetailConfig;
 }
 
 export interface Crawler {
@@ -75,7 +65,6 @@ export interface Crawler {
 	crawl(config: SourceConfig): Promise<CrawledData[]>;
 }
 
-// Registry interfaces
 export interface SourceRegistry {
 	loadSources(): Promise<SourceConfig[]>;
 	getSource(id: string): Promise<SourceConfig | undefined>;
@@ -88,13 +77,6 @@ export interface CrawlerRegistry {
 	getSupportedTypes(): string[];
 }
 
-export interface StrategyRegistry {
-	register(strategy: ProcessingStrategy): void;
-	getStrategy(id: string): ProcessingStrategy | undefined;
-	getAvailableStrategies(): ProcessingStrategy[];
-}
-
-// Error types
 export class CrawlerError extends Error {
 	constructor(
 		message: string,
@@ -103,16 +85,5 @@ export class CrawlerError extends Error {
 	) {
 		super(message);
 		this.name = "CrawlerError";
-	}
-}
-
-export class StrategyError extends Error {
-	constructor(
-		message: string,
-		public strategyId?: string,
-		public originalError?: Error,
-	) {
-		super(message);
-		this.name = "StrategyError";
 	}
 }
