@@ -3,10 +3,9 @@ import { Command } from "commander";
 import {
 	ArticleListingCrawler,
 	CrawlerRegistry,
-	KeywordExtractor,
+	type ProcessedData,
 	ProcessingPipeline,
 	SourceRegistry,
-	StrategyRegistry,
 } from "../index.js";
 
 const inquirer = (await import("inquirer")).default;
@@ -18,18 +17,13 @@ const sourceRegistry = new SourceRegistry(
 	join(process.cwd(), "src", "config", "sources.yaml"),
 );
 const crawlerRegistry = new CrawlerRegistry();
-const strategyRegistry = new StrategyRegistry();
-const pipeline = new ProcessingPipeline(crawlerRegistry, strategyRegistry);
+const pipeline = new ProcessingPipeline(crawlerRegistry);
 
-// Register crawlers and strategies
+// Register crawlers
 crawlerRegistry.register(new ArticleListingCrawler());
-strategyRegistry.register(new KeywordExtractor());
 
 const COMMANDS = [
 	{ name: "crawl", description: "Start crawling a source" },
-	{ name: "analyze", description: "Analyze crawled data" },
-	{ name: "run", description: "Run continuous crawling" },
-	{ name: "config", description: "Manage configuration" },
 	{ name: "exit", description: "Exit the program" },
 ];
 
@@ -61,13 +55,78 @@ async function handleCommand(command: string) {
 		case "crawl":
 			await handleCrawl();
 			break;
-		case "analyze":
-		case "run":
-		case "config":
-			console.log(`${command} command is not yet implemented`);
-			break;
 		default:
 			console.log("Unknown command");
+	}
+}
+
+function displayResults(results: ProcessedData[]) {
+	console.log("Crawl completed successfully!");
+	console.log(`Processed ${results.length} items`);
+
+	// Show detailed information for each item
+	if (results.length > 0) {
+		console.log(`\n${"=".repeat(80)}`);
+		console.log("EXTRACTED ITEMS:");
+		console.log(`${"=".repeat(80)}`);
+
+		results.forEach((item, index) => {
+			console.log(`\n--- Item ${index + 1} of ${results.length} ---`);
+			console.log(`Title: ${item.title}`);
+			console.log(`URL: ${item.url}`);
+			console.log(`Source: ${item.source}`);
+
+			// Show article publication date if available, otherwise crawl timestamp
+			if (item.publishedDate) {
+				try {
+					const parsedDate = new Date(item.publishedDate);
+					if (!Number.isNaN(parsedDate.getTime())) {
+						console.log(
+							`Published: ${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString()}`,
+						);
+					} else {
+						console.log(`Published: ${item.publishedDate}`); // Raw date string if parsing fails
+					}
+				} catch {
+					console.log(`Published: ${item.publishedDate}`); // Raw date string if parsing fails
+				}
+			} else {
+				console.log(
+					`Crawled: ${item.timestamp.toLocaleDateString()} ${item.timestamp.toLocaleTimeString()}`,
+				);
+			}
+
+			if (item.excerpt) {
+				console.log(`Excerpt: ${item.excerpt}`);
+			}
+
+			if (item.author) {
+				console.log(`Author: ${item.author}`);
+			}
+
+			// Show image URL if available
+			if (item.image) {
+				console.log(`Image: ${item.image}`);
+			}
+
+			console.log(`Content: ${item.content}`);
+
+			if (item.tags && item.tags.length > 0) {
+				console.log(`Tags: ${item.tags.join(", ")}`);
+			}
+
+			// Show metadata
+			console.log(`\nMetadata:`);
+			Object.entries(item.metadata).forEach(([key, value]) => {
+				console.log(`  ${key}: ${JSON.stringify(value)}`);
+			});
+
+			if (index < results.length - 1) {
+				console.log(`\n${"-".repeat(40)}`);
+			}
+		});
+
+		console.log(`\n${"=".repeat(80)}`);
 	}
 }
 
@@ -104,20 +163,7 @@ async function handleCrawl() {
 		console.log(`Starting crawl of ${selectedSource.name}...`);
 		const results = await pipeline.process(selectedSource);
 
-		console.log("Crawl completed successfully!");
-		console.log(`Processed ${results.length} items`);
-
-		// Show a summary of the first result
-		if (results.length > 0) {
-			const first = results[0];
-			console.log(`\nFirst item:`);
-			console.log(`Title: ${first.title}`);
-			console.log(`Content length: ${first.content.length} characters`);
-			console.log(
-				`Keywords found: ${first.analysis[0]?.keywords.join(", ") || "none"}`,
-			);
-			console.log(`Relevance score: ${first.analysis[0]?.relevance || 0}`);
-		}
+		displayResults(results);
 	} catch (error) {
 		console.error("Crawl failed:", error);
 	}
@@ -127,14 +173,8 @@ program
 	.name("ethos-crawler")
 	.description("CLI for Ethos crawling library")
 	.version("1.0.0")
-	.command("crawl")
-	.description("Start crawling a source")
 	.action(async () => {
-		await handleCrawl();
+		await showMainMenu();
 	});
-
-program.action(async () => {
-	await showMainMenu();
-});
 
 program.parseAsync(process.argv).catch(console.error);

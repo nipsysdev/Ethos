@@ -11,6 +11,7 @@ applyTo: "**"
 1. **Read the applicable `.ai` documentation:**
 
    - `.ai/project_context.md` - Current phase and key decisions
+   - `.ai/dev_toolkit.md` - Monorepo structure and development tools (pnpm, build commands)
    - `.ai/library_architecture.md` - Core architecture patterns
    - `.ai/scraping_details.md` - Crawler implementation (if working with crawlers)
    - `.ai/storage_architecture.md` - Storage patterns (if working with storage)
