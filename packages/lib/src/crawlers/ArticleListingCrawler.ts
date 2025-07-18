@@ -3,18 +3,18 @@ import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type { CrawledData, Crawler, SourceConfig } from "../core/types.js";
-import { CrawlerError } from "../core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
 
 export class ArticleListingCrawler implements Crawler {
-	type = "listing";
+	type = CRAWLER_TYPES.LISTING;
 
 	async crawl(config: SourceConfig): Promise<CrawledData[]> {
-		if (config.type !== "listing") {
+		if (config.type !== CRAWLER_TYPES.LISTING) {
 			throw new CrawlerError(
-				`Config type must be 'listing' (only supported type in Phase 1)`,
+				`Config type must be '${CRAWLER_TYPES.LISTING}' (only supported type in Phase 1)`,
 				config.id,
 			);
 		}

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { SourceConfig } from "../core/types.js";
-import { CrawlerError } from "../core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 import { ArticleListingCrawler } from "../crawlers/ArticleListingCrawler.js";
 
 describe("ArticleListingCrawler", () => {
 	const validConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: "listing",
+		type: CRAWLER_TYPES.LISTING,
 		listing: {
 			url: "https://httpbin.org/html", // Using a reliable test endpoint
 			items: {
@@ -29,7 +29,7 @@ describe("ArticleListingCrawler", () => {
 
 	it("should have correct type", () => {
 		const crawler = new ArticleListingCrawler();
-		expect(crawler.type).toBe("listing");
+		expect(crawler.type).toBe(CRAWLER_TYPES.LISTING);
 	});
 
 	it("should reject non-listing config types", async () => {
@@ -64,7 +64,7 @@ describe("ArticleListingCrawler", () => {
 		const config: SourceConfig = {
 			id: "test-validation",
 			name: "Test Validation Source",
-			type: "listing",
+			type: CRAWLER_TYPES.LISTING,
 			listing: {
 				url: "https://example.com/articles",
 				items: {

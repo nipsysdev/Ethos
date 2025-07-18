@@ -5,6 +5,7 @@ import type {
 	SourceRegistry as ISourceRegistry,
 	SourceConfig,
 } from "./types.js";
+import { CRAWLER_TYPES } from "./types.js";
 
 export class SourceRegistry implements ISourceRegistry {
 	private sources: Map<string, SourceConfig> = new Map();
@@ -70,9 +71,9 @@ export class SourceRegistry implements ISourceRegistry {
 		if (!s.name || typeof s.name !== "string") {
 			throw new Error(`Source '${s.id}' must have a valid 'name' field`);
 		}
-		if (s.type !== "listing") {
+		if (s.type !== CRAWLER_TYPES.LISTING) {
 			throw new Error(
-				`Source '${s.id}' must have type 'listing' (only supported type in Phase 1)`,
+				`Source '${s.id}' must have type '${CRAWLER_TYPES.LISTING}' (only supported type in Phase 1)`,
 			);
 		}
 		if (!s.listing || typeof s.listing !== "object") {

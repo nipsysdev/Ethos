@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { CrawlerRegistry } from "../core/CrawlerRegistry.js";
 import { ProcessingPipeline } from "../core/ProcessingPipeline.js";
 import type { CrawledData, Crawler, SourceConfig } from "../core/types.js";
-import { CrawlerError } from "../core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 
 describe("ProcessingPipeline", () => {
 	const testConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: "listing",
+		type: CRAWLER_TYPES.LISTING,
 		listing: {
 			url: "https://example.com",
 			items: {
@@ -26,13 +26,13 @@ describe("ProcessingPipeline", () => {
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(CrawlerError);
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
-			"No crawler found for type: listing",
+			`No crawler found for type: ${CRAWLER_TYPES.LISTING}`,
 		);
 	});
 
 	it("should process successful crawl results", async () => {
 		const mockCrawler: Crawler = {
-			type: "listing",
+			type: CRAWLER_TYPES.LISTING,
 			async crawl(): Promise<CrawledData[]> {
 				return [
 					{
@@ -60,7 +60,7 @@ describe("ProcessingPipeline", () => {
 
 	it("should handle crawler errors", async () => {
 		const failingCrawler: Crawler = {
-			type: "listing",
+			type: CRAWLER_TYPES.LISTING,
 			async crawl(): Promise<CrawledData[]> {
 				throw new Error("Network failure");
 			},

@@ -1,3 +1,10 @@
+// Crawler type constants
+export const CRAWLER_TYPES = {
+	LISTING: "listing",
+} as const;
+
+export type CrawlerType = (typeof CRAWLER_TYPES)[keyof typeof CRAWLER_TYPES];
+
 export interface CrawledData {
 	url: string;
 	timestamp: Date;
@@ -55,7 +62,7 @@ export interface DetailConfig {
 export interface SourceConfig {
 	id: string;
 	name: string;
-	type: "listing";
+	type: CrawlerType;
 	listing: ListingConfig;
 	detail?: DetailConfig;
 }

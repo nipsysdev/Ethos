@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SourceRegistry } from "../core/SourceRegistry.js";
+import { CRAWLER_TYPES } from "../core/types.js";
 
 describe("SourceRegistry with new schema", () => {
 	it("should load and validate the new YAML schema format", async () => {
@@ -53,7 +54,7 @@ describe("SourceRegistry with new schema", () => {
 		// Validate that it loaded correctly
 		expect(sources).toHaveLength(1);
 		expect(sources[0].id).toBe("test-eff");
-		expect(sources[0].type).toBe("listing");
+		expect(sources[0].type).toBe(CRAWLER_TYPES.LISTING);
 		expect(sources[0].listing.items.container_selector).toBe(
 			".views-row article.node",
 		);
