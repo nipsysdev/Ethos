@@ -14,9 +14,9 @@
 - SQLite database (metadata + deduplication)
 - JSON files (content storage)
 
-**Future (Not Planned Yet):**
+**Future:**
 
-- Sepolia smart contract (coordination + metadata)
+- Smart contract (coordination + metadata)
 - Codex storage (decentralized content)
 
 ## Storage Flow

@@ -6,10 +6,6 @@ Decentralized data collection system for digital rights monitoring. Part of the 
 
 Ethos is a decentralized system to collect and analyze digital rights data from across the web. Think of it as a distributed monitoring and data collection network for digital rights issues - tracking censorship, surveillance, policy changes, and advocacy efforts from organizations worldwide.
 
-## The Vision
-
-Digital rights advocacy happens in silos. Organizations like EFF, Privacy International, and AccessNow all publish important updates, but there's no unified way to monitor, analyze, and access this information.
-
 ## Current Status
 
 We implemented a proof of concept and are now working on the actual crawling foundation - building production-ready YAML-driven crawlers that can reliably extract data from digital rights organizations' websites.
@@ -39,69 +35,25 @@ We implemented a proof of concept and are now working on the actual crawling fou
 
 Building production-ready crawlers for "listing" type sources with strict error handling.
 
-**Key Features:**
+### Phase 2: Simulated Storage
 
-- YAML-driven crawler configuration
-- Support for listing sources (paginated item lists)
-- Current schema expects detail page configuration
-- Runtime parameters separate from config
-- Comprehensive error handling
+Implementing the storage layer with deduplication using SQLite and JSON files, respectively simulating storing data into Smart Contract and Codex.
 
-**Target Sources:**
-
-- EFF Updates (reference implementation)
-- AccessNow
-- TorrentFreak
-- Big Brother Watch
-- Citizenlab
-- Declassified UK
-- Freedom Press
-
-### Phase 2: Simulated Storage (Next)
-
-Implementing the storage layer with deduplication using SQLite and JSON files.
-
-**Planned Features:**
-
-- SQLite database for metadata and deduplication
-- JSON files for content storage
-- Content-addressed deduplication
-- Fast query interfaces for research
-
-### Phase 3: CLI Interface (Future)
+### Phase 3: CLI Interface
 
 Creating a comprehensive command-line interface for the system.
 
-**Planned Features:**
-
-- User-friendly commands for crawling and querying
-- Interactive configuration management
-- Batch processing capabilities
-- Export and reporting tools
-
-### Phase 4: Analysis (Future)
+### Phase 4: Analysis
 
 On-demand analysis system with pluggable strategies.
-
-**Planned Features:**
-
-- Keyword extraction and classification
-- Sentiment analysis and urgency detection
-- Data APIs for consuming projects
-- Historical trend analysis
 
 ## Components
 
 ### [@ethos/lib](./packages/lib/)
 
-The core TypeScript library containing all the logic for crawling, storage access, and analysis. Features:
+The core TypeScript library containing all the logic for crawling, storage access, and analysis.
 
-- Config-driven source management
-- Pluggable crawler implementations
-- Hybrid storage with deduplication
-- On-demand analysis strategies
-
-This library is used by network nodes to perform all operations.
+This library is intended to be used by network nodes to perform all operations.
 
 See the [library README](./packages/lib/README.md) for detailed documentation.
 
@@ -149,22 +101,12 @@ Sources → Crawl → Deduplicate → Store → Query/Analyze → Notify
    pnpm install
    ```
 
-2. **Try the library**:
+2. **Try the library through the CLI**:
 
    ```bash
    cd packages/lib
    pnpm run build
-   node dist/cli/index.js crawl --source eff
-   ```
-
-3. **Check stored data**:
-
-   ```bash
-   # View metadata
-   sqlite3 ~/.ethos/metadata.db "SELECT * FROM events;"
-
-   # View content
-   ls ~/.ethos/content/
+   node dist/cli/index.js
    ```
 
 ## Development
@@ -178,7 +120,7 @@ pnpm run test     # Test all packages
 pnpm run watch    # Watch mode for development
 ```
 
-The system uses local simulation during development with SQLite and JSON files that mirror the production architecture (Sepolia + Codex).
+The system uses local simulation during development with SQLite and JSON files that mirror the production architecture (Smart Contract + Codex).
 
 ## Contributing
 
