@@ -1,6 +1,6 @@
 # @ethos/lib
 
-Core library for the Ethos data collection system. Currently focused on building production-ready YAML-driven crawlers for digital rights organizations.
+Core library for the Ethos data collection system. Currently focused on building production-ready YAML-driven crawlers.
 
 ## What This Library Does
 

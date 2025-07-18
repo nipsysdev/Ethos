@@ -27,7 +27,7 @@ Building production-ready YAML-driven crawlers for "listing" type sources. **Pha
 
 ## Tech Stack
 
-TypeScript, Puppeteer, Commander.js, SQLite → Sepolia, JSON → Codex
+TypeScript, Puppeteer, Commander.js, SQLite → Smart Contract, JSON → Codex
 
 ## Components
 
