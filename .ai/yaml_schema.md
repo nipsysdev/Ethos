@@ -1,79 +1,87 @@
 # YAML Schema and Validation
 
-## Common Fields (All Types)
+## Phase 1 Focus: Listing Crawler Only
+
+Currently only supporting listing crawlers. Other types (RSS, API) will be figured out when we get to implementing them.
+
+## Schema Structure
+
+The YAML config uses a `sources` array with listing crawler configurations:
 
 ```yaml
-id: string # Unique identifier
-name: string # Human-readable name
-type: string # Crawler type: "listing"|"rss"|"api"|"social"
-url: string # Base URL
-settings: # Optional crawler settings
-  delay: number # Delay between requests (ms)
-  retries: number # Retry attempts
+sources:
+  - id: "eff"
+    name: "Electronic Frontier Foundation"
+    type: "listing"
+
+    listing:
+      url: "https://www.eff.org/updates"
+
+      pagination:
+        next_button_selector: "a[href]:contains('NEXT')"
+        current_page_selector: ".pager-current"
+
+      items:
+        container_selector: "article"
+        fields:
+          title:
+            selector: "h3 a"
+            attribute: "text"
+            # required by default
+          url:
+            selector: "h3 a"
+            attribute: "href"
+            # required by default
+          date:
+            selector: ".date"
+            attribute: "text"
+            # required by default
+          author:
+            selector: ".author a"
+            attribute: "text"
+            optional: true # might not be present on all articles
+          excerpt:
+            selector: ".excerpt"
+            attribute: "text"
+            optional: true # might not be present on all articles
+          image:
+            selector: "img"
+            attribute: "src"
+            optional: true # not all articles have images
+
+    detail:
+      fields:
+        content:
+          selector: ".content"
+          attribute: "text"
+          # required - if this fails, the whole detail page fails
 ```
 
-## Type-Specific Schemas
+## Field Configuration
 
-### Listing Crawler
+### Required vs Optional Fields
 
-```yaml
-type: "listing"
-pagination:
-  nextSelector: string # Next button selector
-items:
-  selector: string # Item container selector
-  fields:
-    required:
-      detailUrl: string # Detail page URL (always required)
-    optional:
-      [key]: string # Optional field selectors
-detail:
-  fields:
-    required:
-      [key]: string # Required detail page fields
-    optional:
-      [key]: string # Optional detail page fields
-```
+- **Required fields** (default): If extraction fails, the entire page/item fails
+- **Optional fields**: Add `optional: true` - if extraction fails, continue with null value
 
-### RSS Crawler
+### Field Structure
 
-```yaml
-type: "rss"
-fields:
-  required:
-    title: string # Title field name
-    content: string # Content field name
-    url: string # URL field name
-  optional:
-    [key]: string # Optional field mapping
-```
+Each field has:
 
-### API Crawler
-
-```yaml
-type: "api"
-authentication:              # Optional
-  type: "apikey"|"bearer"|"basic"
-  key: string                # For apikey/bearer
-parameters:                  # Optional request params
-  [key]: string|number|boolean
-fields:
-  required:
-    title: string            # Title field path
-    content: string          # Content field path
-    url: string              # URL field path
-  optional:
-    [key]: string            # Optional field paths
-```
+- `selector`: CSS selector to find the element
+- `attribute`: What to extract (`text`, `href`, `src`, etc.)
+- `optional`: Whether field is optional (defaults to false/required)
 
 ## Validation Rules
 
-- **Listing**: Must have `items.selector`, `items.fields.required.detailUrl`, `detail.fields.required`
-- **RSS**: Must have `fields.required.title`, `fields.required.content`, `fields.required.url`
-- **API**: Must have `fields.required.title`, `fields.required.content`, `fields.required.url`
+- Must have `id`, `name`, `type: "listing"`
+- Must have `listing.url`
+- Must have `listing.items.container_selector`
+- Must have at least one item field
+- Must have `detail.fields` with at least one field
 
 ## Selector Format
 
 - CSS selectors: `.class`, `#id`, `element`
-- Attribute extraction: `a@href`, `img@src`
-- XPath selectors: `/xpath/expression`
+- Pseudo-selectors: `:contains('text')`
+- Attribute extraction via `attribute` field
