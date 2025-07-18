@@ -77,16 +77,11 @@ export class ArticleListingCrawler implements Crawler {
 							item[fieldName] = value;
 						} else if (!fieldConfig.optional) {
 							hasRequiredFields = false;
-							console.warn(`Required field '${fieldName}' missing in item`);
 							break;
 						}
-					} catch (error) {
+					} catch {
 						if (!fieldConfig.optional) {
 							hasRequiredFields = false;
-							console.warn(
-								`Failed to extract required field '${fieldName}':`,
-								error,
-							);
 							break;
 						}
 					}
