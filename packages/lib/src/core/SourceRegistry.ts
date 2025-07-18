@@ -70,23 +70,40 @@ export class SourceRegistry implements ISourceRegistry {
 		if (!s.name || typeof s.name !== "string") {
 			throw new Error(`Source '${s.id}' must have a valid 'name' field`);
 		}
-		if (
-			!s.type ||
-			!["article-listing", "rss", "api", "social"].includes(s.type as string)
-		) {
-			throw new Error(`Source '${s.id}' must have a valid 'type' field`);
+		if (s.type !== "listing") {
+			throw new Error(
+				`Source '${s.id}' must have type 'listing' (only supported type in Phase 1)`,
+			);
 		}
 		if (!s.listing || typeof s.listing !== "object") {
 			throw new Error(
 				`Source '${s.id}' must have a valid 'listing' configuration`,
 			);
 		}
-		if (!s.extraction || typeof s.extraction !== "object") {
-			throw new Error(`Source '${s.id}' must have extraction configuration`);
+
+		// Validate listing configuration structure
+		const listing = s.listing as Record<string, unknown>;
+		if (!listing.url || typeof listing.url !== "string") {
+			throw new Error(`Source '${s.id}' listing must have a valid 'url' field`);
 		}
-		if (!Array.isArray(s.processingStrategies)) {
+		if (!listing.items || typeof listing.items !== "object") {
 			throw new Error(
-				`Source '${s.id}' must have a 'processingStrategies' array`,
+				`Source '${s.id}' listing must have an 'items' configuration`,
+			);
+		}
+
+		const items = listing.items as Record<string, unknown>;
+		if (
+			!items.container_selector ||
+			typeof items.container_selector !== "string"
+		) {
+			throw new Error(
+				`Source '${s.id}' items must have a 'container_selector' field`,
+			);
+		}
+		if (!items.fields || typeof items.fields !== "object") {
+			throw new Error(
+				`Source '${s.id}' items must have a 'fields' configuration`,
 			);
 		}
 	}

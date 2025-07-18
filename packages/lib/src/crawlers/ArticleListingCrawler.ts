@@ -9,11 +9,14 @@ puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
 
 export class ArticleListingCrawler implements Crawler {
-	type = "article-listing";
+	type = "listing";
 
 	async crawl(config: SourceConfig): Promise<CrawledData[]> {
-		if (config.type !== "article-listing") {
-			throw new CrawlerError(`Invalid config type: ${config.type}`, config.id);
+		if (config.type !== "listing") {
+			throw new CrawlerError(
+				`Config type must be 'listing' (only supported type in Phase 1)`,
+				config.id,
+			);
 		}
 
 		const browser = await puppeteer.launch({
@@ -25,24 +28,10 @@ export class ArticleListingCrawler implements Crawler {
 			const page = await browser.newPage();
 			await page.goto(config.listing.url, { waitUntil: "networkidle2" });
 
-			// Extract item URLs from the listing page
-			const itemUrls = await this.extractItemUrls(page, config);
-			console.log(`Found ${itemUrls.length} items to process`);
+			const items = await this.extractItemsFromListing(page, config);
+			console.log(`Found ${items.length} items to process`);
 
-			const results: CrawledData[] = [];
-
-			// Process each item
-			for (const itemUrl of itemUrls) {
-				try {
-					const itemData = await this.extractItemData(page, itemUrl, config);
-					results.push(itemData);
-				} catch (error) {
-					console.error(`Failed to extract item from ${itemUrl}:`, error);
-					// Continue with other items
-				}
-			}
-
-			return results;
+			return items;
 		} catch (error) {
 			throw new CrawlerError(
 				`Failed to crawl ${config.name}`,
@@ -54,74 +43,81 @@ export class ArticleListingCrawler implements Crawler {
 		}
 	}
 
-	private async extractItemUrls(
+	private async extractItemsFromListing(
 		page: Page,
 		config: SourceConfig,
-	): Promise<string[]> {
-		// Extract URLs from the listing page
-		const urls = await page.evaluate((selector: string) => {
-			const elements = document.querySelectorAll(selector);
-			const urls: string[] = [];
+	): Promise<CrawledData[]> {
+		// Extract all items using the container selector
+		const items = await page.evaluate((itemsConfig) => {
+			const containers = document.querySelectorAll(
+				itemsConfig.container_selector,
+			);
+			const results: Record<string, string | null>[] = [];
 
-			elements.forEach((el) => {
-				const link = el.querySelector("a");
-				if (link?.href) {
-					urls.push(link.href);
+			containers.forEach((container) => {
+				const item: Record<string, string | null> = {};
+				let hasRequiredFields = true;
+
+				for (const [fieldName, fieldConfig] of Object.entries(
+					itemsConfig.fields,
+				)) {
+					try {
+						const element = container.querySelector(fieldConfig.selector);
+						let value: string | null = null;
+
+						if (element) {
+							if (fieldConfig.attribute === "text") {
+								value = element.textContent?.trim() || null;
+							} else {
+								value = element.getAttribute(fieldConfig.attribute);
+							}
+						}
+
+						if (value) {
+							item[fieldName] = value;
+						} else if (!fieldConfig.optional) {
+							hasRequiredFields = false;
+							console.warn(`Required field '${fieldName}' missing in item`);
+							break;
+						}
+					} catch (error) {
+						if (!fieldConfig.optional) {
+							hasRequiredFields = false;
+							console.warn(
+								`Failed to extract required field '${fieldName}':`,
+								error,
+							);
+							break;
+						}
+					}
+				}
+
+				if (hasRequiredFields && Object.keys(item).length > 0) {
+					results.push(item);
 				}
 			});
 
-			return urls;
-		}, config.listing.itemSelector);
+			return results;
+		}, config.listing.items);
 
-		return urls;
-	}
-
-	private async extractItemData(
-		page: Page,
-		itemUrl: string,
-		config: SourceConfig,
-	): Promise<CrawledData> {
-		// Navigate to the item page if we need detail extraction
-		if (config.extraction.detail) {
-			await page.goto(itemUrl, { waitUntil: "networkidle2" });
-		}
-
-		// Extract data based on config
-		const extractedData = await page.evaluate((detailConfig) => {
-			const data: Record<string, string> = {};
-
-			// Extract detail data (from article page)
-			if (detailConfig) {
-				for (const [key, selector] of Object.entries(detailConfig)) {
-					if (key === "url") continue; // URL is already known
-
-					const element = document.querySelector(selector);
-					if (element) {
-						data[key] = element.textContent?.trim() || "";
-					}
-				}
-			}
-
-			return data;
-		}, config.extraction.detail);
-
-		// Build the final result
-		const result = extractedData as Record<string, string>;
-		return {
-			url: itemUrl,
+		const crawledItems: CrawledData[] = items.map((item) => ({
+			url: item.url || "",
 			timestamp: new Date(),
 			source: config.id,
-			title: result.title || "",
-			content: result.content || "",
-			excerpt: result.excerpt,
-			author: result.author,
-			tags: result.tags
-				? result.tags.split(",").map((t: string) => t.trim())
-				: [],
+			title: item.title || "",
+			content: item.excerpt || "",
+			excerpt: item.excerpt || undefined,
+			author: item.author || undefined,
+			publishedDate: item.date || undefined,
+			image: item.image || undefined,
+			tags: [],
 			metadata: {
 				crawlerType: this.type,
 				configId: config.id,
+				extractedFields: Object.keys(item),
 			},
-		};
+		}));
+
+		return crawledItems;
 	}
 }
