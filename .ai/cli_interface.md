@@ -2,57 +2,50 @@
 
 ## Core Commands
 
-### Storage & Crawling
+### Configuration
 
 ```bash
-ethos crawl <source>           # Crawl and store data from source
-ethos crawl --all              # Crawl all configured sources
-ethos store <file>             # Store external data file
-ethos status                   # Show storage status and stats
+ethos config list             # Show current configuration
+ethos config set <key> <val>  # Set configuration value
+ethos config sources          # Manage source configurations
 ```
 
-### Querying & Analysis
+### Crawling
 
 ```bash
+ethos crawl <source>           # Crawl specific source
+ethos crawl --all              # Crawl all sources
+
+# Querying
 ethos query [options]          # Query stored events
-ethos analyze [options]        # Run analysis on stored data
-ethos monitor [options]        # Monitor for critical events
-```
-
-### Data Management
-
-```bash
 ethos list                     # List stored events
 ethos show <cid>               # Show content by CID
+
+# Management
+ethos status                   # Storage status and stats
 ethos clean                    # Clean up failed uploads
-ethos export <format>          # Export data in various formats
 ```
 
-## Query Options
+## Common Options
 
 ```bash
-# Filter by source and time
-ethos query --source eff --since "2024-01-01"
+# Crawl options
+ethos crawl eff --max-pages 5 --since "2024-01-01" --parallel 2
 
-# Apply analysis strategies
-ethos query --analyze sentiment,keywords --output results.json
-
-# Monitor for alerts
-ethos monitor --strategies urgency-detector --threshold 0.8
+# Query options
+ethos query --source eff --since "2024-01-01" --output results.json
 ```
 
-## Storage Options
+## Runtime Parameters
 
-```bash
-# Crawl with custom analysis
-ethos crawl eff --analyze digital-rights-classifier
-
-# Force re-crawl (skip deduplication)
-ethos crawl eff --force
-
-# Batch crawl with interval
-ethos crawl --all --interval 1h --daemon
-```
+- `--max-pages`: Limit pagination depth
+- `--since`: Filter by date
+- `--parallel`: Concurrent processing
+- `--dry-run`: Validate without crawling
+- `--verbose`: Detailed logging
+- `--force`: Force re-crawl without deduplication
+- `--interval`: Batch crawl interval (e.g., 1h, 30m)
+- `--daemon`: Run as background daemon
 
 ## Configuration
 

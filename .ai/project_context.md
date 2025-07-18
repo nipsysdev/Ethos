@@ -2,61 +2,37 @@
 
 ## Overview
 
-Ethos is a decentralized data collection system for digital rights monitoring. It uses a three-phase pipeline: crawling, structured storage with deduplication, and on-demand analysis.
+Ethos is a decentralized digital rights data collection system. Four-phase pipeline: crawling → storage → CLI → analysis.
 
-## Components
+**Development phases tackle each part of the pipeline separately:**
 
-- **Library**: Core crawling/analysis logic with CLI and storage layer
-- **Node**: Uses library + Waku/Codex integration for decentralized operation
-- **Notifier**: Alert system for critical events and research notifications
+- Phase 1: Crawling (current)
+- Phase 2: Simulated Storage (SQLite + JSON files)
+- Phase 3: CLI Interface (comprehensive command-line interface)
+- Phase 4: Analysis
+- Future: Decentralized storage (not planned yet)
+
+## Current Phase: Phase 1 - Robust Crawler Foundation
+
+Building production-ready YAML-driven crawlers for "listing" type sources. **Phase 1 focuses solely on the crawling part of the pipeline.**
+
+**Key Architecture Decisions:**
+
+- YAML schema for listing crawlers (paginated item lists → detail pages)
+- Strict error handling: required fields abort page, optional fields continue
+- Current schema expects detail page configuration
+- Runtime args separate from YAML config
+
+**Reference Implementation:** EFF updates page (https://www.eff.org/updates)
 
 ## Tech Stack
 
-TypeScript, Puppeteer, Commander.js, SQLite, Waku, Codex, Solidity
+TypeScript, Puppeteer, Commander.js, SQLite → Sepolia, JSON → Codex
 
-## Architecture
+## Components
 
-Three-phase pipeline with hybrid storage:
+- **Library**: TypeScript library containing ALL core logic (crawling, storage access, analysis)
+- **Node**: Uses library for continuous operations + Waku communication with clients
+- **Notifier**: Client apps (Discord bots, research UIs) that request services from nodes via Waku
 
-- **Crawling**: Config-driven with pluggable strategies
-- **Storage**: Smart contract coordination + decentralized content storage
-- **Analysis**: On-demand processing for queries and notifications
-
-The system is designed for eventual migration from local development (SQLite + JSON) to decentralized production (Sepolia + Codex).
-
-## Development Phases
-
-### Phase 0: Project Setup & Documentation
-
-- GitHub project setup and workflows
-- Issue templates and contributor guidelines
-- Documentation foundation (AI knowledge base + human docs)
-- Developer tooling (linting, hooks, CI)
-
-### Phase 1: Robust Crawler Foundation
-
-- Production-ready ArticleListingCrawler
-- Real source implementation (starting with EFF)
-- Error handling, retries, and rate limiting
-- Comprehensive logging and monitoring
-
-### Phase 2: Storage Layer Implementation
-
-- LocalMetadataStore (SQLite) for fast queries
-- LocalContentStore (JSON) for content-addressed storage
-- Deduplication logic and status tracking
-- Query interfaces and basic search
-
-### Phase 3: CLI Interface
-
-- Core commands (crawl, query, status, monitor)
-- Interactive features and progress indicators
-- Export capabilities and configuration management
-- Batch processing support
-
-### Phase 4: Analysis Framework
-
-- Pluggable analysis strategy system
-- Core strategies (keyword extraction, classification, urgency detection)
-- Confidence scoring and metadata enrichment
-- Strategy registration and batch analysis
+**Architecture flow:** Client Apps ↔ Waku ↔ Network Nodes ↔ Library (core logic)
