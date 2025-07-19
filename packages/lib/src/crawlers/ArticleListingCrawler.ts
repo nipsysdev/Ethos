@@ -95,9 +95,11 @@ export class ArticleListingCrawler implements Crawler {
 				for (const [fieldName, fieldConfig] of Object.entries(
 					itemsConfig.fields,
 				)) {
+					let success = false;
+					let value: string | null = null;
+
 					try {
 						const element = container.querySelector(fieldConfig.selector);
-						let value: string | null = null;
 
 						if (element) {
 							if (fieldConfig.attribute === "text") {
@@ -107,19 +109,17 @@ export class ArticleListingCrawler implements Crawler {
 							}
 						}
 
-						const success = value !== null && value !== "";
-						fieldResults[fieldName] = { success, value };
-
-						if (success) {
-							item[fieldName] = value;
-						} else if (!fieldConfig.optional) {
-							hasRequiredFields = false;
-						}
+						success = value !== null && value !== "";
 					} catch {
-						fieldResults[fieldName] = { success: false, value: null };
-						if (!fieldConfig.optional) {
-							hasRequiredFields = false;
-						}
+						// Field extraction failed - success remains false, value remains null
+					}
+
+					fieldResults[fieldName] = { success, value };
+
+					if (success) {
+						item[fieldName] = value;
+					} else if (!fieldConfig.optional) {
+						hasRequiredFields = false;
 					}
 				}
 
