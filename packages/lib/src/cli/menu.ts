@@ -1,8 +1,6 @@
 import type { ProcessingPipeline, SourceRegistry } from "../index.js";
 import { handleCrawl } from "./commands/crawl.js";
 
-const inquirer = (await import("inquirer")).default;
-
 interface Command {
 	name: string;
 	description: string;
@@ -17,6 +15,8 @@ export async function showMainMenu(
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<void> {
+	const inquirer = (await import("inquirer")).default;
+
 	while (true) {
 		const { command } = await inquirer.prompt([
 			{

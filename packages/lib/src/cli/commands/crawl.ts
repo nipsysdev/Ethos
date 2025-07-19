@@ -2,12 +2,12 @@ import ora from "ora";
 import type { ProcessingPipeline, SourceRegistry } from "../../index.js";
 import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
 
-const inquirer = (await import("inquirer")).default;
-
 export async function handleCrawl(
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
+	const inquirer = (await import("inquirer")).default;
+
 	try {
 		// Load available sources
 		const sources = await sourceRegistry.getAllSources();

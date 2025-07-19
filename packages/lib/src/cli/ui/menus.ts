@@ -1,8 +1,8 @@
-const inquirer = (await import("inquirer")).default;
-
 export async function showPostCrawlMenu(): Promise<
 	"main" | "crawl" | "exit" | "view"
 > {
+	const inquirer = (await import("inquirer")).default;
+
 	const choices = [
 		{ name: "View extracted data", value: "view" },
 		{ name: "Crawl another source", value: "crawl" },
