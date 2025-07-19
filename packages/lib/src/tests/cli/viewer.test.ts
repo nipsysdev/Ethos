@@ -71,7 +71,6 @@ describe("Data Viewer", () => {
 		const result = createMockResult();
 
 		// Mock successful less process
-		// Mock successful less process
 		const mockLessProcess = {
 			on: vi.fn((event, callback) => {
 				if (event === "close") {
