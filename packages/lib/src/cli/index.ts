@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { Command } from "commander";
+import ora from "ora";
 import {
 	ArticleListingCrawler,
 	CrawlerRegistry,
@@ -66,8 +67,7 @@ function displayResults(result: ProcessingResult) {
 	const duration =
 		(summary.endTime.getTime() - summary.startTime.getTime()) / 1000;
 
-	// Header
-	console.log("✅ Crawl completed successfully!");
+	// Summary stats
 	console.log("📊 Summary:");
 	console.log(`   • Source: ${summary.sourceName} (${summary.sourceId})`);
 	console.log(`   • Items found: ${summary.itemsFound}`);
@@ -146,9 +146,16 @@ async function handleCrawl() {
 			return;
 		}
 
-		const result = await pipeline.process(selectedSource);
+		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
 
-		displayResults(result);
+		try {
+			const result = await pipeline.process(selectedSource);
+			spinner.succeed("Crawl completed successfully!");
+			displayResults(result);
+		} catch (error) {
+			spinner.fail("Crawl failed");
+			console.error("Error:", error);
+		}
 	} catch (error) {
 		console.error("Crawl failed:", error);
 	}

@@ -23,7 +23,6 @@ export class ProcessingPipeline {
 			);
 		}
 
-		console.log(`Starting crawl of ${config.name}...`);
 		const result = await crawler.crawl(config);
 
 		const processedData = result.data.map((data) => ({
