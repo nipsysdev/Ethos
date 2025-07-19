@@ -13,6 +13,28 @@ function cleanupTempFile(filePath: string): void {
 	}
 }
 
+async function handleLessProcess(
+	less: ReturnType<typeof spawn>,
+	formattedData: string,
+): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		less.on("close", (code) => {
+			if (code === 0) {
+				resolve();
+			} else {
+				reject(new Error(`less exited with code ${code}`));
+			}
+		});
+
+		less.on("error", (err) => {
+			console.error("Error opening less viewer:", err.message);
+			console.log("Displaying data directly:");
+			console.log(formattedData);
+			resolve();
+		});
+	});
+}
+
 export async function showExtractedData(
 	result: ProcessingResult,
 ): Promise<void> {
@@ -37,22 +59,7 @@ export async function showExtractedData(
 			stdio: "inherit",
 		});
 
-		await new Promise<void>((resolve, reject) => {
-			less.on("close", (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(new Error(`less exited with code ${code}`));
-				}
-			});
-
-			less.on("error", (err) => {
-				console.error("Error opening less viewer:", err.message);
-				console.log("Displaying data directly:");
-				console.log(formattedData);
-				resolve();
-			});
-		});
+		await handleLessProcess(less, formattedData);
 	} catch (error) {
 		console.error(
 			"Could not create temp file:",

@@ -72,6 +72,7 @@ export class ArticleListingCrawler implements Crawler {
 		}));
 
 		// Extract all items using the container selector
+		// Note: The function below runs in the browser context and must be self-contained
 		const extractionResult = await page.evaluate((itemsConfig) => {
 			const containers = document.querySelectorAll(
 				itemsConfig.container_selector,
