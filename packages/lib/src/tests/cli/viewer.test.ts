@@ -22,8 +22,9 @@ const mockSpawn = vi.mocked((await import("node:child_process")).spawn);
 const mockWriteFileSync = vi.mocked((await import("node:fs")).writeFileSync);
 const mockUnlinkSync = vi.mocked((await import("node:fs")).unlinkSync);
 
-// Mock console.log
+// Mock console.log and console.error
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
+const mockError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 describe("Data Viewer", () => {
 	beforeEach(() => {
@@ -120,9 +121,11 @@ describe("Data Viewer", () => {
 
 		await showExtractedData(result);
 
-		expect(mockLog).toHaveBeenCalledWith(
-			"Could not open less viewer. Displaying data directly:",
+		expect(mockError).toHaveBeenCalledWith(
+			"Error opening less viewer:",
+			"less not found",
 		);
+		expect(mockLog).toHaveBeenCalledWith("Displaying data directly:");
 		expect(mockLog).toHaveBeenCalledWith(
 			expect.stringContaining("EXTRACTED DATA - Test Source"),
 		);
@@ -157,9 +160,11 @@ describe("Data Viewer", () => {
 
 		await showExtractedData(result);
 
-		expect(mockLog).toHaveBeenCalledWith(
-			"Could not create temp file. Displaying data directly:",
+		expect(mockError).toHaveBeenCalledWith(
+			"Could not create temp file:",
+			"Permission denied",
 		);
+		expect(mockLog).toHaveBeenCalledWith("Displaying data directly:");
 		expect(mockLog).toHaveBeenCalledWith(
 			expect.stringContaining("EXTRACTED DATA - Test Source"),
 		);

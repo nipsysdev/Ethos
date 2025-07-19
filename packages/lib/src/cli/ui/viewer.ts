@@ -38,14 +38,19 @@ export async function showExtractedData(
 				}
 			});
 
-			less.on("error", (_err) => {
-				console.log("Could not open less viewer. Displaying data directly:");
+			less.on("error", (err) => {
+				console.error("Error opening less viewer:", err.message);
+				console.log("Displaying data directly:");
 				console.log(formattedData);
 				resolve();
 			});
 		});
-	} catch (_error) {
-		console.log("Could not create temp file. Displaying data directly:");
+	} catch (error) {
+		console.error(
+			"Could not create temp file:",
+			error instanceof Error ? error.message : error,
+		);
+		console.log("Displaying data directly:");
 		console.log(formattedData);
 	} finally {
 		// Clean up temp file
