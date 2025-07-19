@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CrawlerRegistry } from "../core/CrawlerRegistry.js";
 import { ProcessingPipeline } from "../core/ProcessingPipeline.js";
-import type { CrawledData, Crawler, SourceConfig } from "../core/types.js";
+import type { Crawler, CrawlResult, SourceConfig } from "../core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 
 describe("ProcessingPipeline", () => {
@@ -33,17 +33,30 @@ describe("ProcessingPipeline", () => {
 	it("should process successful crawl results", async () => {
 		const mockCrawler: Crawler = {
 			type: CRAWLER_TYPES.LISTING,
-			async crawl(): Promise<CrawledData[]> {
-				return [
-					{
-						url: "https://example.com/1",
-						timestamp: new Date(),
-						source: "test",
-						title: "Test Article",
-						content: "Test content",
-						metadata: {},
+			async crawl(): Promise<CrawlResult> {
+				return {
+					data: [
+						{
+							url: "https://example.com/1",
+							timestamp: new Date(),
+							source: "test",
+							title: "Test Article",
+							content: "Test content",
+							metadata: {},
+						},
+					],
+					summary: {
+						sourceId: "test",
+						sourceName: "Test Source",
+						itemsFound: 1,
+						itemsProcessed: 1,
+						itemsWithErrors: 0,
+						fieldStats: [],
+						errors: [],
+						startTime: new Date(),
+						endTime: new Date(),
 					},
-				];
+				};
 			},
 		};
 
@@ -51,17 +64,18 @@ describe("ProcessingPipeline", () => {
 		registry.register(mockCrawler);
 		const pipeline = new ProcessingPipeline(registry);
 
-		const results = await pipeline.process(testConfig);
+		const result = await pipeline.process(testConfig);
 
-		expect(results).toHaveLength(1);
-		expect(results[0].title).toBe("Test Article");
-		expect(results[0].analysis).toEqual([]);
+		expect(result.data).toHaveLength(1);
+		expect(result.data[0].title).toBe("Test Article");
+		expect(result.data[0].analysis).toEqual([]);
+		expect(result.summary.itemsProcessed).toBe(1);
 	});
 
 	it("should handle crawler errors", async () => {
 		const failingCrawler: Crawler = {
 			type: CRAWLER_TYPES.LISTING,
-			async crawl(): Promise<CrawledData[]> {
+			async crawl(): Promise<CrawlResult> {
 				throw new Error("Network failure");
 			},
 		};

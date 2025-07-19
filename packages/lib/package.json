@@ -12,13 +12,14 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest --watch",
-		"lint": "biome check .",
-		"format": "biome format --write .",
+		"lint": "biome check src/",
+		"format": "biome format --write src/",
 		"cli": "tsc && node dist/cli/index.js"
 	},
 	"dependencies": {
 		"commander": "^14.0.0",
 		"inquirer": "^9.2.12",
+		"ora": "^8.2.0",
 		"puppeteer": "^24.11.2",
 		"puppeteer-extra": "^3.3.6",
 		"puppeteer-extra-plugin-adblocker": "^2.13.6",
