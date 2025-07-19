@@ -67,9 +67,14 @@ export interface SourceConfig {
 	detail?: DetailConfig;
 }
 
+export interface CrawlResult {
+	data: CrawledData[];
+	summary: CrawlSummary;
+}
+
 export interface Crawler {
 	type: string;
-	crawl(config: SourceConfig): Promise<CrawledData[]>;
+	crawl(config: SourceConfig): Promise<CrawlResult>;
 }
 
 export interface SourceRegistry {
@@ -93,4 +98,24 @@ export class CrawlerError extends Error {
 		super(message);
 		this.name = "CrawlerError";
 	}
+}
+
+export interface FieldExtractionStats {
+	fieldName: string;
+	successCount: number;
+	totalAttempts: number;
+	isOptional: boolean;
+	missingItems: number[];
+}
+
+export interface CrawlSummary {
+	sourceId: string;
+	sourceName: string;
+	itemsFound: number;
+	itemsProcessed: number;
+	itemsWithErrors: number;
+	fieldStats: FieldExtractionStats[];
+	errors: string[];
+	startTime: Date;
+	endTime: Date;
 }

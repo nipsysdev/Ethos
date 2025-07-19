@@ -3,8 +3,9 @@ import { Command } from "commander";
 import {
 	ArticleListingCrawler,
 	CrawlerRegistry,
-	type ProcessedData,
+	type FieldExtractionStats,
 	ProcessingPipeline,
+	type ProcessingResult,
 	SourceRegistry,
 } from "../index.js";
 
@@ -60,74 +61,59 @@ async function handleCommand(command: string) {
 	}
 }
 
-function displayResults(results: ProcessedData[]) {
-	console.log("Crawl completed successfully!");
-	console.log(`Processed ${results.length} items`);
+function displayResults(result: ProcessingResult) {
+	const { summary } = result;
+	const duration =
+		(summary.endTime.getTime() - summary.startTime.getTime()) / 1000;
 
-	// Show detailed information for each item
-	if (results.length > 0) {
-		console.log(`\n${"=".repeat(80)}`);
-		console.log("EXTRACTED ITEMS:");
-		console.log(`${"=".repeat(80)}`);
+	// Header
+	console.log("✅ Crawl completed successfully!");
+	console.log("📊 Summary:");
+	console.log(`   • Source: ${summary.sourceName} (${summary.sourceId})`);
+	console.log(`   • Items found: ${summary.itemsFound}`);
+	console.log(`   • Items successfully processed: ${summary.itemsProcessed}`);
 
-		results.forEach((item, index) => {
-			console.log(`\n--- Item ${index + 1} of ${results.length} ---`);
-			console.log(`Title: ${item.title}`);
-			console.log(`URL: ${item.url}`);
-			console.log(`Source: ${item.source}`);
+	if (summary.itemsWithErrors > 0) {
+		console.log(`   • Items with errors: ${summary.itemsWithErrors}`);
+	}
 
-			// Show article publication date if available, otherwise crawl timestamp
-			if (item.publishedDate) {
-				try {
-					const parsedDate = new Date(item.publishedDate);
-					if (!Number.isNaN(parsedDate.getTime())) {
-						console.log(
-							`Published: ${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString()}`,
-						);
-					} else {
-						console.log(`Published: ${item.publishedDate}`); // Raw date string if parsing fails
-					}
-				} catch {
-					console.log(`Published: ${item.publishedDate}`); // Raw date string if parsing fails
-				}
-			} else {
-				console.log(
-					`Crawled: ${item.timestamp.toLocaleDateString()} ${item.timestamp.toLocaleTimeString()}`,
-				);
-			}
+	// Field extraction stats
+	console.log("\n📋 Field extraction stats:");
+	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
+		const percentage =
+			stat.totalAttempts > 0
+				? Math.round((stat.successCount / stat.totalAttempts) * 100)
+				: 0;
+		const optionalLabel = stat.isOptional ? " (optional)" : "";
 
-			if (item.excerpt) {
-				console.log(`Excerpt: ${item.excerpt}`);
-			}
+		console.log(
+			`   • ${stat.fieldName}: ${stat.successCount}/${stat.totalAttempts} (${percentage}%)${optionalLabel}`,
+		);
+	});
 
-			if (item.author) {
-				console.log(`Author: ${item.author}`);
-			}
+	// Only show issues for required fields or actual errors
+	const requiredFieldIssues = summary.fieldStats.filter(
+		(stat: FieldExtractionStats) =>
+			!stat.isOptional && stat.successCount < stat.totalAttempts,
+	);
 
-			// Show image URL if available
-			if (item.image) {
-				console.log(`Image: ${item.image}`);
-			}
+	if (requiredFieldIssues.length > 0 || summary.errors.length > 0) {
+		console.log("\n⚠️  Issues found:");
 
-			console.log(`Content: ${item.content}`);
-
-			if (item.tags && item.tags.length > 0) {
-				console.log(`Tags: ${item.tags.join(", ")}`);
-			}
-
-			// Show metadata
-			console.log(`\nMetadata:`);
-			Object.entries(item.metadata).forEach(([key, value]) => {
-				console.log(`  ${key}: ${JSON.stringify(value)}`);
-			});
-
-			if (index < results.length - 1) {
-				console.log(`\n${"-".repeat(40)}`);
-			}
+		requiredFieldIssues.forEach((stat: FieldExtractionStats) => {
+			const missingCount = stat.totalAttempts - stat.successCount;
+			console.log(
+				`   • ${missingCount} item(s) missing required field: ${stat.fieldName}`,
+			);
 		});
 
-		console.log(`\n${"=".repeat(80)}`);
+		summary.errors.forEach((error: string) => {
+			console.log(`   • ${error}`);
+		});
 	}
+
+	// Timing
+	console.log(`\n⏱️  Crawl took: ${duration} seconds`);
 }
 
 async function handleCrawl() {
@@ -160,10 +146,9 @@ async function handleCrawl() {
 			return;
 		}
 
-		console.log(`Starting crawl of ${selectedSource.name}...`);
-		const results = await pipeline.process(selectedSource);
+		const result = await pipeline.process(selectedSource);
 
-		displayResults(results);
+		displayResults(result);
 	} catch (error) {
 		console.error("Crawl failed:", error);
 	}

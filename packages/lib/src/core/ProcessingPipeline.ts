@@ -1,10 +1,20 @@
-import type { CrawlerRegistry, ProcessedData, SourceConfig } from "./types.js";
+import type {
+	CrawlerRegistry,
+	CrawlSummary,
+	ProcessedData,
+	SourceConfig,
+} from "./types.js";
 import { CrawlerError } from "./types.js";
+
+export interface ProcessingResult {
+	data: ProcessedData[];
+	summary: CrawlSummary;
+}
 
 export class ProcessingPipeline {
 	constructor(private crawlerRegistry: CrawlerRegistry) {}
 
-	async process(config: SourceConfig): Promise<ProcessedData[]> {
+	async process(config: SourceConfig): Promise<ProcessingResult> {
 		const crawler = this.crawlerRegistry.getCrawler(config.type);
 		if (!crawler) {
 			throw new CrawlerError(
@@ -13,10 +23,17 @@ export class ProcessingPipeline {
 			);
 		}
 
-		console.log(`Crawling source: ${config.name}`);
-		const rawData = await crawler.crawl(config);
-		console.log(`Crawled ${rawData.length} items from ${config.name}`);
+		console.log(`Starting crawl of ${config.name}...`);
+		const result = await crawler.crawl(config);
 
-		return rawData.map((data) => ({ ...data, analysis: [] }));
+		const processedData = result.data.map((data) => ({
+			...data,
+			analysis: [],
+		}));
+
+		return {
+			data: processedData,
+			summary: result.summary,
+		};
 	}
 }
