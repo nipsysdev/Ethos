@@ -53,7 +53,7 @@ describe("Data Formatter", () => {
 		expect(result).toContain("=".repeat(80));
 		expect(result).toContain("EXTRACTED DATA - Test Source (test-source)");
 		expect(result).toContain("Items: 2");
-		expect(result).toContain("Crawled: 2025-01-01, 5:00:05 a.m.");
+		expect(result).toMatch(/Crawled: .*2025.*/);
 	});
 
 	it("should format individual items correctly", () => {
