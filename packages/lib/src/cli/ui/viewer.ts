@@ -5,6 +5,14 @@ import { join } from "node:path";
 import type { ProcessingResult } from "../../index.js";
 import { formatDataForViewing } from "./formatter.js";
 
+function cleanupTempFile(filePath: string): void {
+	try {
+		unlinkSync(filePath);
+	} catch {
+		// Ignore cleanup errors - file might not exist or be locked
+	}
+}
+
 export async function showExtractedData(
 	result: ProcessingResult,
 ): Promise<void> {
@@ -54,10 +62,6 @@ export async function showExtractedData(
 		console.log(formattedData);
 	} finally {
 		// Clean up temp file
-		try {
-			unlinkSync(tempFile);
-		} catch {
-			// Ignore cleanup errors
-		}
+		cleanupTempFile(tempFile);
 	}
 }
