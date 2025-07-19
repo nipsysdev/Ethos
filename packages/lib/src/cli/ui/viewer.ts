@@ -16,7 +16,12 @@ function cleanupTempFile(filePath: string): void {
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
-		const testProcess = spawn("which", ["less"], {
+		// Use appropriate command based on platform
+		const isWindows = process.platform === "win32";
+		const command = isWindows ? "where" : "which";
+		const args = ["less"];
+
+		const testProcess = spawn(command, args, {
 			stdio: "ignore",
 		});
 		testProcess.on("close", (code) => {
