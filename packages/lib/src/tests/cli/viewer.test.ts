@@ -70,6 +70,15 @@ describe("Data Viewer", () => {
 	it("should create temp file and spawn less successfully", async () => {
 		const result = createMockResult();
 
+		// Mock which command to return success (less is available)
+		const mockWhichProcess = {
+			on: vi.fn((event, callback) => {
+				if (event === "close") {
+					callback(0); // Success - less is available
+				}
+			}),
+		};
+
 		// Mock successful less process
 		const mockLessProcess = {
 			on: vi.fn((event, callback) => {
@@ -79,14 +88,19 @@ describe("Data Viewer", () => {
 				}
 			}),
 		};
-		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
-		mockSpawn.mockReturnValue(mockLessProcess as any);
+
+		// First call is for 'which less', second is for 'less'
+		mockSpawn
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockWhichProcess as any)
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockLessProcess as any);
 
 		await showExtractedData(result);
 
 		// Should create temp file
 		expect(mockWriteFileSync).toHaveBeenCalledWith(
-			expect.stringMatching(/\/tmp\/ethos-crawl-\d+\.txt$/),
+			expect.stringMatching(/\/tmp\/ethos-crawl-[\w-]+\.txt$/),
 			expect.stringContaining("EXTRACTED DATA - Test Source"),
 			"utf8",
 		);
@@ -94,18 +108,27 @@ describe("Data Viewer", () => {
 		// Should spawn less
 		expect(mockSpawn).toHaveBeenCalledWith(
 			"less",
-			["-R", expect.stringMatching(/\/tmp\/ethos-crawl-\d+\.txt$/)],
+			["-R", expect.stringMatching(/\/tmp\/ethos-crawl-[\w-]+\.txt$/)],
 			{ stdio: "inherit" },
 		);
 
 		// Should cleanup temp file
 		expect(mockUnlinkSync).toHaveBeenCalledWith(
-			expect.stringMatching(/\/tmp\/ethos-crawl-\d+\.txt$/),
+			expect.stringMatching(/\/tmp\/ethos-crawl-[\w-]+\.txt$/),
 		);
 	});
 
 	it("should handle less error by displaying data directly", async () => {
 		const result = createMockResult();
+
+		// Mock which command to return success (less is available)
+		const mockWhichProcess = {
+			on: vi.fn((event, callback) => {
+				if (event === "close") {
+					callback(0); // Success - less is available
+				}
+			}),
+		};
 
 		// Mock less process with error
 		const mockLessProcess = {
@@ -115,8 +138,13 @@ describe("Data Viewer", () => {
 				}
 			}),
 		};
-		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
-		mockSpawn.mockReturnValue(mockLessProcess as any);
+
+		// First call is for 'which less', second is for 'less'
+		mockSpawn
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockWhichProcess as any)
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockLessProcess as any);
 
 		await showExtractedData(result);
 
