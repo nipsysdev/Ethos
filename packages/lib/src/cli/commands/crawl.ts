@@ -1,13 +1,13 @@
 import ora from "ora";
 import type { ProcessingPipeline, SourceRegistry } from "../../index.js";
-import { displayResults } from "../ui/display.js";
+import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
 
 const inquirer = (await import("inquirer")).default;
 
 export async function handleCrawl(
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
-): Promise<void> {
+): Promise<"main" | "crawl" | "exit"> {
 	try {
 		// Load available sources
 		const sources = await sourceRegistry.getAllSources();
@@ -16,7 +16,7 @@ export async function handleCrawl(
 			console.log(
 				"No sources configured. Please add sources to config/sources.yaml",
 			);
-			return;
+			return "main";
 		}
 
 		const { selectedSourceId } = await inquirer.prompt([
@@ -34,7 +34,7 @@ export async function handleCrawl(
 		const selectedSource = await sourceRegistry.getSource(selectedSourceId);
 		if (!selectedSource) {
 			console.log("Source not found");
-			return;
+			return "main";
 		}
 
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
@@ -43,11 +43,16 @@ export async function handleCrawl(
 			const result = await pipeline.process(selectedSource);
 			spinner.succeed("Crawl completed successfully!");
 			displayResults(result);
+
+			// Show post-crawl menu and return the action
+			return await showPostCrawlMenuWithFlow(result);
 		} catch (error) {
 			spinner.fail("Crawl failed");
 			console.error("Error:", error);
+			return "main";
 		}
 	} catch (error) {
 		console.error("Crawl failed:", error);
+		return "main";
 	}
 }

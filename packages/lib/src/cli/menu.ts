@@ -35,7 +35,19 @@ export async function showMainMenu(
 			process.exit(0);
 		}
 
-		await handleCommand(command, sourceRegistry, pipeline);
+		let action = await handleCommand(command, sourceRegistry, pipeline);
+
+		// Handle cascading crawl commands
+		while (action === "crawl") {
+			action = await handleCrawl(sourceRegistry, pipeline);
+		}
+
+		// Handle final action
+		if (action === "exit") {
+			console.log("Goodbye!");
+			process.exit(0);
+		}
+		// For "main" or undefined, continue to show main menu
 	}
 }
 
@@ -43,12 +55,12 @@ async function handleCommand(
 	command: string,
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
-): Promise<void> {
+): Promise<"main" | "crawl" | "exit" | undefined> {
 	switch (command) {
 		case "crawl":
-			await handleCrawl(sourceRegistry, pipeline);
-			break;
+			return await handleCrawl(sourceRegistry, pipeline);
 		default:
 			console.log("Unknown command");
+			return "main";
 	}
 }
