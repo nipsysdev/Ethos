@@ -39,7 +39,7 @@ describe("Data Viewer", () => {
 				title: "Test Article",
 				content: "Test content",
 				metadata: {},
-				analysis: [], // Add missing analysis property
+				analysis: [],
 			},
 		],
 		summary: {
@@ -70,6 +70,7 @@ describe("Data Viewer", () => {
 		const result = createMockResult();
 
 		// Mock successful less process
+		// Mock successful less process
 		const mockLessProcess = {
 			on: vi.fn((event, callback) => {
 				if (event === "close") {
@@ -77,9 +78,9 @@ describe("Data Viewer", () => {
 					callback(0);
 				}
 			}),
-			// biome-ignore lint/suspicious/noExplicitAny: mock object for testing
-		} as any;
-		mockSpawn.mockReturnValue(mockLessProcess);
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValue(mockLessProcess as any);
 
 		await showExtractedData(result);
 
@@ -113,9 +114,9 @@ describe("Data Viewer", () => {
 					callback(new Error("less not found"));
 				}
 			}),
-			// biome-ignore lint/suspicious/noExplicitAny: mock object for testing
-		} as any;
-		mockSpawn.mockReturnValue(mockLessProcess);
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValue(mockLessProcess as any);
 
 		await showExtractedData(result);
 
@@ -137,9 +138,9 @@ describe("Data Viewer", () => {
 					callback(1); // Non-zero exit code
 				}
 			}),
-			// biome-ignore lint/suspicious/noExplicitAny: mock object for testing
-		} as any;
-		mockSpawn.mockReturnValue(mockLessProcess);
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValue(mockLessProcess as any);
 
 		// This should reject the promise, but our implementation catches it
 		// and handles it gracefully, so the function should still complete
@@ -175,9 +176,9 @@ describe("Data Viewer", () => {
 					callback(0);
 				}
 			}),
-			// biome-ignore lint/suspicious/noExplicitAny: mock object for testing
-		} as any;
-		mockSpawn.mockReturnValue(mockLessProcess);
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValue(mockLessProcess as any);
 
 		// Mock unlinkSync to throw
 		mockUnlinkSync.mockImplementation(() => {
@@ -197,9 +198,9 @@ describe("Data Viewer", () => {
 					callback(0);
 				}
 			}),
-			// biome-ignore lint/suspicious/noExplicitAny: mock object for testing
-		} as any;
-		mockSpawn.mockReturnValue(mockLessProcess);
+		};
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValue(mockLessProcess as any);
 
 		await showExtractedData(result);
 
