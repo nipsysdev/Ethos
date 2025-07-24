@@ -5,6 +5,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type {
 	CrawledData,
 	Crawler,
+	CrawlOptions,
 	CrawlResult,
 	CrawlSummary,
 	FieldExtractionStats,
@@ -15,10 +16,17 @@ import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
 
+// Timeout constants for pagination handling
+const NAVIGATION_TIMEOUT_MS = 3000; // Time to wait for page navigation
+const CONTAINER_WAIT_TIMEOUT_MS = 5000; // Time to wait for container selector after navigation
+
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
 
-	async crawl(config: SourceConfig): Promise<CrawlResult> {
+	async crawl(
+		config: SourceConfig,
+		options?: CrawlOptions,
+	): Promise<CrawlResult> {
 		const startTime = new Date();
 
 		if (config.type !== CRAWLER_TYPES.LISTING) {
@@ -35,11 +43,12 @@ export class ArticleListingCrawler implements Crawler {
 
 		try {
 			const page = await browser.newPage();
-			await page.goto(config.listing.url, { waitUntil: "networkidle2" });
+			await page.goto(config.listing.url, { waitUntil: "domcontentloaded" });
 
 			const result = await this.extractItemsFromListing(
 				page,
 				config,
+				options,
 				startTime,
 			);
 
@@ -58,8 +67,21 @@ export class ArticleListingCrawler implements Crawler {
 	private async extractItemsFromListing(
 		page: Page,
 		config: SourceConfig,
+		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
+		const allCrawledItems: CrawledData[] = [];
+		const seenUrls = new Set<string>();
+		let pagesProcessed = 0;
+		let duplicatesSkipped = 0;
+		let totalFilteredItems = 0;
+		const allErrors: string[] = [];
+		let stoppedReason:
+			| "max_pages"
+			| "no_next_button"
+			| "all_duplicates"
+			| undefined;
+
 		// Initialize field stats tracking
 		const fieldStats: FieldExtractionStats[] = Object.entries(
 			config.listing.items.fields,
@@ -71,6 +93,91 @@ export class ArticleListingCrawler implements Crawler {
 			missingItems: [],
 		}));
 
+		// Main pagination loop
+		while (true) {
+			// Check max pages limit before processing
+			if (options.maxPages && pagesProcessed >= options.maxPages) {
+				stoppedReason = "max_pages";
+				break;
+			}
+
+			pagesProcessed++;
+
+			// Extract items from current page
+			const pageResult = await this.extractItemsFromPage(
+				page,
+				config,
+				fieldStats,
+				allCrawledItems.length,
+			);
+
+			// Track filtered items
+			totalFilteredItems += pageResult.filteredCount;
+			allErrors.push(...pageResult.filteredReasons);
+
+			// Filter out duplicates and count them
+			const newItems: CrawledData[] = [];
+			let allItemsAreDuplicates = true;
+
+			for (const item of pageResult.items) {
+				if (seenUrls.has(item.url)) {
+					duplicatesSkipped++;
+				} else {
+					seenUrls.add(item.url);
+					newItems.push(item);
+					allItemsAreDuplicates = false;
+				}
+			}
+
+			// If all items on this page were duplicates, stop
+			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
+				stoppedReason = "all_duplicates";
+				break;
+			}
+
+			allCrawledItems.push(...newItems);
+
+			// Try to navigate to next page
+			const hasNextPage = await this.navigateToNextPage(page, config);
+			if (!hasNextPage) {
+				stoppedReason = "no_next_button";
+				break;
+			}
+		}
+
+		const endTime = new Date();
+		const summary: CrawlSummary = {
+			sourceId: config.id,
+			sourceName: config.name,
+			itemsFound:
+				allCrawledItems.length + duplicatesSkipped + totalFilteredItems,
+			itemsProcessed: allCrawledItems.length,
+			itemsWithErrors: totalFilteredItems,
+			fieldStats,
+			errors: allErrors,
+			startTime,
+			endTime,
+			pagesProcessed,
+			duplicatesSkipped,
+			stoppedReason,
+		};
+
+		return {
+			data: allCrawledItems,
+			summary,
+		};
+	}
+
+	private async extractItemsFromPage(
+		page: Page,
+		config: SourceConfig,
+		fieldStats: FieldExtractionStats[],
+		currentItemOffset: number,
+	): Promise<{
+		items: CrawledData[];
+		filteredCount: number;
+		filteredReasons: string[];
+	}> {
 		// Extract all items using the container selector
 		// Note: The function below runs in the browser context and must be self-contained
 		const extractionResult = await page.evaluate((itemsConfig) => {
@@ -83,6 +190,8 @@ export class ArticleListingCrawler implements Crawler {
 					string,
 					{ success: boolean; value: string | null }
 				>;
+				hasRequiredFields: boolean;
+				missingRequiredFields: string[];
 			}> = [];
 
 			containers.forEach((container) => {
@@ -92,6 +201,7 @@ export class ArticleListingCrawler implements Crawler {
 					{ success: boolean; value: string | null }
 				> = {};
 				let hasRequiredFields = true;
+				const missingRequiredFields: string[] = [];
 
 				for (const [fieldName, fieldConfig] of Object.entries(
 					itemsConfig.fields,
@@ -121,18 +231,42 @@ export class ArticleListingCrawler implements Crawler {
 						item[fieldName] = value;
 					} else if (!fieldConfig.optional) {
 						hasRequiredFields = false;
+						missingRequiredFields.push(fieldName);
 					}
 				}
 
-				if (hasRequiredFields && Object.keys(item).length > 0) {
-					results.push({ item, fieldResults });
-				}
+				// Always add to results so we can track what got filtered
+				results.push({
+					item,
+					fieldResults,
+					hasRequiredFields,
+					missingRequiredFields,
+				});
 			});
 
 			return results;
 		}, config.listing.items);
 
-		// Update field stats based on extraction results
+		// Process results and track filtered items
+		const validItems = extractionResult.filter(
+			(result) =>
+				result.hasRequiredFields && Object.keys(result.item).length > 0,
+		);
+		const filteredItems = extractionResult.filter(
+			(result) =>
+				!result.hasRequiredFields || Object.keys(result.item).length === 0,
+		);
+
+		const filteredReasons: string[] = [];
+		filteredItems.forEach((result) => {
+			if (result.missingRequiredFields.length > 0) {
+				filteredReasons.push(
+					`Item ${currentItemOffset + extractionResult.indexOf(result) + 1}: missing required fields [${result.missingRequiredFields.join(", ")}]`,
+				);
+			}
+		});
+
+		// Update field stats based on extraction results (all items, not just valid ones)
 		extractionResult.forEach((result, itemIndex) => {
 			fieldStats.forEach((stat) => {
 				stat.totalAttempts++;
@@ -140,12 +274,12 @@ export class ArticleListingCrawler implements Crawler {
 				if (fieldResult?.success) {
 					stat.successCount++;
 				} else {
-					stat.missingItems.push(itemIndex + 1);
+					stat.missingItems.push(currentItemOffset + itemIndex + 1);
 				}
 			});
 		});
 
-		const crawledItems: CrawledData[] = extractionResult.map((result) => ({
+		const crawledItems: CrawledData[] = validItems.map((result) => ({
 			url: result.item.url || "",
 			timestamp: new Date(),
 			source: config.id,
@@ -163,22 +297,76 @@ export class ArticleListingCrawler implements Crawler {
 			},
 		}));
 
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: config.id,
-			sourceName: config.name,
-			itemsFound: extractionResult.length,
-			itemsProcessed: crawledItems.length,
-			itemsWithErrors: 0, // In current implementation, items with errors are filtered out
-			fieldStats,
-			errors: [],
-			startTime,
-			endTime,
-		};
-
 		return {
-			data: crawledItems,
-			summary,
+			items: crawledItems,
+			filteredCount: filteredItems.length,
+			filteredReasons,
 		};
+	}
+
+	private async navigateToNextPage(
+		page: Page,
+		config: SourceConfig,
+	): Promise<boolean> {
+		const nextButtonSelector = config.listing.pagination?.next_button_selector;
+
+		if (!nextButtonSelector) {
+			return false;
+		}
+
+		try {
+			// Check if next button exists and is clickable
+			const nextButton = await page.$(nextButtonSelector);
+			if (!nextButton) {
+				return false;
+			}
+
+			// Check if button is disabled or hidden
+			const isDisabled = await page.evaluate((selector) => {
+				const element = document.querySelector(selector);
+				if (!element) return true;
+
+				// Check various ways a button might be disabled
+				const htmlElement = element as HTMLElement;
+				const isHidden = htmlElement.offsetParent === null;
+				const hasDisabledAttr = element.hasAttribute("disabled");
+				const hasDisabledClass = element.classList.contains("disabled");
+				const hasAriaDisabled =
+					element.getAttribute("aria-disabled") === "true";
+
+				return (
+					isHidden || hasDisabledAttr || hasDisabledClass || hasAriaDisabled
+				);
+			}, nextButtonSelector);
+
+			if (isDisabled) {
+				return false;
+			}
+
+			// Click the next button - handle both traditional navigation and AJAX pagination
+			await nextButton.click();
+
+			// Try to wait for navigation, but don't fail if it's AJAX-based pagination
+			try {
+				await page.waitForNavigation({
+					waitUntil: "domcontentloaded",
+					timeout: NAVIGATION_TIMEOUT_MS,
+				});
+			} catch {
+				// No navigation occurred - likely AJAX pagination, continue anyway
+			}
+
+			// Wait for the container selector to be available (works for both navigation types)
+			// This ensures dynamic content has loaded before we try to extract items
+			await page.waitForSelector(config.listing.items.container_selector, {
+				timeout: CONTAINER_WAIT_TIMEOUT_MS,
+			});
+
+			return true;
+		} catch {
+			// Navigation failed - this is expected when we reach the last page
+			// Common causes: button click fails, navigation timeout, no next page exists
+			return false;
+		}
 	}
 }

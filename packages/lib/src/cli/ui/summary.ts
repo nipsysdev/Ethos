@@ -15,6 +15,27 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		console.log(`   • Items with errors: ${summary.itemsWithErrors}`);
 	}
 
+	// Pagination stats (if available)
+	if (summary.pagesProcessed !== undefined) {
+		console.log(`   • Pages processed: ${summary.pagesProcessed}`);
+
+		if (
+			summary.duplicatesSkipped !== undefined &&
+			summary.duplicatesSkipped > 0
+		) {
+			console.log(`   • Duplicates skipped: ${summary.duplicatesSkipped}`);
+		}
+
+		if (summary.stoppedReason) {
+			const reasonMessages = {
+				max_pages: "reached maximum pages limit",
+				no_next_button: "no more pages available",
+				all_duplicates: "all items on page were already crawled",
+			};
+			console.log(`   • Stopped: ${reasonMessages[summary.stoppedReason]}`);
+		}
+	}
+
 	// Field extraction stats
 	console.log("\n📋 Field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {

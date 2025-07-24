@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CrawlerRegistry } from "../core/CrawlerRegistry.js";
 import { ProcessingPipeline } from "../core/ProcessingPipeline.js";
-import type { Crawler, CrawlResult, SourceConfig } from "../core/types.js";
+import type {
+	Crawler,
+	CrawlOptions,
+	CrawlResult,
+	SourceConfig,
+} from "../core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 
 describe("ProcessingPipeline", () => {
@@ -87,5 +92,42 @@ describe("ProcessingPipeline", () => {
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
 			"Network failure",
 		);
+	});
+
+	it("should pass CrawlOptions to crawler", async () => {
+		let receivedOptions: CrawlOptions | undefined;
+
+		const mockCrawler: Crawler = {
+			type: CRAWLER_TYPES.LISTING,
+			async crawl(
+				config: SourceConfig,
+				options?: CrawlOptions,
+			): Promise<CrawlResult> {
+				receivedOptions = options;
+				return {
+					data: [],
+					summary: {
+						sourceId: config.id,
+						sourceName: config.name,
+						itemsFound: 0,
+						itemsProcessed: 0,
+						itemsWithErrors: 0,
+						fieldStats: [],
+						errors: [],
+						startTime: new Date(),
+						endTime: new Date(),
+					},
+				};
+			},
+		};
+
+		const registry = new CrawlerRegistry();
+		registry.register(mockCrawler);
+		const pipeline = new ProcessingPipeline(registry);
+
+		const options: CrawlOptions = { maxPages: 5 };
+		await pipeline.process(testConfig, options);
+
+		expect(receivedOptions).toEqual(options);
 	});
 });
