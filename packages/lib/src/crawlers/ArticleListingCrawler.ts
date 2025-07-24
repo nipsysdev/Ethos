@@ -343,6 +343,12 @@ export class ArticleListingCrawler implements Crawler {
 			await nextButton.click();
 			await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
+			// Wait for the container selector to be available on the new page
+			// This ensures dynamic content has loaded before we try to extract items
+			await page.waitForSelector(config.listing.items.container_selector, {
+				timeout: 5000,
+			});
+
 			return true;
 		} catch {
 			// Navigation failed - this is expected when we reach the last page
