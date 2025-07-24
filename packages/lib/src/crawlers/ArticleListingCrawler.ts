@@ -339,11 +339,20 @@ export class ArticleListingCrawler implements Crawler {
 				return false;
 			}
 
-			// Click the next button and wait for navigation
+			// Click the next button - handle both traditional navigation and AJAX pagination
 			await nextButton.click();
-			await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
-			// Wait for the container selector to be available on the new page
+			// Try to wait for navigation, but don't fail if it's AJAX-based pagination
+			try {
+				await page.waitForNavigation({
+					waitUntil: "domcontentloaded",
+					timeout: 3000,
+				});
+			} catch {
+				// No navigation occurred - likely AJAX pagination, continue anyway
+			}
+
+			// Wait for the container selector to be available (works for both navigation types)
 			// This ensures dynamic content has loaded before we try to extract items
 			await page.waitForSelector(config.listing.items.container_selector, {
 				timeout: 5000,
