@@ -107,10 +107,6 @@ export class ArticleListingCrawler implements Crawler {
 				allCrawledItems.length,
 			);
 
-			console.log(
-				`Page ${pagesProcessed}: found ${pageResult.items.length} valid items, ${pageResult.filteredCount} filtered`,
-			);
-
 			// Track filtered items
 			totalFilteredItems += pageResult.filteredCount;
 			allErrors.push(...pageResult.filteredReasons);
