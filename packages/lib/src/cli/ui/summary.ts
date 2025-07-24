@@ -32,7 +32,7 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 				no_next_button: "no more pages available",
 				all_duplicates: "all items on page were already crawled",
 			};
-			console.log(`   • Stopped: ${reasonMessages[summary.stoppedReason]}`);
+			console.log(`   • Stop reason: ${reasonMessages[summary.stoppedReason]}`);
 		}
 	}
 
