@@ -39,7 +39,7 @@ export class ArticleListingCrawler implements Crawler {
 
 		try {
 			const page = await browser.newPage();
-			await page.goto(config.listing.url, { waitUntil: "networkidle2" });
+			await page.goto(config.listing.url, { waitUntil: "domcontentloaded" });
 
 			const result = await this.extractItemsFromListing(
 				page,
@@ -341,11 +341,12 @@ export class ArticleListingCrawler implements Crawler {
 
 			// Click the next button and wait for navigation
 			await nextButton.click();
-			await page.waitForNavigation({ waitUntil: "networkidle2" });
+			await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
 			return true;
 		} catch {
-			// Navigation failed - probably no more pages
+			// Navigation failed - this is expected when we reach the last page
+			// Common causes: button click fails, navigation timeout, no next page exists
 			return false;
 		}
 	}
