@@ -6,13 +6,11 @@ import {
 } from "../index.js";
 
 describe("Main Exports", () => {
-	it("should export all core classes", () => {
+	it("should export and instantiate core classes", () => {
 		expect(CrawlerRegistry).toBeDefined();
 		expect(ProcessingPipeline).toBeDefined();
 		expect(SourceRegistry).toBeDefined();
-	});
 
-	it("should be able to instantiate core classes", () => {
 		const crawlerRegistry = new CrawlerRegistry();
 		const sourceRegistry = new SourceRegistry();
 

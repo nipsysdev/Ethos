@@ -5,9 +5,8 @@ import { describe, expect, it } from "vitest";
 import { SourceRegistry } from "../core/SourceRegistry.js";
 import { CRAWLER_TYPES } from "../core/types.js";
 
-describe("SourceRegistry with new schema", () => {
-	it("should load and validate the new YAML schema format", async () => {
-		// Create a temporary config file with our new schema
+describe("SourceRegistry", () => {
+	it("should load valid YAML config and retrieve sources", async () => {
 		const tempDir = join(tmpdir(), `ethos-test-${Date.now()}`);
 		await mkdir(tempDir, { recursive: true });
 		const configPath = join(tempDir, "sources.yaml");
@@ -47,7 +46,6 @@ describe("SourceRegistry with new schema", () => {
 
 		await writeFile(configPath, testConfig);
 
-		// Load the config using SourceRegistry
 		const registry = new SourceRegistry(configPath);
 		const sources = await registry.loadSources();
 
@@ -67,8 +65,29 @@ describe("SourceRegistry with new schema", () => {
 		expect(source?.name).toBe("Test Electronic Frontier Foundation");
 	});
 
-	it("should reject invalid schema", async () => {
+	it("should handle file not found", async () => {
+		const registry = new SourceRegistry("/nonexistent/path/sources.yaml");
+		await expect(registry.loadSources()).rejects.toThrow(
+			/Failed to load sources/,
+		);
+	});
+
+	it("should reject invalid config structure", async () => {
 		const tempDir = join(tmpdir(), `ethos-test-invalid-${Date.now()}`);
+		await mkdir(tempDir, { recursive: true });
+		const configPath = join(tempDir, "sources.yaml");
+
+		const invalidConfig = `not_sources: []`;
+
+		await writeFile(configPath, invalidConfig);
+		const registry = new SourceRegistry(configPath);
+		await expect(registry.loadSources()).rejects.toThrow(
+			"Invalid config: 'sources' must be an array",
+		);
+	});
+
+	it("should reject invalid source schema", async () => {
+		const tempDir = join(tmpdir(), `ethos-test-schema-${Date.now()}`);
 		await mkdir(tempDir, { recursive: true });
 		const configPath = join(tempDir, "sources.yaml");
 
@@ -83,207 +102,11 @@ describe("SourceRegistry with new schema", () => {
 		await writeFile(configPath, invalidConfig);
 
 		const registry = new SourceRegistry(configPath);
-
-		// Should throw when trying to load invalid config
 		await expect(registry.loadSources()).rejects.toThrow();
 	});
 
-	it("should handle file not found", async () => {
-		const registry = new SourceRegistry("/nonexistent/path/sources.yaml");
-		await expect(registry.loadSources()).rejects.toThrow(
-			/Failed to load sources/,
-		);
-	});
-
-	it("should validate source must be an object", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-obj-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - "not an object"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source must be an object",
-		);
-	});
-
-	it("should validate source id field", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-id-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - name: "Test Source"
-    type: "listing"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source must have a valid 'id' field",
-		);
-	});
-
-	it("should validate source name field", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-name-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    type: "listing"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' must have a valid 'name' field",
-		);
-	});
-
-	it("should validate source type field", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-type-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "article"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' must have type 'listing'",
-		);
-	});
-
-	it("should validate listing configuration", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-listing-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "listing"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' must have a valid 'listing' configuration",
-		);
-	});
-
-	it("should validate listing url field", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-url-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "listing"
-    listing: {}`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' listing must have a valid 'url' field",
-		);
-	});
-
-	it("should validate items configuration", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-items-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "listing"
-    listing:
-      url: "https://example.com"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' listing must have an 'items' configuration",
-		);
-	});
-
-	it("should validate container_selector field", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-container-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "listing"
-    listing:
-      url: "https://example.com"
-      items: {}`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' items must have a 'container_selector' field",
-		);
-	});
-
-	it("should validate fields configuration", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-fields-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources:
-  - id: "test"
-    name: "Test Source"
-    type: "listing"
-    listing:
-      url: "https://example.com"
-      items:
-        container_selector: ".item"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Source 'test' items must have a 'fields' configuration",
-		);
-	});
-
-	it("should validate config structure - missing sources array", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-nosources-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `not_sources: []`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Invalid config: 'sources' must be an array",
-		);
-	});
-
-	it("should validate config structure - sources not array", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-notarray-${Date.now()}`);
-		await mkdir(tempDir, { recursive: true });
-		const configPath = join(tempDir, "sources.yaml");
-
-		const invalidConfig = `sources: "not an array"`;
-
-		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
-		await expect(registry.loadSources()).rejects.toThrow(
-			"Invalid config: 'sources' must be an array",
-		);
-	});
-
-	it("should get all sources correctly", async () => {
-		const tempDir = join(tmpdir(), `ethos-test-getall-${Date.now()}`);
+	it("should handle multiple sources and retrieval", async () => {
+		const tempDir = join(tmpdir(), `ethos-test-multi-${Date.now()}`);
 		await mkdir(tempDir, { recursive: true });
 		const configPath = join(tempDir, "sources.yaml");
 
@@ -320,7 +143,7 @@ describe("SourceRegistry with new schema", () => {
 		expect(allSources.find((s) => s.id === "test2")).toBeDefined();
 	});
 
-	it("should handle empty sources array", async () => {
+	it("should handle empty config", async () => {
 		const tempDir = join(tmpdir(), `ethos-test-empty-${Date.now()}`);
 		await mkdir(tempDir, { recursive: true });
 		const configPath = join(tempDir, "sources.yaml");

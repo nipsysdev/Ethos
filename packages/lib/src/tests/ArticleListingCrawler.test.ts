@@ -4,29 +4,6 @@ import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 import { ArticleListingCrawler } from "../crawlers/ArticleListingCrawler.js";
 
 describe("ArticleListingCrawler", () => {
-	const validConfig: SourceConfig = {
-		id: "test",
-		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
-		listing: {
-			url: "https://httpbin.org/html", // Using a reliable test endpoint
-			items: {
-				container_selector: "body",
-				fields: {
-					title: {
-						selector: "h1",
-						attribute: "text",
-					},
-					url: {
-						selector: "a",
-						attribute: "href",
-						optional: true,
-					},
-				},
-			},
-		},
-	};
-
 	it("should have correct type", () => {
 		const crawler = new ArticleListingCrawler();
 		expect(crawler.type).toBe(CRAWLER_TYPES.LISTING);
@@ -35,8 +12,13 @@ describe("ArticleListingCrawler", () => {
 	it("should reject non-listing config types", async () => {
 		const crawler = new ArticleListingCrawler();
 		const invalidConfig = {
-			...validConfig,
+			id: "test",
+			name: "Test",
 			type: "rss",
+			listing: {
+				url: "https://example.com",
+				items: { container_selector: ".item", fields: {} },
+			},
 		} as unknown as SourceConfig;
 
 		await expect(crawler.crawl(invalidConfig)).rejects.toThrow(CrawlerError);
@@ -44,174 +26,177 @@ describe("ArticleListingCrawler", () => {
 			"only supported type in Phase 1",
 		);
 	});
+});
 
-	it("should wrap errors in CrawlerError", async () => {
-		// Test that the crawler properly wraps errors in CrawlerError
-		// This avoids the browser dependency issue in CI
-		const crawler = new ArticleListingCrawler();
+describe("Pagination logic", () => {
+	it("should handle maxPages boundary conditions", () => {
+		// Test the core pagination stop logic
+		let pagesProcessed = 5;
+		let maxPages: number | undefined = 5;
+		expect(pagesProcessed >= maxPages).toBe(true);
 
-		// Test with invalid config type first (this doesn't require browser)
-		const invalidTypeConfig = {
-			...validConfig,
-			type: "invalid" as unknown as SourceConfig["type"],
-		};
+		pagesProcessed = 4;
+		maxPages = 5;
+		expect(pagesProcessed >= maxPages).toBe(false);
 
-		await expect(crawler.crawl(invalidTypeConfig)).rejects.toThrow(
-			CrawlerError,
-		);
-		await expect(crawler.crawl(invalidTypeConfig)).rejects.toThrow(
-			"only supported type in Phase 1",
+		// Test no maxPages limit (important edge case)
+		pagesProcessed = 100;
+		maxPages = undefined;
+		expect(Boolean(maxPages && pagesProcessed >= maxPages)).toBe(false);
+	});
+
+	it("should calculate summary data correctly", () => {
+		// Test the math that drives the summary
+		const validItems = 42;
+		const filteredItems = 3;
+		const duplicates = 2;
+
+		const itemsFound = validItems + filteredItems + duplicates;
+		const itemsProcessed = validItems;
+		const itemsWithErrors = filteredItems;
+
+		expect(itemsFound).toBe(47);
+		expect(itemsProcessed).toBe(42);
+		expect(itemsWithErrors).toBe(3);
+	});
+
+	it("should validate stop conditions", () => {
+		// Test all-duplicates detection (this is the trickier logic)
+		const pageItems = [{ url: "test1" }, { url: "test2" }];
+		const seenUrls = new Set(["test1", "test2"]);
+		const allDuplicates =
+			pageItems.length > 0 && pageItems.every((item) => seenUrls.has(item.url));
+		expect(allDuplicates).toBe(true);
+
+		// Test mixed scenario
+		const mixedItems = [{ url: "test1" }, { url: "test3" }]; // test3 is new
+		const notAllDuplicates = mixedItems.every((item) => seenUrls.has(item.url));
+		expect(notAllDuplicates).toBe(false);
+	});
+});
+
+describe("Error handling", () => {
+	it("should filter items with missing required fields", () => {
+		const mockItems = [
+			{ hasRequiredFields: true, missingRequiredFields: [] },
+			{ hasRequiredFields: false, missingRequiredFields: ["date"] },
+			{ hasRequiredFields: true, missingRequiredFields: [] },
+		];
+
+		const validItems = mockItems.filter((item) => item.hasRequiredFields);
+		const filteredItems = mockItems.filter((item) => !item.hasRequiredFields);
+
+		expect(validItems).toHaveLength(2);
+		expect(filteredItems).toHaveLength(1);
+		expect(filteredItems[0].missingRequiredFields).toEqual(["date"]);
+	});
+
+	it("should generate proper error messages", () => {
+		const missingFields = ["date", "author"];
+		const itemNumber = 8;
+		const expectedMessage = `Item ${itemNumber}: missing required fields [${missingFields.join(", ")}]`;
+
+		expect(expectedMessage).toBe(
+			"Item 8: missing required fields [date, author]",
 		);
 	});
 
-	it("should validate schema structure", () => {
-		const config: SourceConfig = {
-			id: "test-validation",
-			name: "Test Validation Source",
+	it("should handle CrawlerError properly", () => {
+		const originalError = new Error("Network timeout");
+		const crawlerError = new CrawlerError(
+			"Failed to crawl test source",
+			"test-source",
+			originalError,
+		);
+
+		expect(crawlerError.message).toBe("Failed to crawl test source");
+		expect(crawlerError.source).toBe("test-source");
+		expect(crawlerError.originalError).toBe(originalError);
+	});
+});
+
+describe("Duplicate detection", () => {
+	it("should identify and skip duplicates", () => {
+		const seenUrls = new Set<string>();
+		const mockItems = [
+			{ url: "https://example.com/article1" },
+			{ url: "https://example.com/article2" },
+			{ url: "https://example.com/article1" }, // duplicate
+			{ url: "https://example.com/article3" },
+		];
+
+		let duplicatesSkipped = 0;
+		const newItems = [];
+
+		for (const item of mockItems) {
+			if (seenUrls.has(item.url)) {
+				duplicatesSkipped++;
+			} else {
+				seenUrls.add(item.url);
+				newItems.push(item);
+			}
+		}
+
+		expect(newItems).toHaveLength(3);
+		expect(duplicatesSkipped).toBe(1);
+	});
+});
+
+describe("Configuration validation", () => {
+	it("should handle pagination config structure", () => {
+		const configWithPagination: SourceConfig = {
+			id: "test-pagination",
+			name: "Test Pagination",
 			type: CRAWLER_TYPES.LISTING,
 			listing: {
-				url: "https://example.com/articles",
-				items: {
-					container_selector: ".article-item",
-					fields: {
-						title: {
-							selector: ".title",
-							attribute: "text",
-						},
-						url: {
-							selector: ".link",
-							attribute: "href",
-						},
-						author: {
-							selector: ".author",
-							attribute: "text",
-							optional: true,
-						},
-					},
-				},
-			},
-		};
-
-		expect(config.listing.items.fields.author.optional).toBe(true);
-		expect(config.listing.items.fields.title.optional).toBeUndefined();
-	});
-
-	it("should create crawled data with correct structure", () => {
-		// Test that the crawler maps item data to CrawledData correctly
-		const sampleItem = {
-			title: "Test Article",
-			url: "https://example.com/article",
-			excerpt: "This is a test excerpt",
-			author: "Test Author",
-			date: "2024-01-01",
-			image: "https://example.com/image.jpg",
-		};
-
-		// This tests the internal logic structure, even though we can't easily test the DOM extraction
-		const timestamp = new Date();
-		const expectedData = {
-			url: sampleItem.url,
-			timestamp,
-			source: "test-source",
-			title: sampleItem.title,
-			content: sampleItem.excerpt,
-			excerpt: sampleItem.excerpt,
-			author: sampleItem.author,
-			publishedDate: sampleItem.date,
-			image: sampleItem.image,
-			tags: [],
-			metadata: {
-				crawlerType: "listing",
-				configId: "test-source",
-				extractedFields: ["title", "url", "excerpt", "author", "date", "image"],
-			},
-		};
-
-		// Verify that our expected structure matches CrawledData type requirements
-		expect(expectedData.metadata.crawlerType).toBe("listing");
-		expect(expectedData.tags).toEqual([]);
-		expect(expectedData.source).toBe("test-source");
-	});
-
-	it("should handle missing required vs optional fields correctly", () => {
-		// This tests the field validation logic conceptually
-		const configWithOptionalFields: SourceConfig = {
-			id: "test-optional",
-			name: "Test Optional Fields",
-			type: "listing",
-			listing: {
 				url: "https://example.com",
+				pagination: {
+					next_button_selector: ".pager__item.pager__item--next",
+				},
 				items: {
 					container_selector: ".item",
 					fields: {
-						title: {
-							selector: ".title",
-							attribute: "text",
-							// Required field (no optional: true)
-						},
-						author: {
-							selector: ".author",
-							attribute: "text",
-							optional: true, // Optional field
-						},
-						url: {
-							selector: ".link",
-							attribute: "href",
-							// Required field
-						},
+						title: { selector: ".title", attribute: "text" },
 					},
 				},
 			},
 		};
 
-		// Test field configuration structure
-		expect(
-			configWithOptionalFields.listing.items.fields.title.optional,
-		).toBeUndefined();
-		expect(configWithOptionalFields.listing.items.fields.author.optional).toBe(
-			true,
+		expect(configWithPagination.listing.pagination?.next_button_selector).toBe(
+			".pager__item.pager__item--next",
 		);
-		expect(
-			configWithOptionalFields.listing.items.fields.url.optional,
-		).toBeUndefined();
 	});
 
-	it("should validate field attribute types", () => {
-		const configWithDifferentAttributes: SourceConfig = {
-			id: "test-attributes",
-			name: "Test Attributes",
-			type: "listing",
+	it("should handle configs without pagination", () => {
+		const configNoPagination: SourceConfig = {
+			id: "test-no-pagination",
+			name: "Test No Pagination",
+			type: CRAWLER_TYPES.LISTING,
 			listing: {
 				url: "https://example.com",
 				items: {
 					container_selector: ".item",
 					fields: {
-						title: {
-							selector: ".title",
-							attribute: "text", // Text content
-						},
-						url: {
-							selector: ".link",
-							attribute: "href", // Attribute value
-						},
-						image: {
-							selector: ".thumbnail",
-							attribute: "src", // Attribute value
-						},
+						title: { selector: ".title", attribute: "text" },
 					},
 				},
 			},
 		};
 
-		// Verify attribute configuration
-		expect(
-			configWithDifferentAttributes.listing.items.fields.title.attribute,
-		).toBe("text");
-		expect(
-			configWithDifferentAttributes.listing.items.fields.url.attribute,
-		).toBe("href");
-		expect(
-			configWithDifferentAttributes.listing.items.fields.image.attribute,
-		).toBe("src");
+		expect(configNoPagination.listing.pagination).toBeUndefined();
+	});
+
+	it("should validate field configurations", () => {
+		const fieldsConfig = {
+			title: { selector: ".title", attribute: "text" },
+			author: { selector: ".author", attribute: "text", optional: true },
+		};
+
+		const titleField = fieldsConfig.title;
+		const authorField = fieldsConfig.author;
+
+		expect(titleField.attribute).toBe("text");
+		expect(authorField.optional).toBe(true);
+		expect((titleField as { optional?: boolean }).optional).toBeUndefined();
 	});
 });

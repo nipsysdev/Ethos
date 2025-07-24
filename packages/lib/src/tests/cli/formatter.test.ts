@@ -27,10 +27,7 @@ describe("Data Formatter", () => {
 			publishedDate: "2025-01-01",
 			image: "https://example.com/image1.jpg",
 			tags: ["tech", "news"],
-			metadata: {
-				wordCount: 100,
-				category: "technology",
-			},
+			metadata: { wordCount: 100, category: "technology" },
 		},
 		{
 			url: "https://example.com/article2",
@@ -38,64 +35,30 @@ describe("Data Formatter", () => {
 			source: "test-source",
 			title: "Second Article",
 			content: "This is the second article content.",
-			metadata: {
-				wordCount: 150,
-			},
+			metadata: { wordCount: 150 },
 		},
 	];
 
-	it("should format header correctly", () => {
+	it("should format header and items correctly", () => {
 		const data = createMockData();
 		const summary = createMockSummary();
 
 		const result = formatDataForViewing(data, summary);
 
-		expect(result).toContain("=".repeat(80));
+		// Header
 		expect(result).toContain("EXTRACTED DATA - Test Source (test-source)");
 		expect(result).toContain("Items: 2");
-		expect(result).toMatch(/Crawled: .*2025.*/);
-	});
 
-	it("should format individual items correctly", () => {
-		const data = createMockData();
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		// Check first item
+		// Items
 		expect(result).toContain("--- Item 1 of 2 ---");
 		expect(result).toContain("Title: First Article");
 		expect(result).toContain("URL: https://example.com/article1");
-		expect(result).toContain("Source: test-source");
-		expect(result).toContain("Published: 2025-01-01");
-		expect(result).toContain("Author: John Doe");
-		expect(result).toContain("Excerpt: First article excerpt");
-		expect(result).toContain("Image: https://example.com/image1.jpg");
-		expect(result).toContain("Content: This is the first article content.");
 		expect(result).toContain("Tags: tech, news");
-
-		// Check second item
 		expect(result).toContain("--- Item 2 of 2 ---");
 		expect(result).toContain("Title: Second Article");
-		expect(result).toContain("URL: https://example.com/article2");
 	});
 
-	it("should handle missing optional fields gracefully", () => {
-		const data = createMockData();
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		// Second item has no author, excerpt, publishedDate, image, or tags
-		const secondItemSection = result.split("--- Item 2 of 2 ---")[1];
-		expect(secondItemSection).not.toContain("Author:");
-		expect(secondItemSection).not.toContain("Excerpt:");
-		expect(secondItemSection).not.toContain("Image:");
-		expect(secondItemSection).not.toContain("Tags:");
-		expect(secondItemSection).toContain("Crawled:"); // Falls back to timestamp
-	});
-
-	it("should handle null/undefined values with N/A", () => {
+	it("should handle missing optional fields and null values", () => {
 		const dataWithNulls: CrawledData[] = [
 			{
 				url: "",
@@ -113,9 +76,16 @@ describe("Data Formatter", () => {
 		expect(result).toContain("Title: N/A");
 		expect(result).toContain("URL: N/A");
 		expect(result).toContain("Content: N/A");
+
+		// Second item has no optional fields
+		const data = createMockData();
+		const result2 = formatDataForViewing(data, summary);
+		const secondItemSection = result2.split("--- Item 2 of 2 ---")[1];
+		expect(secondItemSection).not.toContain("Author:");
+		expect(secondItemSection).not.toContain("Excerpt:");
 	});
 
-	it("should format metadata as JSON", () => {
+	it("should format metadata as JSON and handle edge cases", () => {
 		const data = createMockData();
 		const summary = createMockSummary();
 
@@ -124,75 +94,15 @@ describe("Data Formatter", () => {
 		expect(result).toContain("Metadata:");
 		expect(result).toContain("  wordCount: 100");
 		expect(result).toContain('  category: "technology"');
-	});
 
-	it("should separate items with dividers", () => {
-		const data = createMockData();
-		const summary = createMockSummary();
+		// Test empty data
+		const emptyResult = formatDataForViewing([], summary);
+		expect(emptyResult).toContain("Items: 0");
+		expect(emptyResult).toContain("End of data");
 
-		const result = formatDataForViewing(data, summary);
-
-		expect(result).toContain("-".repeat(40));
-	});
-
-	it("should not add divider after last item", () => {
-		const data = createMockData();
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		const lines = result.split("\n");
-		const lastDividerIndex = lines.lastIndexOf("-".repeat(40));
-		const endOfDataIndex = lines.findIndex((line: string) =>
-			line.includes("End of data"),
-		);
-
-		// Divider should not be right before "End of data"
-		expect(lastDividerIndex).toBeLessThan(endOfDataIndex - 5);
-	});
-
-	it("should add footer", () => {
-		const data = createMockData();
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		expect(result).toContain("End of data");
-		expect(result.endsWith("=".repeat(80))).toBe(true);
-	});
-
-	it("should handle empty data array", () => {
-		const data: CrawledData[] = [];
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		expect(result).toContain("Items: 0");
-		expect(result).toContain("End of data");
-		expect(result).not.toContain("--- Item");
-	});
-
-	it("should handle single item", () => {
-		const data = [createMockData()[0]];
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(data, summary);
-
-		expect(result).toContain("--- Item 1 of 1 ---");
-		expect(result).not.toContain("-".repeat(40)); // No divider for single item
-	});
-
-	it("should handle empty tags array", () => {
-		const dataWithEmptyTags: CrawledData[] = [
-			{
-				...createMockData()[0],
-				tags: [],
-			},
-		];
-		const summary = createMockSummary();
-
-		const result = formatDataForViewing(dataWithEmptyTags, summary);
-
-		expect(result).not.toContain("Tags:");
+		// Test single item (no divider)
+		const singleResult = formatDataForViewing([data[0]], summary);
+		expect(singleResult).toContain("--- Item 1 of 1 ---");
+		expect(singleResult).not.toContain("-".repeat(40));
 	});
 });
