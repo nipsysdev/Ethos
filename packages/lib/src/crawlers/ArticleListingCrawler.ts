@@ -16,6 +16,10 @@ import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
 
+// Timeout constants for pagination handling
+const NAVIGATION_TIMEOUT_MS = 3000; // Time to wait for page navigation
+const CONTAINER_WAIT_TIMEOUT_MS = 5000; // Time to wait for container selector after navigation
+
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
 
@@ -346,7 +350,7 @@ export class ArticleListingCrawler implements Crawler {
 			try {
 				await page.waitForNavigation({
 					waitUntil: "domcontentloaded",
-					timeout: 3000,
+					timeout: NAVIGATION_TIMEOUT_MS,
 				});
 			} catch {
 				// No navigation occurred - likely AJAX pagination, continue anyway
@@ -355,7 +359,7 @@ export class ArticleListingCrawler implements Crawler {
 			// Wait for the container selector to be available (works for both navigation types)
 			// This ensures dynamic content has loaded before we try to extract items
 			await page.waitForSelector(config.listing.items.container_selector, {
-				timeout: 5000,
+				timeout: CONTAINER_WAIT_TIMEOUT_MS,
 			});
 
 			return true;
