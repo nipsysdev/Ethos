@@ -51,10 +51,10 @@ export async function handleCrawl(
 				validate: (input: string) => {
 					if (input === "") return true;
 					const num = Number.parseInt(input, 10);
-					return (
-						(!Number.isNaN(num) && num > 0) ||
-						"Please enter a positive number or leave empty"
-					);
+					if (Number.isNaN(num) || num <= 0) {
+						return "Please enter a positive number greater than 0 or leave empty";
+					}
+					return true;
 				},
 			},
 		]);
