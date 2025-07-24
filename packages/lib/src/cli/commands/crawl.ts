@@ -6,6 +6,20 @@ import type {
 } from "../../index.js";
 import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
 
+/**
+ * Validates input for positive integer fields that can be left empty
+ * @param input - The input string to validate
+ * @returns true if valid, error message string if invalid
+ */
+export function validatePositiveIntegerOrEmpty(input: string): true | string {
+	if (input === "") return true;
+	const num = Number.parseInt(input, 10);
+	if (Number.isNaN(num) || num <= 0) {
+		return "Please enter a positive number greater than 0 or leave empty";
+	}
+	return true;
+}
+
 export async function handleCrawl(
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
@@ -48,14 +62,7 @@ export async function handleCrawl(
 				name: "maxPages",
 				message: "Max pages to crawl (leave empty for no limit):",
 				default: "",
-				validate: (input: string) => {
-					if (input === "") return true;
-					const num = Number.parseInt(input, 10);
-					if (Number.isNaN(num) || num <= 0) {
-						return "Please enter a positive number greater than 0 or leave empty";
-					}
-					return true;
-				},
+				validate: validatePositiveIntegerOrEmpty,
 			},
 		]);
 
