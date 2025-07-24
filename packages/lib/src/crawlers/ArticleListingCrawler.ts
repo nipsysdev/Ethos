@@ -129,6 +129,16 @@ export class ArticleListingCrawler implements Crawler {
 				}
 			}
 
+			// Log page summary
+			const totalItemsOnPage = pageResult.items.length;
+			const newItemsCount = newItems.length;
+			const duplicatesOnPage = totalItemsOnPage - newItemsCount;
+			const filteredOnPage = pageResult.filteredCount;
+
+			console.log(
+				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items, processed ${newItemsCount} (${duplicatesOnPage} duplicates, ${filteredOnPage} filtered)`,
+			);
+
 			// If all items on this page were duplicates, stop
 			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
 				stoppedReason = "all_duplicates";
