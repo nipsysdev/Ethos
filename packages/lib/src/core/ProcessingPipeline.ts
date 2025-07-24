@@ -1,5 +1,6 @@
 import type {
 	CrawlerRegistry,
+	CrawlOptions,
 	CrawlSummary,
 	ProcessedData,
 	SourceConfig,
@@ -14,7 +15,10 @@ export interface ProcessingResult {
 export class ProcessingPipeline {
 	constructor(private crawlerRegistry: CrawlerRegistry) {}
 
-	async process(config: SourceConfig): Promise<ProcessingResult> {
+	async process(
+		config: SourceConfig,
+		options?: CrawlOptions,
+	): Promise<ProcessingResult> {
 		const crawler = this.crawlerRegistry.getCrawler(config.type);
 		if (!crawler) {
 			throw new CrawlerError(
@@ -23,7 +27,7 @@ export class ProcessingPipeline {
 			);
 		}
 
-		const result = await crawler.crawl(config);
+		const result = await crawler.crawl(config, options);
 
 		const processedData = result.data.map((data) => ({
 			...data,

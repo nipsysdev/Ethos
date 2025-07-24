@@ -1,5 +1,9 @@
 import ora from "ora";
-import type { ProcessingPipeline, SourceRegistry } from "../../index.js";
+import type {
+	CrawlOptions,
+	ProcessingPipeline,
+	SourceRegistry,
+} from "../../index.js";
 import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
 
 export async function handleCrawl(
@@ -37,10 +41,33 @@ export async function handleCrawl(
 			return "main";
 		}
 
+		// Ask for crawl options
+		const { maxPages } = await inquirer.prompt([
+			{
+				type: "input",
+				name: "maxPages",
+				message: "Max pages to crawl (leave empty for no limit):",
+				default: "",
+				validate: (input: string) => {
+					if (input === "") return true;
+					const num = Number.parseInt(input, 10);
+					return (
+						(!Number.isNaN(num) && num > 0) ||
+						"Please enter a positive number or leave empty"
+					);
+				},
+			},
+		]);
+
+		const options: CrawlOptions = {};
+		if (maxPages !== "") {
+			options.maxPages = Number.parseInt(maxPages, 10);
+		}
+
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
 
 		try {
-			const result = await pipeline.process(selectedSource);
+			const result = await pipeline.process(selectedSource, options);
 			spinner.succeed("Crawl completed successfully!");
 			displayResults(result);
 

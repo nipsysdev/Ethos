@@ -74,7 +74,7 @@ export interface CrawlResult {
 
 export interface Crawler {
 	type: string;
-	crawl(config: SourceConfig): Promise<CrawlResult>;
+	crawl(config: SourceConfig, options?: CrawlOptions): Promise<CrawlResult>;
 }
 
 export interface SourceRegistry {
@@ -118,4 +118,11 @@ export interface CrawlSummary {
 	errors: string[];
 	startTime: Date;
 	endTime: Date;
+	pagesProcessed?: number;
+	duplicatesSkipped?: number;
+	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+}
+
+export interface CrawlOptions {
+	maxPages?: number;
 }
