@@ -75,7 +75,10 @@ export class ArticleListingCrawler implements Crawler {
 		let pagesProcessed = 0;
 		let duplicatesSkipped = 0;
 		let totalFilteredItems = 0;
-		const allErrors: string[] = [];
+		let detailsCrawled = 0;
+		let detailsSkipped = 0;
+		const detailErrors: string[] = [];
+		const listingErrors: string[] = [];
 		let stoppedReason:
 			| "max_pages"
 			| "no_next_button"
@@ -92,6 +95,17 @@ export class ArticleListingCrawler implements Crawler {
 			isOptional: fieldConfig.optional || false,
 			missingItems: [],
 		}));
+
+		// Initialize detail field stats tracking
+		const detailFieldStats: FieldExtractionStats[] = config.detail?.fields
+			? Object.entries(config.detail.fields).map(([fieldName]) => ({
+					fieldName,
+					successCount: 0,
+					totalAttempts: 0,
+					isOptional: true, // All detail fields are effectively optional since we fall back to listing data
+					missingItems: [],
+				}))
+			: [];
 
 		// Main pagination loop
 		while (true) {
@@ -113,7 +127,7 @@ export class ArticleListingCrawler implements Crawler {
 
 			// Track filtered items
 			totalFilteredItems += pageResult.filteredCount;
-			allErrors.push(...pageResult.filteredReasons);
+			listingErrors.push(...pageResult.filteredReasons);
 
 			// Filter out duplicates and count them
 			const newItems: CrawledData[] = [];
@@ -136,7 +150,7 @@ export class ArticleListingCrawler implements Crawler {
 			const filteredOnPage = pageResult.filteredCount;
 
 			console.log(
-				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items, processed ${newItemsCount} (${duplicatesOnPage} duplicates, ${filteredOnPage} filtered)`,
+				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items, processed ${newItemsCount} (${duplicatesOnPage} duplicates, ${filteredOnPage} filtered out)`,
 			);
 
 			// If all items on this page were duplicates, stop
@@ -147,6 +161,30 @@ export class ArticleListingCrawler implements Crawler {
 
 			allCrawledItems.push(...newItems);
 
+			// Extract detail data if not skipped and config has detail section
+			if (!options.skipDetails && config.detail && newItems.length > 0) {
+				// Store current listing page URL so we can return to it after detail extraction
+				const currentListingUrl = page.url();
+
+				console.log(
+					`🔍 Extracting detail data for ${newItems.length} items...`,
+				);
+				await this.extractDetailData(
+					page,
+					newItems,
+					config,
+					detailErrors,
+					detailFieldStats,
+					allCrawledItems.length,
+				);
+				detailsCrawled += newItems.length;
+
+				// Navigate back to the listing page for pagination
+				await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
+			} else if (options.skipDetails) {
+				detailsSkipped += newItems.length;
+			}
+
 			// Try to navigate to next page
 			const hasNextPage = await this.navigateToNextPage(page, config);
 			if (!hasNextPage) {
@@ -154,6 +192,8 @@ export class ArticleListingCrawler implements Crawler {
 				break;
 			}
 		}
+
+		// No need to combine listing and detail errors now - they're separate
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {
@@ -164,12 +204,17 @@ export class ArticleListingCrawler implements Crawler {
 			itemsProcessed: allCrawledItems.length,
 			itemsWithErrors: totalFilteredItems,
 			fieldStats,
-			errors: allErrors,
+			detailFieldStats:
+				detailFieldStats.length > 0 ? detailFieldStats : undefined,
+			listingErrors,
 			startTime,
 			endTime,
 			pagesProcessed,
 			duplicatesSkipped,
 			stoppedReason,
+			detailsCrawled,
+			detailsSkipped,
+			detailErrors,
 		};
 
 		return {
@@ -295,7 +340,6 @@ export class ArticleListingCrawler implements Crawler {
 			source: config.id,
 			title: result.item.title || "",
 			content: result.item.excerpt || "",
-			excerpt: result.item.excerpt || undefined,
 			author: result.item.author || undefined,
 			publishedDate: result.item.date || undefined,
 			image: result.item.image || undefined,
@@ -377,6 +421,142 @@ export class ArticleListingCrawler implements Crawler {
 			// Navigation failed - this is expected when we reach the last page
 			// Common causes: button click fails, navigation timeout, no next page exists
 			return false;
+		}
+	}
+
+	private async extractFromDetailPage(
+		page: Page,
+		url: string,
+		config: SourceConfig,
+	): Promise<{
+		detailData: Record<string, string | null>;
+		errors: string[];
+	}> {
+		const detailData: Record<string, string | null> = {};
+		const errors: string[] = [];
+
+		if (!config.detail?.fields) {
+			return { detailData, errors };
+		}
+
+		try {
+			// Make sure we have an absolute URL
+			const absoluteUrl = url.startsWith("http")
+				? url
+				: new URL(url, config.listing.url).href;
+
+			// Navigate to the detail page
+			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
+
+			// Extract fields from detail page
+			const extractionResult = await page.evaluate((detailConfig) => {
+				const results: Record<string, string | null> = {};
+				const extractionErrors: string[] = [];
+
+				for (const [fieldName, fieldConfig] of Object.entries(
+					detailConfig.fields,
+				)) {
+					try {
+						const element = document.querySelector(fieldConfig.selector);
+						let value: string | null = null;
+
+						if (element) {
+							if (fieldConfig.attribute === "text") {
+								value = element.textContent?.trim() || null;
+							} else {
+								value = element.getAttribute(fieldConfig.attribute);
+							}
+						}
+
+						results[fieldName] = value && value !== "" ? value : null;
+					} catch (error) {
+						extractionErrors.push(`Failed to extract ${fieldName}: ${error}`);
+						results[fieldName] = null;
+					}
+				}
+
+				return { results, extractionErrors };
+			}, config.detail);
+
+			Object.assign(detailData, extractionResult.results);
+			errors.push(...extractionResult.extractionErrors);
+		} catch (error) {
+			const absoluteUrl = url.startsWith("http")
+				? url
+				: new URL(url, config.listing.url).href;
+			errors.push(`Failed to load detail page ${absoluteUrl}: ${error}`);
+		}
+
+		return { detailData, errors };
+	}
+
+	private async extractDetailData(
+		page: Page,
+		items: CrawledData[],
+		config: SourceConfig,
+		detailErrors: string[],
+		detailFieldStats: FieldExtractionStats[],
+		itemOffset: number,
+	): Promise<void> {
+		for (const [itemIndex, item] of items.entries()) {
+			if (!item.url) continue;
+
+			try {
+				const { detailData, errors } = await this.extractFromDetailPage(
+					page,
+					item.url,
+					config,
+				);
+
+				// Merge detail data, overwriting listing data where detail data exists
+				if (detailData.title) item.title = detailData.title;
+				if (detailData.content) item.content = detailData.content;
+				if (detailData.author) item.author = detailData.author;
+				if (detailData.date) item.publishedDate = detailData.date;
+				if (detailData.image) item.image = detailData.image;
+
+				// Track what we got from detail vs listing
+				const detailFields = Object.keys(detailData).filter(
+					(key) => detailData[key] !== null,
+				);
+				const failedDetailFields = Object.keys(detailData).filter(
+					(key) => detailData[key] === null,
+				);
+
+				// Update detail field stats
+				detailFieldStats.forEach((stat) => {
+					stat.totalAttempts++;
+					if (detailFields.includes(stat.fieldName)) {
+						stat.successCount++;
+					} else {
+						stat.missingItems.push(itemOffset + itemIndex + 1);
+					}
+				});
+
+				// Update metadata
+				item.metadata = {
+					...item.metadata,
+					detailFieldsExtracted: detailFields,
+					detailFieldsFailed: failedDetailFields,
+					detailExtractionErrors: errors,
+				};
+
+				// Add errors to main error list
+				if (errors.length > 0) {
+					detailErrors.push(
+						...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
+					);
+				}
+			} catch (error) {
+				const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
+				detailErrors.push(errorMessage);
+
+				// Add error info to metadata
+				item.metadata = {
+					...item.metadata,
+					detailExtractionErrors: [errorMessage],
+				};
+			}
 		}
 	}
 }
