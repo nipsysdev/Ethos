@@ -10,7 +10,7 @@ Ethos is a decentralized system to collect and analyze digital rights data from 
 
 We implemented a proof of concept and are now working on the actual crawling foundation - building production-ready YAML-driven crawlers that can reliably extract data from digital rights organizations' websites.
 
-## Architecture Overview
+## End-Goal Architecture Overview
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -46,6 +46,8 @@ Creating a comprehensive command-line interface for the system.
 ### Phase 4: Analysis
 
 On-demand analysis system with pluggable strategies.
+
+### TBD...
 
 ## Components
 
