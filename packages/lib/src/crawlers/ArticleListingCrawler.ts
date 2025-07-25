@@ -12,6 +12,7 @@ import type {
 	SourceConfig,
 } from "../core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
+import { resolveAbsoluteUrl } from "../utils/url.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -150,8 +151,15 @@ export class ArticleListingCrawler implements Crawler {
 			const filteredOnPage = pageResult.filteredCount;
 
 			console.log(
-				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items, processed ${newItemsCount} (${duplicatesOnPage} duplicates, ${filteredOnPage} filtered out)`,
+				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items`,
 			);
+			console.log(`   ✅ Processed ${newItemsCount} new items`);
+			if (duplicatesOnPage > 0) {
+				console.log(`   ⏭️  Skipped ${duplicatesOnPage} duplicates`);
+			}
+			if (filteredOnPage > 0) {
+				console.log(`   🚫 Filtered out ${filteredOnPage} items`);
+			}
 
 			// If all items on this page were duplicates, stop
 			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
@@ -439,9 +447,7 @@ export class ArticleListingCrawler implements Crawler {
 
 		try {
 			// Make sure we have an absolute URL
-			const absoluteUrl = url.startsWith("http")
-				? url
-				: new URL(url, config.listing.url).href;
+			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
 
 			// Navigate to the detail page
 			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
@@ -479,9 +485,7 @@ export class ArticleListingCrawler implements Crawler {
 			Object.assign(detailData, extractionResult.results);
 			errors.push(...extractionResult.extractionErrors);
 		} catch (error) {
-			const absoluteUrl = url.startsWith("http")
-				? url
-				: new URL(url, config.listing.url).href;
+			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
 			errors.push(`Failed to load detail page ${absoluteUrl}: ${error}`);
 		}
 
