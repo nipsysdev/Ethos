@@ -162,7 +162,7 @@ export class ArticleListingCrawler implements Crawler {
 			allCrawledItems.push(...newItems);
 
 			// Extract detail data if not skipped and config has detail section
-			if (!options.skipDetails && config.detail && newItems.length > 0) {
+			if (!options?.skipDetails && config.detail && newItems.length > 0) {
 				// Store current listing page URL so we can return to it after detail extraction
 				const currentListingUrl = page.url();
 
@@ -181,7 +181,7 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Navigate back to the listing page for pagination
 				await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
-			} else if (options.skipDetails) {
+			} else if (options?.skipDetails) {
 				detailsSkipped += newItems.length;
 			}
 
@@ -192,8 +192,6 @@ export class ArticleListingCrawler implements Crawler {
 				break;
 			}
 		}
-
-		// No need to combine listing and detail errors now - they're separate
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {
