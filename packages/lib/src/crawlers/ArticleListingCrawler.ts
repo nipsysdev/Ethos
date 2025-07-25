@@ -319,13 +319,6 @@ export class ArticleListingCrawler implements Crawler {
 		);
 
 		const filteredReasons: string[] = [];
-		filteredItems.forEach((result) => {
-			if (result.missingRequiredFields.length > 0) {
-				filteredReasons.push(
-					`Item ${currentItemOffset + extractionResult.indexOf(result) + 1}: missing required fields [${result.missingRequiredFields.join(", ")}]`,
-				);
-			}
-		});
 
 		// Update field stats based on extraction results (all items, not just valid ones)
 		extractionResult.forEach((result, itemIndex) => {
