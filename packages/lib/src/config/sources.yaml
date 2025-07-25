@@ -28,7 +28,6 @@ sources:
           author:
             selector: ".node-author"
             attribute: "text"
-            optional: true
           image:
             selector: ".teaser-thumbnail img"
             attribute: "src"
