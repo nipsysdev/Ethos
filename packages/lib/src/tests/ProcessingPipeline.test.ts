@@ -57,7 +57,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 1,
 						itemsWithErrors: 0,
 						fieldStats: [],
-						errors: [],
+						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
 					},
@@ -113,7 +113,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 0,
 						itemsWithErrors: 0,
 						fieldStats: [],
-						errors: [],
+						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
 					},
@@ -129,5 +129,45 @@ describe("ProcessingPipeline", () => {
 		await pipeline.process(testConfig, options);
 
 		expect(receivedOptions).toEqual(options);
+	});
+
+	it("should pass skipDetails option to crawler", async () => {
+		let receivedOptions: CrawlOptions | undefined;
+
+		const mockCrawler: Crawler = {
+			type: CRAWLER_TYPES.LISTING,
+			async crawl(
+				config: SourceConfig,
+				options?: CrawlOptions,
+			): Promise<CrawlResult> {
+				receivedOptions = options;
+				return {
+					data: [],
+					summary: {
+						sourceId: config.id,
+						sourceName: config.name,
+						itemsFound: 0,
+						itemsProcessed: 0,
+						itemsWithErrors: 0,
+						fieldStats: [],
+						listingErrors: [],
+						startTime: new Date(),
+						endTime: new Date(),
+						detailsSkipped: options?.skipDetails ? 0 : undefined,
+					},
+				};
+			},
+		};
+
+		const registry = new CrawlerRegistry();
+		registry.register(mockCrawler);
+		const pipeline = new ProcessingPipeline(registry);
+
+		const options: CrawlOptions = { maxPages: 3, skipDetails: true };
+		const result = await pipeline.process(testConfig, options);
+
+		expect(receivedOptions).toEqual(options);
+		expect(receivedOptions?.skipDetails).toBe(true);
+		expect(result.summary.detailsSkipped).toBe(0);
 	});
 });

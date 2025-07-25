@@ -25,7 +25,7 @@ describe("CrawlerRegistry", () => {
 					itemsProcessed: 1,
 					itemsWithErrors: 0,
 					fieldStats: [],
-					errors: [],
+					listingErrors: [],
 					startTime: new Date(),
 					endTime: new Date(),
 				},

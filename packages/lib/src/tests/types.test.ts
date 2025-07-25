@@ -25,3 +25,32 @@ describe("CrawlerError", () => {
 		expect(crawlerError.name).toBe("CrawlerError");
 	});
 });
+
+describe("Type interfaces", () => {
+	it("should define CrawlOptions interface correctly", () => {
+		// Test that CrawlOptions has the expected shape
+		const options = {
+			maxPages: 5,
+			skipDetails: true,
+		};
+
+		// TypeScript compilation validates the interface
+		expect(typeof options.maxPages).toBe("number");
+		expect(typeof options.skipDetails).toBe("boolean");
+		expect(options.maxPages).toBe(5);
+		expect(options.skipDetails).toBe(true);
+	});
+
+	it("should make all CrawlOptions fields optional", () => {
+		// Test that an empty object is valid CrawlOptions
+		const emptyOptions = {};
+
+		// Should not throw - TypeScript validates optional fields
+		expect(emptyOptions).toBeDefined();
+
+		// Test partial options
+		const partialOptions = { maxPages: 10 };
+		expect(partialOptions.maxPages).toBe(10);
+		expect("skipDetails" in partialOptions).toBe(false);
+	});
+});

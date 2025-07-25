@@ -10,7 +10,7 @@ describe("Data Formatter", () => {
 		itemsProcessed: 2,
 		itemsWithErrors: 0,
 		fieldStats: [],
-		errors: [],
+		listingErrors: [],
 		startTime: new Date("2025-01-01T10:00:00Z"),
 		endTime: new Date("2025-01-01T10:00:05Z"),
 	});
@@ -22,7 +22,6 @@ describe("Data Formatter", () => {
 			source: "test-source",
 			title: "First Article",
 			content: "This is the first article content.",
-			excerpt: "First article excerpt",
 			author: "John Doe",
 			publishedDate: "2025-01-01",
 			image: "https://example.com/image1.jpg",

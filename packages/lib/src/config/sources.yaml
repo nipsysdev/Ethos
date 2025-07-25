@@ -28,8 +28,25 @@ sources:
           author:
             selector: ".node-author"
             attribute: "text"
-            optional: true
           image:
             selector: ".teaser-thumbnail img"
             attribute: "src"
             optional: true
+
+    detail:
+      fields:
+        title:
+          selector: ".pane-page-title h1"
+          attribute: "text"
+        date:
+          selector: ".pane-eff-author .date"
+          attribute: "text"
+        content:
+          selector: ".pane-node .node__content"
+          attribute: "text"
+        author:
+          selector: ".pane-eff-author .byline"
+          attribute: "text"
+        image:
+          selector: ".pane-banner img"
+          attribute: "src"

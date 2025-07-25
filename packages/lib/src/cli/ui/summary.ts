@@ -17,7 +17,7 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 
 	// Pagination stats (if available)
 	if (summary.pagesProcessed !== undefined) {
-		console.log(`   • Pages processed: ${summary.pagesProcessed}`);
+		console.log(`   • Listing pages processed: ${summary.pagesProcessed}`);
 
 		if (
 			summary.duplicatesSkipped !== undefined &&
@@ -36,8 +36,13 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		}
 	}
 
+	// Detail crawling stats (if available)
+	if (summary.detailsSkipped && summary.detailsSkipped > 0) {
+		console.log(`   • Detail pages skipped: ${summary.detailsSkipped}`);
+	}
+
 	// Field extraction stats
-	console.log("\n📋 Field extraction stats:");
+	console.log("\n📋 Listing field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
 		const percentage =
 			stat.totalAttempts > 0
@@ -50,25 +55,68 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		);
 	});
 
+	// Detail field extraction stats (if detail crawling was performed)
+	if (summary.detailFieldStats && summary.detailFieldStats.length > 0) {
+		console.log("\n🔍 Detail field extraction stats:");
+		summary.detailFieldStats.forEach((stat: FieldExtractionStats) => {
+			const percentage =
+				stat.totalAttempts > 0
+					? Math.round((stat.successCount / stat.totalAttempts) * 100)
+					: 0;
+			const optionalLabel = stat.isOptional ? " (optional)" : "";
+
+			console.log(
+				`   • ${stat.fieldName}: ${stat.successCount}/${stat.totalAttempts} (${percentage}%)${optionalLabel}`,
+			);
+		});
+	}
+
 	// Only show issues for required fields or actual errors
 	const requiredFieldIssues = summary.fieldStats.filter(
 		(stat: FieldExtractionStats) =>
 			!stat.isOptional && stat.successCount < stat.totalAttempts,
 	);
 
-	if (requiredFieldIssues.length > 0 || summary.errors.length > 0) {
+	const hasDetailErrors =
+		summary.detailErrors && summary.detailErrors.length > 0;
+
+	if (
+		requiredFieldIssues.length > 0 ||
+		summary.listingErrors.length > 0 ||
+		hasDetailErrors
+	) {
 		console.log("\n⚠️  Issues found:");
 
-		requiredFieldIssues.forEach((stat: FieldExtractionStats) => {
-			const missingCount = stat.totalAttempts - stat.successCount;
-			console.log(
-				`   • ${missingCount} item(s) missing required field: ${stat.fieldName}`,
-			);
-		});
+		// Listing issues
+		if (requiredFieldIssues.length > 0 || summary.listingErrors.length > 0) {
+			console.log("   📋 Listing extraction issues:");
 
-		summary.errors.forEach((error: string) => {
-			console.log(`   • ${error}`);
-		});
+			requiredFieldIssues.forEach((stat: FieldExtractionStats) => {
+				const missingCount = stat.totalAttempts - stat.successCount;
+				console.log(
+					`      • ${missingCount} item(s) missing required field: ${stat.fieldName}`,
+				);
+			});
+
+			summary.listingErrors.forEach((error: string) => {
+				console.log(`      • ${error}`);
+			});
+		}
+
+		// Detail issues
+		if (hasDetailErrors) {
+			console.log("   🔍 Detail extraction issues:");
+			console.log(
+				`      • ${summary.detailErrors?.length} detail page(s) had extraction errors`,
+			);
+			// Show first few detail errors as examples
+			summary.detailErrors?.slice(0, 3).forEach((error: string) => {
+				console.log(`        - ${error}`);
+			});
+			if (summary.detailErrors && summary.detailErrors.length > 3) {
+				console.log(`        ... and ${summary.detailErrors.length - 3} more`);
+			}
+		}
 	}
 
 	// Timing

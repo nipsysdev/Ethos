@@ -31,10 +31,6 @@ export function formatDataForViewing(
 			lines.push(`Author: ${item.author}`);
 		}
 
-		if (item.excerpt) {
-			lines.push(`Excerpt: ${item.excerpt}`);
-		}
-
 		if (item.image) {
 			lines.push(`Image: ${item.image}`);
 		}
