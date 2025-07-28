@@ -56,7 +56,7 @@ export async function handleCrawl(
 		}
 
 		// Ask for crawl options
-		const { maxPages } = await inquirer.prompt([
+		const { maxPages, skipDetails } = await inquirer.prompt([
 			{
 				type: "input",
 				name: "maxPages",
@@ -64,11 +64,20 @@ export async function handleCrawl(
 				default: "",
 				validate: validatePositiveIntegerOrEmpty,
 			},
+			{
+				type: "confirm",
+				name: "skipDetails",
+				message: "Skip detail page crawling? (faster but less complete data)",
+				default: false,
+			},
 		]);
 
 		const options: CrawlOptions = {};
 		if (maxPages !== "") {
 			options.maxPages = Number.parseInt(maxPages, 10);
+		}
+		if (skipDetails) {
+			options.skipDetails = true;
 		}
 
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();

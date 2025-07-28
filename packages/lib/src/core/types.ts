@@ -11,7 +11,6 @@ export interface CrawledData {
 	source: string;
 	title: string;
 	content: string;
-	excerpt?: string;
 	author?: string;
 	publishedDate?: string;
 	image?: string;
@@ -115,14 +114,19 @@ export interface CrawlSummary {
 	itemsProcessed: number;
 	itemsWithErrors: number;
 	fieldStats: FieldExtractionStats[];
-	errors: string[];
+	detailFieldStats?: FieldExtractionStats[];
+	listingErrors: string[];
 	startTime: Date;
 	endTime: Date;
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
 	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+	detailsCrawled?: number;
+	detailsSkipped?: number;
+	detailErrors?: string[];
 }
 
 export interface CrawlOptions {
 	maxPages?: number;
+	skipDetails?: boolean;
 }
