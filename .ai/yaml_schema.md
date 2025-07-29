@@ -50,6 +50,7 @@ sources:
             optional: true # not all articles have images
 
     detail:
+      container_selector: ".main-content" # required - scope field selectors to this container
       fields:
         content:
           selector: ".content"
@@ -78,7 +79,7 @@ Each field has:
 - Must have `listing.url`
 - Must have `listing.items.container_selector`
 - Must have at least one item field
-- Must have `detail.fields` with at least one field
+- If `detail` section exists, must have `detail.container_selector` and at least one field
 
 ## Selector Format
 

@@ -34,6 +34,7 @@ sources:
             optional: true
 
     detail:
+      container_selector: ".node-type-blog"
       fields:
         title:
           selector: ".pane-page-title h1"

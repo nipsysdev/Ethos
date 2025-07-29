@@ -435,6 +435,7 @@ describe("Configuration validation", () => {
 				},
 			},
 			detail: {
+				container_selector: ".article",
 				fields: {
 					title: { selector: "h1", attribute: "text" },
 					content: { selector: ".content", attribute: "text" },
