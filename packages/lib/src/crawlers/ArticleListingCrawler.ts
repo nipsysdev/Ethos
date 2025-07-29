@@ -275,7 +275,24 @@ export class ArticleListingCrawler implements Crawler {
 
 						if (element) {
 							if (fieldConfig.attribute === "text") {
-								value = element.textContent?.trim() || null;
+								// Handle exclusions for listing page text extraction
+								if (
+									fieldConfig.exclude_selectors &&
+									fieldConfig.exclude_selectors.length > 0
+								) {
+									const cloned = element.cloneNode(true) as Element;
+									for (const selector of fieldConfig.exclude_selectors) {
+										const excludedElements = cloned.querySelectorAll(selector);
+										for (const excludedElement of excludedElements) {
+											excludedElement.remove();
+										}
+									}
+									value =
+										cloned.textContent?.trim().replace(/\s+/g, " ") || null;
+								} else {
+									value =
+										element.textContent?.trim().replace(/\s+/g, " ") || null;
+								}
 							} else {
 								value = element.getAttribute(fieldConfig.attribute);
 							}
@@ -472,7 +489,24 @@ export class ArticleListingCrawler implements Crawler {
 
 						if (element) {
 							if (fieldConfig.attribute === "text") {
-								value = element.textContent?.trim() || null;
+								// Handle exclusions for detail page text extraction
+								if (
+									fieldConfig.exclude_selectors &&
+									fieldConfig.exclude_selectors.length > 0
+								) {
+									const cloned = element.cloneNode(true) as Element;
+									for (const selector of fieldConfig.exclude_selectors) {
+										const excludedElements = cloned.querySelectorAll(selector);
+										for (const excludedElement of excludedElements) {
+											excludedElement.remove();
+										}
+									}
+									value =
+										cloned.textContent?.trim().replace(/\s+/g, " ") || null;
+								} else {
+									value =
+										element.textContent?.trim().replace(/\s+/g, " ") || null;
+								}
 							} else {
 								value = element.getAttribute(fieldConfig.attribute);
 							}
