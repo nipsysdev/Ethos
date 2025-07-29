@@ -55,6 +55,7 @@ export interface ListingConfig {
 }
 
 export interface DetailConfig {
+	container_selector: string;
 	fields: Record<string, FieldConfig>;
 }
 

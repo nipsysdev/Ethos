@@ -450,11 +450,24 @@ export class ArticleListingCrawler implements Crawler {
 				const results: Record<string, string | null> = {};
 				const extractionErrors: string[] = [];
 
+				// Determine the container to search within
+				const containerElement = document.querySelector(
+					detailConfig.container_selector,
+				);
+				if (!containerElement) {
+					extractionErrors.push(
+						`Container selector "${detailConfig.container_selector}" not found`,
+					);
+					return { results, extractionErrors };
+				}
+
 				for (const [fieldName, fieldConfig] of Object.entries(
 					detailConfig.fields,
 				)) {
 					try {
-						const element = document.querySelector(fieldConfig.selector);
+						const element = containerElement.querySelector(
+							fieldConfig.selector,
+						);
 						let value: string | null = null;
 
 						if (element) {
