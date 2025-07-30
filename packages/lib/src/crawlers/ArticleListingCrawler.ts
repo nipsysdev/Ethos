@@ -12,17 +12,19 @@ import type {
 	SourceConfig,
 } from "../core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
-import { resolveAbsoluteUrl } from "../utils/url.js";
+import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
+import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
+import { PaginationHandler } from "./handlers/PaginationHandler.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
 
-// Timeout constants for pagination handling
-const NAVIGATION_TIMEOUT_MS = 3000; // Time to wait for page navigation
-const CONTAINER_WAIT_TIMEOUT_MS = 5000; // Time to wait for container selector after navigation
-
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
+
+	private listingExtractor = new ListingPageExtractor();
+	private detailExtractor = new DetailPageExtractor();
+	private paginationHandler = new PaginationHandler();
 
 	async crawl(
 		config: SourceConfig,
@@ -52,7 +54,6 @@ export class ArticleListingCrawler implements Crawler {
 				options,
 				startTime,
 			);
-
 			return result;
 		} catch (error) {
 			throw new CrawlerError(
@@ -119,7 +120,7 @@ export class ArticleListingCrawler implements Crawler {
 			pagesProcessed++;
 
 			// Extract items from current page
-			const pageResult = await this.extractItemsFromPage(
+			const pageResult = await this.listingExtractor.extractItemsFromPage(
 				page,
 				config,
 				fieldStats,
@@ -145,21 +146,13 @@ export class ArticleListingCrawler implements Crawler {
 			}
 
 			// Log page summary
-			const totalItemsOnPage = pageResult.items.length;
-			const newItemsCount = newItems.length;
-			const duplicatesOnPage = totalItemsOnPage - newItemsCount;
-			const filteredOnPage = pageResult.filteredCount;
-
-			console.log(
-				`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items`,
+			const duplicatesOnPage = pageResult.items.length - newItems.length;
+			this.logPageSummary(
+				pagesProcessed,
+				pageResult,
+				newItems.length,
+				duplicatesOnPage,
 			);
-			console.log(`   ✅ Processed ${newItemsCount} new items`);
-			if (duplicatesOnPage > 0) {
-				console.log(`   ⏭️  Skipped ${duplicatesOnPage} duplicates`);
-			}
-			if (filteredOnPage > 0) {
-				console.log(`   🚫 Filtered out ${filteredOnPage} items`);
-			}
 
 			// If all items on this page were duplicates, stop
 			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
@@ -177,7 +170,7 @@ export class ArticleListingCrawler implements Crawler {
 				console.log(
 					`🔍 Extracting detail data for ${newItems.length} items...`,
 				);
-				await this.extractDetailData(
+				await this.detailExtractor.extractDetailData(
 					page,
 					newItems,
 					config,
@@ -194,13 +187,73 @@ export class ArticleListingCrawler implements Crawler {
 			}
 
 			// Try to navigate to next page
-			const hasNextPage = await this.navigateToNextPage(page, config);
+			const hasNextPage = await this.paginationHandler.navigateToNextPage(
+				page,
+				config,
+			);
 			if (!hasNextPage) {
 				stoppedReason = "no_next_button";
 				break;
 			}
 		}
 
+		return this.buildCrawlResult(
+			config,
+			allCrawledItems,
+			duplicatesSkipped,
+			totalFilteredItems,
+			fieldStats,
+			detailFieldStats,
+			listingErrors,
+			detailErrors,
+			startTime,
+			pagesProcessed,
+			stoppedReason,
+			detailsCrawled,
+			detailsSkipped,
+		);
+	}
+
+	private logPageSummary(
+		pagesProcessed: number,
+		pageResult: { items: CrawledData[]; filteredCount: number },
+		newItemsCount: number,
+		duplicatesOnPage: number,
+	): void {
+		const totalItemsOnPage = pageResult.items.length;
+		const filteredOnPage = pageResult.filteredCount;
+
+		console.log(
+			`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items`,
+		);
+		console.log(`   ✅ Processed ${newItemsCount} new items`);
+		if (duplicatesOnPage > 0) {
+			console.log(`   ⏭️  Skipped ${duplicatesOnPage} duplicates`);
+		}
+		if (filteredOnPage > 0) {
+			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
+		}
+	}
+
+	private buildCrawlResult(
+		config: SourceConfig,
+		allCrawledItems: CrawledData[],
+		duplicatesSkipped: number,
+		totalFilteredItems: number,
+		fieldStats: FieldExtractionStats[],
+		detailFieldStats: FieldExtractionStats[],
+		listingErrors: string[],
+		detailErrors: string[],
+		startTime: Date,
+		pagesProcessed: number,
+		stoppedReason:
+			| "max_pages"
+			| "no_next_button"
+			| "all_duplicates"
+			| undefined,
+		detailsCrawled: number,
+		detailsSkipped: number,
+	): CrawlResult {
 		const endTime = new Date();
 		const summary: CrawlSummary = {
 			sourceId: config.id,
@@ -227,344 +280,5 @@ export class ArticleListingCrawler implements Crawler {
 			data: allCrawledItems,
 			summary,
 		};
-	}
-
-	private async extractItemsFromPage(
-		page: Page,
-		config: SourceConfig,
-		fieldStats: FieldExtractionStats[],
-		currentItemOffset: number,
-	): Promise<{
-		items: CrawledData[];
-		filteredCount: number;
-		filteredReasons: string[];
-	}> {
-		// Extract all items using the container selector
-		// Note: The function below runs in the browser context and must be self-contained
-		const extractionResult = await page.evaluate((itemsConfig) => {
-			const containers = document.querySelectorAll(
-				itemsConfig.container_selector,
-			);
-			const results: Array<{
-				item: Record<string, string | null>;
-				fieldResults: Record<
-					string,
-					{ success: boolean; value: string | null }
-				>;
-				hasRequiredFields: boolean;
-				missingRequiredFields: string[];
-			}> = [];
-
-			containers.forEach((container) => {
-				const item: Record<string, string | null> = {};
-				const fieldResults: Record<
-					string,
-					{ success: boolean; value: string | null }
-				> = {};
-				let hasRequiredFields = true;
-				const missingRequiredFields: string[] = [];
-
-				for (const [fieldName, fieldConfig] of Object.entries(
-					itemsConfig.fields,
-				)) {
-					let success = false;
-					let value: string | null = null;
-
-					try {
-						const element = container.querySelector(fieldConfig.selector);
-
-						if (element) {
-							if (fieldConfig.attribute === "text") {
-								value = element.textContent?.trim() || null;
-							} else {
-								value = element.getAttribute(fieldConfig.attribute);
-							}
-						}
-
-						success = value !== null && value !== "";
-					} catch {
-						// Field extraction failed - success remains false, value remains null
-					}
-
-					fieldResults[fieldName] = { success, value };
-
-					if (success) {
-						item[fieldName] = value;
-					} else if (!fieldConfig.optional) {
-						hasRequiredFields = false;
-						missingRequiredFields.push(fieldName);
-					}
-				}
-
-				// Always add to results so we can track what got filtered
-				results.push({
-					item,
-					fieldResults,
-					hasRequiredFields,
-					missingRequiredFields,
-				});
-			});
-
-			return results;
-		}, config.listing.items);
-
-		// Process results and track filtered items
-		const validItems = extractionResult.filter(
-			(result) =>
-				result.hasRequiredFields && Object.keys(result.item).length > 0,
-		);
-		const filteredItems = extractionResult.filter(
-			(result) =>
-				!result.hasRequiredFields || Object.keys(result.item).length === 0,
-		);
-
-		const filteredReasons: string[] = [];
-
-		// Update field stats based on extraction results (all items, not just valid ones)
-		extractionResult.forEach((result, itemIndex) => {
-			fieldStats.forEach((stat) => {
-				stat.totalAttempts++;
-				const fieldResult = result.fieldResults[stat.fieldName];
-				if (fieldResult?.success) {
-					stat.successCount++;
-				} else {
-					stat.missingItems.push(currentItemOffset + itemIndex + 1);
-				}
-			});
-		});
-
-		const crawledItems: CrawledData[] = validItems.map((result) => ({
-			url: result.item.url || "",
-			timestamp: new Date(),
-			source: config.id,
-			title: result.item.title || "",
-			content: result.item.excerpt || "",
-			author: result.item.author || undefined,
-			publishedDate: result.item.date || undefined,
-			image: result.item.image || undefined,
-			tags: [],
-			metadata: {
-				crawlerType: this.type,
-				configId: config.id,
-				extractedFields: Object.keys(result.item),
-			},
-		}));
-
-		return {
-			items: crawledItems,
-			filteredCount: filteredItems.length,
-			filteredReasons,
-		};
-	}
-
-	private async navigateToNextPage(
-		page: Page,
-		config: SourceConfig,
-	): Promise<boolean> {
-		const nextButtonSelector = config.listing.pagination?.next_button_selector;
-
-		if (!nextButtonSelector) {
-			return false;
-		}
-
-		try {
-			// Check if next button exists and is clickable
-			const nextButton = await page.$(nextButtonSelector);
-			if (!nextButton) {
-				return false;
-			}
-
-			// Check if button is disabled or hidden
-			const isDisabled = await page.evaluate((selector) => {
-				const element = document.querySelector(selector);
-				if (!element) return true;
-
-				// Check various ways a button might be disabled
-				const htmlElement = element as HTMLElement;
-				const isHidden = htmlElement.offsetParent === null;
-				const hasDisabledAttr = element.hasAttribute("disabled");
-				const hasDisabledClass = element.classList.contains("disabled");
-				const hasAriaDisabled =
-					element.getAttribute("aria-disabled") === "true";
-
-				return (
-					isHidden || hasDisabledAttr || hasDisabledClass || hasAriaDisabled
-				);
-			}, nextButtonSelector);
-
-			if (isDisabled) {
-				return false;
-			}
-
-			// Click the next button - handle both traditional navigation and AJAX pagination
-			await nextButton.click();
-
-			// Try to wait for navigation, but don't fail if it's AJAX-based pagination
-			try {
-				await page.waitForNavigation({
-					waitUntil: "domcontentloaded",
-					timeout: NAVIGATION_TIMEOUT_MS,
-				});
-			} catch {
-				// No navigation occurred - likely AJAX pagination, continue anyway
-			}
-
-			// Wait for the container selector to be available (works for both navigation types)
-			// This ensures dynamic content has loaded before we try to extract items
-			await page.waitForSelector(config.listing.items.container_selector, {
-				timeout: CONTAINER_WAIT_TIMEOUT_MS,
-			});
-
-			return true;
-		} catch {
-			// Navigation failed - this is expected when we reach the last page
-			// Common causes: button click fails, navigation timeout, no next page exists
-			return false;
-		}
-	}
-
-	private async extractFromDetailPage(
-		page: Page,
-		url: string,
-		config: SourceConfig,
-	): Promise<{
-		detailData: Record<string, string | null>;
-		errors: string[];
-	}> {
-		const detailData: Record<string, string | null> = {};
-		const errors: string[] = [];
-
-		if (!config.detail?.fields) {
-			return { detailData, errors };
-		}
-
-		try {
-			// Make sure we have an absolute URL
-			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
-
-			// Navigate to the detail page
-			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
-
-			// Extract fields from detail page
-			const extractionResult = await page.evaluate((detailConfig) => {
-				const results: Record<string, string | null> = {};
-				const extractionErrors: string[] = [];
-
-				// Determine the container to search within
-				const containerElement = document.querySelector(
-					detailConfig.container_selector,
-				);
-				if (!containerElement) {
-					extractionErrors.push(
-						`Container selector "${detailConfig.container_selector}" not found`,
-					);
-					return { results, extractionErrors };
-				}
-
-				for (const [fieldName, fieldConfig] of Object.entries(
-					detailConfig.fields,
-				)) {
-					try {
-						const element = containerElement.querySelector(
-							fieldConfig.selector,
-						);
-						let value: string | null = null;
-
-						if (element) {
-							if (fieldConfig.attribute === "text") {
-								value = element.textContent?.trim() || null;
-							} else {
-								value = element.getAttribute(fieldConfig.attribute);
-							}
-						}
-
-						results[fieldName] = value && value !== "" ? value : null;
-					} catch (error) {
-						extractionErrors.push(`Failed to extract ${fieldName}: ${error}`);
-						results[fieldName] = null;
-					}
-				}
-
-				return { results, extractionErrors };
-			}, config.detail);
-
-			Object.assign(detailData, extractionResult.results);
-			errors.push(...extractionResult.extractionErrors);
-		} catch (error) {
-			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
-			errors.push(`Failed to load detail page ${absoluteUrl}: ${error}`);
-		}
-
-		return { detailData, errors };
-	}
-
-	private async extractDetailData(
-		page: Page,
-		items: CrawledData[],
-		config: SourceConfig,
-		detailErrors: string[],
-		detailFieldStats: FieldExtractionStats[],
-		itemOffset: number,
-	): Promise<void> {
-		for (const [itemIndex, item] of items.entries()) {
-			if (!item.url) continue;
-
-			try {
-				const { detailData, errors } = await this.extractFromDetailPage(
-					page,
-					item.url,
-					config,
-				);
-
-				// Merge detail data, overwriting listing data where detail data exists
-				if (detailData.title) item.title = detailData.title;
-				if (detailData.content) item.content = detailData.content;
-				if (detailData.author) item.author = detailData.author;
-				if (detailData.date) item.publishedDate = detailData.date;
-				if (detailData.image) item.image = detailData.image;
-
-				// Track what we got from detail vs listing
-				const detailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] !== null,
-				);
-				const failedDetailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] === null,
-				);
-
-				// Update detail field stats
-				detailFieldStats.forEach((stat) => {
-					stat.totalAttempts++;
-					if (detailFields.includes(stat.fieldName)) {
-						stat.successCount++;
-					} else {
-						stat.missingItems.push(itemOffset + itemIndex + 1);
-					}
-				});
-
-				// Update metadata
-				item.metadata = {
-					...item.metadata,
-					detailFieldsExtracted: detailFields,
-					detailFieldsFailed: failedDetailFields,
-					detailExtractionErrors: errors,
-				};
-
-				// Add errors to main error list
-				if (errors.length > 0) {
-					detailErrors.push(
-						...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
-					);
-				}
-			} catch (error) {
-				const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
-				detailErrors.push(errorMessage);
-
-				// Add error info to metadata
-				item.metadata = {
-					...item.metadata,
-					detailExtractionErrors: [errorMessage],
-				};
-			}
-		}
 	}
 }

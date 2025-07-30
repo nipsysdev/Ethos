@@ -72,6 +72,38 @@ Each field has:
 - `selector`: CSS selector to find the element
 - `attribute`: What to extract (`text`, `href`, `src`, etc.)
 - `optional`: Whether field is optional (defaults to false/required)
+- `exclude_selectors`: Array of CSS selectors for child elements to exclude from text extraction (optional, only applies when `attribute: "text"`)
+
+### Text Exclusion Example
+
+```yaml
+content:
+  selector: ".article-content"
+  attribute: "text"
+  exclude_selectors:
+    - ".newsletter-signup"
+    - ".advertisement"
+    - ".social-share"
+```
+
+This will extract text from `.article-content` but remove any child elements matching the exclusion selectors before getting the text content.
+
+### Container Selectors
+
+Both `listing.items` and `detail` sections support container selectors:
+
+- **Listing items**: `container_selector` is required - defines the repeating item elements
+- **Detail pages**: `container_selector` is required - all field selectors are scoped to this container instead of the entire document
+
+```yaml
+detail:
+  container_selector: ".article-main"
+  fields:
+    title:
+      selector: "h1" # searches within .article-main for h1
+    content:
+      selector: ".content" # searches within .article-main for .content
+```
 
 ## Validation Rules
 

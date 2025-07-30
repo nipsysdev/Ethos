@@ -51,3 +51,58 @@ sources:
         image:
           selector: ".pane-banner img"
           attribute: "src"
+
+  - id: "freedomPress"
+    name: "Freedom of the Press Foundation"
+    type: "listing"
+
+    listing:
+      url: "https://freedom.press/issues/"
+
+      pagination:
+        next_button_selector: ".pagination .pagination-link:nth-of-type(2)"
+        current_page_selector: ".pagination .pagination-detail span.highlighted"
+
+      items:
+        container_selector: ".article-list .card-listing"
+        fields:
+          title:
+            selector: ".heading .card-link"
+            attribute: "text"
+          url:
+            selector: ".heading .card-link"
+            attribute: "href"
+          date:
+            selector: ".meta-info time"
+            attribute: "datetime"
+          excerpt:
+            selector: ".inner-content p"
+            attribute: "text"
+          author:
+            selector: ".meta-info .card-meta-link:not(:nth-child(1))"
+            attribute: "text"
+          image:
+            selector: ".card-image"
+            attribute: "src"
+            optional: true
+
+    detail:
+      container_selector: ".blog-page"
+      fields:
+        title:
+          selector: ".header-banner .heading"
+          attribute: "text"
+        date:
+          selector: ".header-banner .author time"
+          attribute: "text"
+        content:
+          selector: ".post-content"
+          attribute: "text"
+          exclude_selectors:
+            - ".form.newsletter-signup"
+        author:
+          selector: ".header-banner .author-link"
+          attribute: "text"
+        image:
+          selector: ".header-image img"
+          attribute: "src"

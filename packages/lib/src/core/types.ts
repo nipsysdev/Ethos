@@ -35,6 +35,7 @@ export interface FieldConfig {
 	selector: string;
 	attribute: string;
 	optional?: boolean;
+	exclude_selectors?: string[];
 }
 
 export interface PaginationConfig {
