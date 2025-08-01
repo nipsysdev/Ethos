@@ -4,6 +4,7 @@ import type { SourceConfig } from "../../core/types.js";
 // Timeout constants for pagination handling
 const NAVIGATION_TIMEOUT_MS = 8000; // Increased from 3000
 const CONTAINER_WAIT_TIMEOUT_MS = 10000; // Increased from 5000
+const CONTENT_LOAD_DELAY_MS = 3000; // Additional wait for content loading
 const RETRY_ATTEMPTS = 3; // New: retry failed clicks
 const RETRY_DELAY_MS = 2000; // New: delay between retries
 
@@ -60,7 +61,9 @@ export class PaginationHandler {
 				}
 
 				// Additional wait for content to load (important for timing-sensitive sites)
-				await new Promise((resolve) => setTimeout(resolve, 3000));
+				await new Promise((resolve) =>
+					setTimeout(resolve, CONTENT_LOAD_DELAY_MS),
+				);
 
 				// Wait for the container selector to be available (works for both navigation types)
 				try {
