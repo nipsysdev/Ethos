@@ -7,7 +7,7 @@ sources:
       url: "https://eff.org/updates"
 
       pagination:
-        next_button_selector: ".pager__item.pager__item--next"
+        next_button_selector: ".pager__item.pager__item--next a"
         current_page_selector: ".pager__item.pager__item--current"
 
       items:

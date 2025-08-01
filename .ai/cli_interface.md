@@ -1,6 +1,11 @@
 # CLI Interface
 
-## Core Commands
+```bash
+cd packages/lib
+pnpm cli                      # Interactive menu-driven CLI
+```
+
+## Future Commands
 
 ### Configuration
 
