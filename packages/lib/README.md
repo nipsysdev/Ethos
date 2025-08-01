@@ -1,24 +1,35 @@
 # @ethos/lib
 
-Core library for the Ethos data collection system. Currently focused on building production-ready YAML-driven crawlers.
+YAML-driven web crawlers for digital rights monitoring. Core library of the Ethos system.
 
 ## What This Library Does
 
-This is the crawling engine for Ethos. It takes YAML configurations and reliably extracts data from digital rights organizations' websites.
+Configurable web scrapers that extract data from digital rights organizations. Uses YAML configs to define crawling rules.
 
 ## Quick Start
+
+### As a Library
+
+```typescript
+import { SourceRegistry, CrawlerRegistry } from "@ethos/lib";
+
+// Load sources and run crawler
+const sources = SourceRegistry.loadSources("config/sources.yaml");
+const crawler = CrawlerRegistry.getCrawler("listing");
+const results = await crawler.crawl(sources[0]);
+```
 
 ### Using the CLI
 
 ```bash
 # Build and run
-pnpm run build
-node dist/cli/index.js
+pnpm build
+pnpm cli
 ```
 
 ## YAML Configuration
 
-The library uses YAML configs to define listing crawlers. Here's the current schema:
+Configure crawlers with YAML. Example for EFF updates:
 
 ```yaml
 sources:
@@ -27,52 +38,44 @@ sources:
     type: "listing"
 
     listing:
-      url: "https://www.eff.org/updates"
+      url: "https://eff.org/updates"
 
       pagination:
-        next_button_selector: "a[href]:contains('NEXT')"
-        current_page_selector: ".pager-current"
+        next_button_selector: ".pager__item.pager__item--next a"
+        current_page_selector: ".pager__item.pager__item--current"
 
       items:
-        container_selector: "article"
+        container_selector: ".views-row article.node"
         fields:
           title:
-            selector: "h3 a"
+            selector: ".node__title"
             attribute: "text"
-            # required by default
           url:
-            selector: "h3 a"
+            selector: ".node__title a"
             attribute: "href"
-            # required by default
           date:
-            selector: ".date"
+            selector: ".node-date"
             attribute: "text"
-            # required by default
           author:
-            selector: ".author a"
+            selector: ".node-author"
             attribute: "text"
-            optional: true # might not be present on all articles
+            optional: true
           excerpt:
-            selector: ".excerpt"
+            selector: ".node__content"
             attribute: "text"
-            optional: true # might not be present on all articles
+            optional: true
           image:
-            selector: "img"
+            selector: ".teaser-thumbnail img"
             attribute: "src"
-            optional: true # not all articles have images
+            optional: true
 
     detail:
+      container_selector: ".node-type-blog"
       fields:
         content:
-          selector: ".content"
+          selector: ".pane-node .node__content"
           attribute: "text"
-          # required - if this fails, the whole detail page fails
 ```
-
-### Field Behavior
-
-- **Required fields** (default): If extraction fails, the entire page/item fails
-- **Optional fields**: Add `optional: true` - if extraction fails, continue with null value
 
 ## License
 
