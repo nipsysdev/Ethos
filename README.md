@@ -1,14 +1,10 @@
 # Ethos
 
-Decentralized data collection system for digital rights monitoring. Part of the Logos ecosystem.
+Tracking digital freedom threats through automated crawling. Part of the [Logos](https://logos.co) ecosystem.
 
 ## What is Ethos?
 
-Ethos is a decentralized system to collect and analyze digital rights data from across the web. Think of it as a distributed monitoring and data collection network for digital rights issues - tracking censorship, surveillance, policy changes, and advocacy efforts from organizations worldwide.
-
-## Current Status
-
-We implemented a proof of concept and are now working on the actual crawling foundation - building production-ready YAML-driven crawlers that can reliably extract data from digital rights organizations' websites.
+Ethos crawls websites from digital rights organizations to track threats to online freedom. We're building YAML-driven web scrapers that automatically collect data about censorship, surveillance, and policy changes - then store it in a decentralized network for analysis and alerts.
 
 ## End-Goal Architecture Overview
 
@@ -24,28 +20,19 @@ We implemented a proof of concept and are now working on the actual crawling fou
 
 **How it works:**
 
-- **Library**: Contains all core logic for crawling, storage access, and analysis
-- **Nodes**: Use the library to run continuous crawling/storage + on-demand analysis
-- **Communication**: Nodes receive requests through Waku from client applications
-- **Client Apps**: Discord notifiers, research interfaces, etc. talk to nodes via Waku
+- **Library**: Core crawling, storage, and analysis logic
+- **Nodes**: Run continuous operations using the library
+- **Client Apps**: Discord bots, research UIs that request data via Waku
 
 ## Development Phases
 
-### Phase 1: Robust Crawler Foundation (Current)
+### Phase 1: Listing crawler ✓
 
-Building production-ready crawlers for "listing" type sources with strict error handling.
+### Phase 2: Simulating decentralized Storage (current)
 
-### Phase 2: Simulated Storage
+### Phase 3: Data analysis strategies
 
-Implementing the storage layer with deduplication using SQLite and JSON files, respectively simulating storing data into Smart Contract and Codex.
-
-### Phase 3: CLI Interface
-
-Creating a comprehensive command-line interface for the system.
-
-### Phase 4: Analysis
-
-On-demand analysis system with pluggable strategies.
+### Phase 4: Feature-complete CLI interface
 
 ### TBD...
 
@@ -53,9 +40,11 @@ On-demand analysis system with pluggable strategies.
 
 ### [@ethos/lib](./packages/lib/)
 
-The core TypeScript library containing all the logic for crawling, storage access, and analysis.
+The core TypeScript library containing all the logic for crawling, storage access, and running analysis strategies.
 
 This library is intended to be used by network nodes to perform all operations.
+
+It also features a CLI for testing purposes.
 
 See the [library README](./packages/lib/README.md) for detailed documentation.
 
@@ -77,18 +66,11 @@ Client application that communicates with nodes via Waku to query stored events 
 - Real-time alerts for critical events
 - Multi-channel notification support
 
-## Data Flow
+## Pipeline
 
 ```
-Sources → Crawl → Deduplicate → Store → Query/Analyze → Notify
+Sources → Crawl → Store → Processing (Query/Analyze/Notify/Display)
 ```
-
-1. **Crawl**: Extract content from configured sources
-2. **Deduplicate**: Check smart contract for existing content
-3. **Store**: Save to Codex with metadata coordination
-4. **Query**: Research interface for historical data
-5. **Analyze**: On-demand processing with pluggable strategies
-6. **Notify**: Alerts for critical events and patterns
 
 ## Quick Start
 
