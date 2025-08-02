@@ -1,10 +1,10 @@
-# Analysis Framework
+# Analysis Framework (Phase 4)
 
-## Core Concept
+## Status: Future implementation
 
-On-demand analysis - data is processed when needed, not stored pre-analyzed.
+**Concept**: On-demand analysis - process data when queried, not pre-stored.
 
-## Strategy System
+## Planned Strategy System
 
 ```typescript
 interface ProcessingStrategy {
@@ -13,15 +13,4 @@ interface ProcessingStrategy {
 }
 ```
 
-## Usage Patterns
-
-- Apply during queries: `ethos query --analyze keywords,sentiment`
-- Chain strategies: `keywords → classification → urgency-detection`
-- Filter by confidence: `--threshold 0.8`
-
-## Built-in Strategies
-
-- `keywords`: Extract important terms
-- `classification`: Categorize content
-- `sentiment`: Analyze tone/emotion
-- `urgency`: Detect time-critical issues
+**Built-in strategies**: keywords, sentiment, classification, urgency detection

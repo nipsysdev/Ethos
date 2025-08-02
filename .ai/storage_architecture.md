@@ -1,27 +1,14 @@
-# Storage Architecture
+# Storage Architecture (Phase 2)
 
-## Four-Phase Pipeline
+## Current Status
 
-1. **Crawling** - Extract data from sources (Phase 1 - current)
-2. **Storing** - Deduplicate and store with content addressing (Phase 2 - next)
-3. **CLI Interface** - Comprehensive command-line interface (Phase 3 - future)
-4. **Analysis** - On-demand processing of stored data (Phase 4 - future)
+- **Phase 1 ✅**: Crawling returns structured data
+- **Phase 2 🔄**: Adding persistent storage layer
 
-## Architecture
-
-**Phase 2 Implementation:**
-
-- SQLite database (metadata + deduplication)
-- JSON files (content storage)
-
-**Future:**
-
-- Smart contract (coordination + metadata)
-- Codex storage (decentralized content)
-
-## Storage Flow
+## Planned Implementation
 
 ```typescript
+// Phase 2: SQLite + JSON files
 const contentHash = hashContent(data);
 if (!(await metadataStore.isDuplicate(contentHash))) {
   const cid = await contentStore.store(data);
@@ -29,6 +16,4 @@ if (!(await metadataStore.isDuplicate(contentHash))) {
 }
 ```
 
-## Deduplication
-
-Content-addressed storage prevents duplicate data. Hash-based deduplication checks happen before storage.
+## Future: Smart contracts + Codex storage

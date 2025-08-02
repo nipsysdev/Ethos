@@ -1,45 +1,20 @@
 # Data Sources
 
-## Priority Sources (Phase 1)
+## Implemented ✅
 
-### Listing Crawlers
+- **EFF Updates**: https://www.eff.org/updates (full config in `sources.yaml`)
 
-1. **EFF Updates** - https://www.eff.org/updates (Reference implementation)
-2. **AccessNow** - https://www.accessnow.org/news-updates/
-3. **TorrentFreak** - https://torrentfreak.com/
-4. **Big Brother Watch** - https://bigbrotherwatch.org.uk/media/
-5. **Citizenlab** - https://citizenlab.ca/2025/
-6. **Declassified UK** - https://www.declassifieduk.org/category/archive/
-7. **Freedom Press** - https://freedom.press/issues
+## Phase 2 Targets
 
-### RSS Crawlers
+1. AccessNow - https://www.accessnow.org/news-updates/
+2. TorrentFreak - https://torrentfreak.com/
+3. Big Brother Watch - https://bigbrotherwatch.org.uk/media/
+4. Citizenlab - https://citizenlab.ca/2025/
+5. Declassified UK - https://www.declassifieduk.org/category/archive/
+6. Freedom Press - https://freedom.press/issues
 
-8. **OONI Blog** - https://ooni.org/blog/feed.xml
+## Future Types
 
-### API Crawlers
-
-9. **GDELT Project** - https://api.gdeltproject.org/api/v2/doc/doc
-
-## Future Sources (Phase 2+)
-
-### Complex Listing Sources
-
-- **Civicus Monitor** - https://monitor.civicus.org/explore/ (Search interface)
-- **Privacy International** - https://privacyinternational.org/search-campaign
-- **Court Listener** - https://www.courtlistener.com/?q=
-- **Lumen Database** - https://lumendatabase.org/notices/search
-
-### Social Media Sources (Phase 4+)
-
-- Reddit: Various subreddits (r/privacy, etc.)
-- Lemmy: Various instances
-- Twitter/X: Specific accounts and hashtags
-- Mastodon: Various servers
-- Bluesky: Tags and accounts
-
-## Implementation Strategy
-
-**Phase 1**: Simple listing crawlers with standard pagination  
-**Phase 2**: Complex search interfaces and RSS feeds  
-**Phase 3**: API integrations and specialized crawlers  
-**Phase 4+**: Social media and real-time sources
+- **RSS**: OONI Blog feed
+- **API**: GDELT Project
+- **Social**: Reddit, Mastodon, etc.
