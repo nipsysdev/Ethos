@@ -1,7 +1,7 @@
 import { access, readFile, rm } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { CrawledData } from "../src/core/types.js";
-import { ContentStore } from "../src/storage/ContentStore.js";
+import type { CrawledData } from "../../core/types.js";
+import { ContentStore } from "../../storage/ContentStore.js";
 
 describe("ContentStore", () => {
 	const testStorageDir = "./test-storage";
