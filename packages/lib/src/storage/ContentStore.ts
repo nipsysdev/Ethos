@@ -83,25 +83,40 @@ export class ContentStore {
 	 * Ensure a directory exists, creating it if necessary
 	 */
 	private async ensureDirectoryExists(dirPath: string): Promise<void> {
-		try {
-			await mkdir(dirPath, { recursive: true });
-		} catch (error) {
-			// If mkdir fails, it might be a permission issue or the path is invalid
-			// But since we're using recursive: true, this should normally work
-			// Let's provide more specific error information
-			if (error && typeof error === "object" && "code" in error) {
-				if (error.code === "EACCES") {
-					throw new Error(`Permission denied creating directory ${dirPath}`);
+		// Try up to 3 times with a small delay
+		let retries = 3;
+		let lastError: unknown;
+
+		while (retries > 0) {
+			try {
+				await mkdir(dirPath, { recursive: true });
+				return; // Success
+			} catch (error) {
+				lastError = error;
+				retries--;
+
+				// Don't retry on permission or path errors
+				if (error && typeof error === "object" && "code" in error) {
+					if (error.code === "EACCES") {
+						throw new Error(`Permission denied creating directory ${dirPath}`);
+					}
+					if (error.code === "ENOTDIR") {
+						throw new Error(
+							`Invalid path: ${dirPath} contains a file where a directory is expected`,
+						);
+					}
 				}
-				if (error.code === "ENOTDIR") {
-					throw new Error(
-						`Invalid path: ${dirPath} contains a file where a directory is expected`,
-					);
+
+				// If we have retries left, wait a bit and try again
+				if (retries > 0) {
+					await new Promise((resolve) => setTimeout(resolve, 10));
 				}
 			}
-			throw new Error(
-				`Failed to create directory ${dirPath}: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
 		}
+
+		// All retries exhausted
+		throw new Error(
+			`Failed to create directory ${dirPath} after 3 attempts: ${lastError instanceof Error ? lastError.message : "Unknown error"}`,
+		);
 	}
 }

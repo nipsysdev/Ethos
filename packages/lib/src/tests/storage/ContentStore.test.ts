@@ -4,7 +4,7 @@ import type { CrawledData } from "@/core/types.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 
 describe("ContentStore", () => {
-	const testStorageDir = "./test-storage";
+	let testStorageDir: string;
 	let contentStore: ContentStore;
 
 	// Sample crawled data for testing
@@ -37,6 +37,8 @@ describe("ContentStore", () => {
 	};
 
 	beforeEach(async () => {
+		// Create unique directory for each test run to avoid conflicts
+		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 		contentStore = new ContentStore({ storageDir: testStorageDir });
 
 		// Ensure clean state by removing directory if it exists
@@ -48,11 +50,24 @@ describe("ContentStore", () => {
 	});
 
 	afterEach(async () => {
-		// Clean up test directory
-		try {
-			await rm(testStorageDir, { recursive: true, force: true });
-		} catch {
-			// Directory might not exist
+		// Clean up test directory with retry mechanism
+		let retries = 3;
+		while (retries > 0) {
+			try {
+				await rm(testStorageDir, { recursive: true, force: true });
+				break; // Success, exit retry loop
+			} catch (error) {
+				retries--;
+				if (retries === 0) {
+					console.warn(
+						`Failed to clean up test directory ${testStorageDir}:`,
+						error,
+					);
+				} else {
+					// Wait a bit before retrying
+					await new Promise((resolve) => setTimeout(resolve, 10));
+				}
+			}
 		}
 	});
 
