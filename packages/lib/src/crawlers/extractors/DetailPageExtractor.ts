@@ -144,24 +144,45 @@ export class DetailPageExtractor {
 			pagePool.push(page);
 
 			// Process items in batches with controlled concurrency
-			for (let i = 0; i < items.length; i += concurrencyLimit) {
-				const batch = items.slice(i, i + concurrencyLimit);
+			const promises: Promise<void>[] = [];
+			let activePromises = 0;
+			let itemIndex = 0;
 
-				// Process batch concurrently using available pages
-				await Promise.all(
-					batch.map((item, batchIndex) => {
-						const pageIndex = batchIndex % pagePool.length;
-						return this.extractDetailForSingleItem(
-							pagePool[pageIndex],
-							item,
-							config,
-							detailErrors,
-							detailFieldStats,
-							itemOffset + i + batchIndex,
-						);
-					}),
-				);
+			// Helper function to process next item when a slot becomes available
+			const processNext = async (): Promise<void> => {
+				if (itemIndex >= items.length) return;
+
+				const currentIndex = itemIndex++;
+				const item = items[currentIndex];
+				const pageIndex = activePromises % pagePool.length;
+
+				activePromises++;
+				try {
+					await this.extractDetailForSingleItem(
+						pagePool[pageIndex],
+						item,
+						config,
+						detailErrors,
+						detailFieldStats,
+						itemOffset + currentIndex,
+					);
+				} finally {
+					activePromises--;
+					// Process next item if available
+					if (itemIndex < items.length) {
+						promises.push(processNext());
+					}
+				}
+			};
+
+			// Start initial batch of concurrent operations
+			const initialBatch = Math.min(concurrencyLimit, items.length);
+			for (let i = 0; i < initialBatch; i++) {
+				promises.push(processNext());
 			}
+
+			// Wait for all processing to complete
+			await Promise.all(promises);
 		} finally {
 			// Clean up extra pages (keep the original main page)
 			for (let i = 0; i < pagePool.length - 1; i++) {
