@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CrawlerRegistry } from "@/core/CrawlerRegistry.js";
 import { ProcessingPipeline } from "@/core/ProcessingPipeline.js";
 import type {
@@ -11,6 +11,15 @@ import type {
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 
 describe("ProcessingPipeline", () => {
+	beforeEach(async () => {
+		// Ensure clean state by removing directory if it exists
+		try {
+			await rm("./test-storage", { recursive: true, force: true });
+		} catch {
+			// Directory might not exist
+		}
+	});
+
 	afterEach(async () => {
 		// Clean up test storage directory
 		try {

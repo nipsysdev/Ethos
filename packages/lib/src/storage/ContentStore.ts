@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { CrawledData } from "@/core/types.js";
 
 export interface StorageResult {
@@ -18,7 +18,7 @@ export class ContentStore {
 	private readonly storageDir: string;
 
 	constructor(options: ContentStoreOptions = {}) {
-		this.storageDir = options.storageDir ?? "./storage/content";
+		this.storageDir = resolve(options.storageDir ?? "./storage/content");
 	}
 
 	/**
@@ -86,6 +86,19 @@ export class ContentStore {
 		try {
 			await mkdir(dirPath, { recursive: true });
 		} catch (error) {
+			// If mkdir fails, it might be a permission issue or the path is invalid
+			// But since we're using recursive: true, this should normally work
+			// Let's provide more specific error information
+			if (error && typeof error === "object" && "code" in error) {
+				if (error.code === "EACCES") {
+					throw new Error(`Permission denied creating directory ${dirPath}`);
+				}
+				if (error.code === "ENOTDIR") {
+					throw new Error(
+						`Invalid path: ${dirPath} contains a file where a directory is expected`,
+					);
+				}
+			}
 			throw new Error(
 				`Failed to create directory ${dirPath}: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);

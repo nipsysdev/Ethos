@@ -2,6 +2,33 @@
  * Date parsing utilities for handling various date formats from crawled content
  */
 
+// Month name to zero-based index mapping for consistent date parsing
+const MONTH_MAP: Record<string, number> = {
+	january: 0,
+	february: 1,
+	march: 2,
+	april: 3,
+	may: 4,
+	june: 5,
+	july: 6,
+	august: 7,
+	september: 8,
+	october: 9,
+	november: 10,
+	december: 11,
+	jan: 0,
+	feb: 1,
+	mar: 2,
+	apr: 3,
+	jun: 5,
+	jul: 6,
+	aug: 7,
+	sep: 8,
+	oct: 9,
+	nov: 10,
+	dec: 11,
+};
+
 /**
  * Attempts to parse a date string from various formats commonly found in web content
  * Returns ISO 8601 string (same as Date.toISOString())
@@ -34,33 +61,8 @@ export function parsePublishedDate(
 		const monthDayYear = cleaned.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/);
 		if (monthDayYear) {
 			const [, monthName, day, year] = monthDayYear;
-			const monthMap: Record<string, number> = {
-				january: 0,
-				february: 1,
-				march: 2,
-				april: 3,
-				may: 4,
-				june: 5,
-				july: 6,
-				august: 7,
-				september: 8,
-				october: 9,
-				november: 10,
-				december: 11,
-				jan: 0,
-				feb: 1,
-				mar: 2,
-				apr: 3,
-				jun: 5,
-				jul: 6,
-				aug: 7,
-				sep: 8,
-				oct: 9,
-				nov: 10,
-				dec: 11,
-			};
 
-			const monthIndex = monthMap[monthName.toLowerCase()];
+			const monthIndex = MONTH_MAP[monthName.toLowerCase()];
 			if (monthIndex !== undefined) {
 				const parsed = new Date(
 					Date.UTC(parseInt(year), monthIndex, parseInt(day)),
@@ -75,33 +77,8 @@ export function parsePublishedDate(
 		const dayMonthYear = cleaned.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/);
 		if (dayMonthYear) {
 			const [, day, monthName, year] = dayMonthYear;
-			const monthMap: Record<string, number> = {
-				january: 0,
-				february: 1,
-				march: 2,
-				april: 3,
-				may: 4,
-				june: 5,
-				july: 6,
-				august: 7,
-				september: 8,
-				october: 9,
-				november: 10,
-				december: 11,
-				jan: 0,
-				feb: 1,
-				mar: 2,
-				apr: 3,
-				jun: 5,
-				jul: 6,
-				aug: 7,
-				sep: 8,
-				oct: 9,
-				nov: 10,
-				dec: 11,
-			};
 
-			const monthIndex = monthMap[monthName.toLowerCase()];
+			const monthIndex = MONTH_MAP[monthName.toLowerCase()];
 			if (monthIndex !== undefined) {
 				const parsed = new Date(
 					Date.UTC(parseInt(year), monthIndex, parseInt(day)),

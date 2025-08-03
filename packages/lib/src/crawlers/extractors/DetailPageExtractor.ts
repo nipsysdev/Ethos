@@ -136,11 +136,7 @@ export class DetailPageExtractor {
 		const pagePool: Page[] = [];
 		try {
 			// Create additional pages for concurrent processing (main page + extra pages)
-			for (
-				let i = 0;
-				i < Math.min(concurrencyLimit - 1, items.length - 1);
-				i++
-			) {
+			for (let i = 0; i < Math.min(concurrencyLimit, items.length) - 1; i++) {
 				const newPage = await browser.newPage();
 				pagePool.push(newPage);
 			}
