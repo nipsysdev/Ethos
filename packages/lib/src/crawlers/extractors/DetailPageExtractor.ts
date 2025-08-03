@@ -4,6 +4,7 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "../../core/types.js";
+import { parsePublishedDate } from "../../utils/date.js";
 import { resolveAbsoluteUrl } from "../../utils/url.js";
 
 export interface DetailExtractionResult {
@@ -194,7 +195,16 @@ export class DetailPageExtractor {
 			if (detailData.title) item.title = detailData.title;
 			if (detailData.content) item.content = detailData.content;
 			if (detailData.author) item.author = detailData.author;
-			if (detailData.date) item.publishedDate = detailData.date;
+			if (detailData.date) {
+				try {
+					const parsedDate = parsePublishedDate(detailData.date);
+					item.publishedDate = parsedDate;
+				} catch (error) {
+					throw new Error(
+						`Date parsing failed for detail page "${item.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
+					);
+				}
+			}
 			if (detailData.image) item.image = detailData.image;
 
 			// Track what we got from detail vs listing

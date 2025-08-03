@@ -12,7 +12,7 @@ export interface CrawledData {
 	title: string;
 	content: string;
 	author?: string;
-	publishedDate?: string;
+	publishedDate?: string; // ISO 8601 string, strictly validated (throws if unparseable)
 	image?: string;
 	tags?: string[];
 	metadata: Record<string, unknown>;

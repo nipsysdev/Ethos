@@ -65,6 +65,7 @@ describe("ProcessingPipeline", () => {
 						source: "test",
 						title: "Test Article",
 						content: "Test content",
+						publishedDate: "2025-07-10T00:00:00.000Z", // Use proper ISO format
 						metadata: {},
 					},
 				];
@@ -100,6 +101,7 @@ describe("ProcessingPipeline", () => {
 
 		expect(result.data).toHaveLength(1);
 		expect(result.data[0].title).toBe("Test Article");
+		expect(result.data[0].publishedDate).toBe("2025-07-10T00:00:00.000Z");
 		expect(result.data[0].analysis).toEqual([]);
 		expect(result.data[0].storage).toBeDefined();
 		expect(result.data[0].storage?.hash).toMatch(/^[a-f0-9]{40}$/); // SHA-1 hash
