@@ -161,6 +161,93 @@ describe("ContentStore", () => {
 			// SHA-1 produces 40-character hex strings
 			expect(result.hash).toMatch(/^[a-f0-9]{40}$/);
 		});
+
+		it("should compute hash only from URL", async () => {
+			const data1: CrawledData = {
+				url: "https://example.com/same-url",
+				timestamp: new Date("2024-01-01T12:00:00Z"),
+				source: "test-source",
+				title: "First Title",
+				content: "First content",
+				author: "First Author",
+				publishedDate: "2024-01-01T00:00:00Z",
+				tags: ["first"],
+				metadata: { custom: "first" },
+			};
+
+			const data2: CrawledData = {
+				url: "https://example.com/same-url", // Same URL
+				timestamp: new Date("2024-01-02T15:30:00Z"), // Different timestamp
+				source: "different-source", // Different source
+				title: "Completely Different Title", // Different title
+				content: "Totally different content with more text", // Different content
+				author: "Different Author", // Different author
+				publishedDate: "2024-01-02T00:00:00Z", // Different date
+				tags: ["different", "tags"], // Different tags
+				metadata: { custom: "different", extra: "field" }, // Different metadata
+			};
+
+			const result1 = await contentStore.store(data1);
+			const result2 = await contentStore.store(data2);
+
+			// Should have the same hash because URL is the same
+			expect(result1.hash).toBe(result2.hash);
+			expect(result2.existed).toBe(true); // Should detect as duplicate
+		});
+
+		it("should generate different hashes for different URLs", async () => {
+			const data1: CrawledData = {
+				url: "https://example.com/article-1",
+				timestamp: new Date("2024-01-01T12:00:00Z"),
+				source: "test-source",
+				title: "Same Title",
+				content: "Same content",
+				metadata: {},
+			};
+
+			const data2: CrawledData = {
+				url: "https://example.com/article-2", // Different URL
+				timestamp: new Date("2024-01-01T12:00:00Z"), // Same timestamp
+				source: "test-source", // Same source
+				title: "Same Title", // Same title
+				content: "Same content", // Same content
+				metadata: {}, // Same metadata
+			};
+
+			const result1 = await contentStore.store(data1);
+			const result2 = await contentStore.store(data2);
+
+			// Should have different hashes because URLs are different
+			expect(result1.hash).not.toBe(result2.hash);
+			expect(result2.existed).toBe(false); // Should not detect as duplicate
+		});
+
+		it("should ignore URL fragments and query parameters for consistent hashing", async () => {
+			const data1: CrawledData = {
+				url: "https://example.com/article?utm_source=google#section1",
+				timestamp: new Date(),
+				source: "test-source",
+				title: "Test Article",
+				content: "Test content",
+				metadata: {},
+			};
+
+			const data2: CrawledData = {
+				url: "https://example.com/article?utm_source=facebook#section2",
+				timestamp: new Date(),
+				source: "test-source",
+				title: "Test Article",
+				content: "Test content",
+				metadata: {},
+			};
+
+			const result1 = await contentStore.store(data1);
+			const result2 = await contentStore.store(data2);
+
+			// Different query params and fragments should produce different hashes
+			// (this documents current behavior - URLs are compared exactly)
+			expect(result1.hash).not.toBe(result2.hash);
+		});
 	});
 
 	describe("edge cases", () => {

@@ -27,11 +27,11 @@ export class ContentStore {
 	 * @returns Storage result with hash, path, and whether file already existed
 	 */
 	async store(data: CrawledData): Promise<StorageResult> {
-		// Serialize the data for hashing and storage
-		const serialized = JSON.stringify(data, null, 2);
+		// Create content hash based only on URL (natural unique identifier)
+		const hash = this.generateHash(data.url);
 
-		// Generate content hash
-		const hash = this.generateHash(serialized);
+		// Serialize the full data for storage
+		const serialized = JSON.stringify(data, null, 2);
 		const filename = `${hash}.json`;
 		const filePath = join(this.storageDir, filename);
 
