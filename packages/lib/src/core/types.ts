@@ -137,4 +137,5 @@ export interface CrawlOptions {
 	maxPages?: number;
 	skipDetails?: boolean;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
+	detailConcurrency?: number;
 }

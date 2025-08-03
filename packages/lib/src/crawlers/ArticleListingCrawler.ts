@@ -167,8 +167,9 @@ export class ArticleListingCrawler implements Crawler {
 				// Store current listing page URL so we can return to it after detail extraction
 				const currentListingUrl = page.url();
 
+				const concurrency = options?.detailConcurrency ?? 5;
 				console.log(
-					`🔍 Extracting detail data for ${newItems.length} items...`,
+					`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
 				);
 				await this.detailExtractor.extractDetailData(
 					page,
@@ -177,6 +178,7 @@ export class ArticleListingCrawler implements Crawler {
 					detailErrors,
 					detailFieldStats,
 					allCrawledItems.length,
+					concurrency,
 				);
 				detailsCrawled += newItems.length;
 

@@ -126,66 +126,118 @@ export class DetailPageExtractor {
 		detailErrors: string[],
 		detailFieldStats: FieldExtractionStats[],
 		itemOffset: number,
+		concurrencyLimit: number = 5,
 	): Promise<void> {
-		for (const [itemIndex, item] of items.entries()) {
-			if (!item.url) continue;
+		// Get browser instance to create additional pages for concurrency
+		const browser = page.browser();
 
-			try {
-				const { detailData, errors } = await this.extractFromDetailPage(
-					page,
-					item.url,
-					config,
-				);
-
-				// Merge detail data, overwriting listing data where detail data exists
-				if (detailData.title) item.title = detailData.title;
-				if (detailData.content) item.content = detailData.content;
-				if (detailData.author) item.author = detailData.author;
-				if (detailData.date) item.publishedDate = detailData.date;
-				if (detailData.image) item.image = detailData.image;
-
-				// Track what we got from detail vs listing
-				const detailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] !== null,
-				);
-				const failedDetailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] === null,
-				);
-
-				// Update detail field stats
-				detailFieldStats.forEach((stat) => {
-					stat.totalAttempts++;
-					if (detailFields.includes(stat.fieldName)) {
-						stat.successCount++;
-					} else {
-						stat.missingItems.push(itemOffset + itemIndex + 1);
-					}
-				});
-
-				// Update metadata
-				item.metadata = {
-					...item.metadata,
-					detailFieldsExtracted: detailFields,
-					detailFieldsFailed: failedDetailFields,
-					detailExtractionErrors: errors,
-				};
-
-				// Add errors to main error list
-				if (errors.length > 0) {
-					detailErrors.push(
-						...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
-					);
-				}
-			} catch (error) {
-				const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
-				detailErrors.push(errorMessage);
-
-				// Add error info to metadata
-				item.metadata = {
-					...item.metadata,
-					detailExtractionErrors: [errorMessage],
-				};
+		// Create a pool of pages for concurrent processing
+		const pagePool: Page[] = [];
+		try {
+			// Create additional pages for concurrent processing (main page + extra pages)
+			for (
+				let i = 0;
+				i < Math.min(concurrencyLimit - 1, items.length - 1);
+				i++
+			) {
+				const newPage = await browser.newPage();
+				pagePool.push(newPage);
 			}
+			// Add the main page to the pool
+			pagePool.push(page);
+
+			// Process items in batches with controlled concurrency
+			for (let i = 0; i < items.length; i += concurrencyLimit) {
+				const batch = items.slice(i, i + concurrencyLimit);
+
+				// Process batch concurrently using available pages
+				await Promise.all(
+					batch.map((item, batchIndex) => {
+						const pageIndex = batchIndex % pagePool.length;
+						return this.extractDetailForSingleItem(
+							pagePool[pageIndex],
+							item,
+							config,
+							detailErrors,
+							detailFieldStats,
+							itemOffset + i + batchIndex,
+						);
+					}),
+				);
+			}
+		} finally {
+			// Clean up extra pages (keep the original main page)
+			for (let i = 0; i < pagePool.length - 1; i++) {
+				await pagePool[i].close();
+			}
+		}
+	}
+
+	private async extractDetailForSingleItem(
+		page: Page,
+		item: CrawledData,
+		config: SourceConfig,
+		detailErrors: string[],
+		detailFieldStats: FieldExtractionStats[],
+		itemIndex: number,
+	): Promise<void> {
+		if (!item.url) return;
+
+		try {
+			const { detailData, errors } = await this.extractFromDetailPage(
+				page,
+				item.url,
+				config,
+			);
+
+			// Merge detail data, overwriting listing data where detail data exists
+			if (detailData.title) item.title = detailData.title;
+			if (detailData.content) item.content = detailData.content;
+			if (detailData.author) item.author = detailData.author;
+			if (detailData.date) item.publishedDate = detailData.date;
+			if (detailData.image) item.image = detailData.image;
+
+			// Track what we got from detail vs listing
+			const detailFields = Object.keys(detailData).filter(
+				(key) => detailData[key] !== null,
+			);
+			const failedDetailFields = Object.keys(detailData).filter(
+				(key) => detailData[key] === null,
+			);
+
+			// Update detail field stats
+			detailFieldStats.forEach((stat) => {
+				stat.totalAttempts++;
+				if (detailFields.includes(stat.fieldName)) {
+					stat.successCount++;
+				} else {
+					stat.missingItems.push(itemIndex + 1);
+				}
+			});
+
+			// Update metadata
+			item.metadata = {
+				...item.metadata,
+				detailFieldsExtracted: detailFields,
+				detailFieldsFailed: failedDetailFields,
+				detailExtractionErrors: errors,
+			};
+
+			// Add errors to main error list
+			if (errors.length > 0) {
+				detailErrors.push(
+					...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
+				);
+			}
+		} catch (error) {
+			const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
+			detailErrors.push(errorMessage);
+
+			// Add error info to metadata
+			item.metadata = {
+				...item.metadata,
+				detailExtractionErrors: [errorMessage],
+			};
 		}
 	}
 }
