@@ -78,7 +78,6 @@ export class ArticleListingCrawler implements Crawler {
 		let duplicatesSkipped = 0;
 		let totalFilteredItems = 0;
 		let detailsCrawled = 0;
-		let detailsSkipped = 0;
 		const detailErrors: string[] = [];
 		const listingErrors: string[] = [];
 		let stoppedReason:
@@ -99,15 +98,15 @@ export class ArticleListingCrawler implements Crawler {
 		}));
 
 		// Initialize detail field stats tracking
-		const detailFieldStats: FieldExtractionStats[] = config.detail?.fields
-			? Object.entries(config.detail.fields).map(([fieldName]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: true, // All detail fields are effectively optional since we fall back to listing data
-					missingItems: [],
-				}))
-			: [];
+		const detailFieldStats: FieldExtractionStats[] = Object.entries(
+			config.detail.fields,
+		).map(([fieldName]) => ({
+			fieldName,
+			successCount: 0,
+			totalAttempts: 0,
+			isOptional: true, // Detail fields are effectively optional since we fall back to listing data
+			missingItems: [],
+		}));
 
 		// Main pagination loop
 		while (true) {
@@ -162,8 +161,8 @@ export class ArticleListingCrawler implements Crawler {
 
 			allCrawledItems.push(...newItems);
 
-			// Extract detail data if not skipped and config has detail section
-			if (!options?.skipDetails && config.detail && newItems.length > 0) {
+			// Extract detail data - always required now
+			if (newItems.length > 0) {
 				// Store current listing page URL so we can return to it after detail extraction
 				const currentListingUrl = page.url();
 
@@ -184,8 +183,6 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Navigate back to the listing page for pagination
 				await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
-			} else if (options?.skipDetails) {
-				detailsSkipped += newItems.length;
 			}
 
 			// Call storage callback if provided (for immediate processing/storage)
@@ -217,7 +214,6 @@ export class ArticleListingCrawler implements Crawler {
 			pagesProcessed,
 			stoppedReason,
 			detailsCrawled,
-			detailsSkipped,
 		);
 	}
 
@@ -259,7 +255,6 @@ export class ArticleListingCrawler implements Crawler {
 			| "all_duplicates"
 			| undefined,
 		detailsCrawled: number,
-		detailsSkipped: number,
 	): CrawlResult {
 		const endTime = new Date();
 		const summary: CrawlSummary = {
@@ -270,8 +265,7 @@ export class ArticleListingCrawler implements Crawler {
 			itemsProcessed: allCrawledItems.length,
 			itemsWithErrors: totalFilteredItems,
 			fieldStats,
-			detailFieldStats:
-				detailFieldStats.length > 0 ? detailFieldStats : undefined,
+			detailFieldStats,
 			listingErrors,
 			startTime,
 			endTime,
@@ -279,7 +273,6 @@ export class ArticleListingCrawler implements Crawler {
 			duplicatesSkipped,
 			stoppedReason,
 			detailsCrawled,
-			detailsSkipped,
 			detailErrors,
 		};
 

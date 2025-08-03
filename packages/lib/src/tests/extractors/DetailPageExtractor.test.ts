@@ -107,28 +107,6 @@ describe("DetailPageExtractor", () => {
 		expect(result.errors[0]).toContain("Navigation timeout");
 	});
 
-	it("should return early when no detail config exists", async () => {
-		const extractor = new DetailPageExtractor();
-		const configNoDetail = { ...mockConfig };
-		delete configNoDetail.detail;
-
-		const mockPage = {
-			goto: vi.fn(),
-			evaluate: vi.fn(),
-		} as unknown as Page;
-
-		const result = await extractor.extractFromDetailPage(
-			mockPage,
-			"/article/123",
-			configNoDetail,
-		);
-
-		expect(result.detailData).toEqual({});
-		expect(result.errors).toHaveLength(0);
-		expect(mockPage.goto).not.toHaveBeenCalled();
-		expect(mockPage.evaluate).not.toHaveBeenCalled();
-	});
-
 	it("should handle absolute URLs correctly", async () => {
 		const extractor = new DetailPageExtractor();
 		const mockPage = {

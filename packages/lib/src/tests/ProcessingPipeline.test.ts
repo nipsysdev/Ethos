@@ -33,6 +33,12 @@ describe("ProcessingPipeline", () => {
 				},
 			},
 		},
+		detail: {
+			container_selector: ".article-content",
+			fields: {
+				content: { selector: ".content", attribute: "text" },
+			},
+		},
 	};
 
 	it("should throw error when no crawler found", async () => {
@@ -77,6 +83,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 1,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
@@ -137,6 +144,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 0,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
@@ -158,7 +166,7 @@ describe("ProcessingPipeline", () => {
 		});
 	});
 
-	it("should pass skipDetails option to crawler", async () => {
+	it("should pass detailConcurrency option to crawler", async () => {
 		let receivedOptions: CrawlOptions | undefined;
 
 		const mockCrawler: Crawler = {
@@ -177,10 +185,11 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 0,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
-						detailsSkipped: options?.skipDetails ? 0 : undefined,
+						detailsCrawled: 0,
 					},
 				};
 			},
@@ -190,14 +199,14 @@ describe("ProcessingPipeline", () => {
 		registry.register(mockCrawler);
 		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
-		const options: CrawlOptions = { maxPages: 3, skipDetails: true };
+		const options: CrawlOptions = { maxPages: 3, detailConcurrency: 10 };
 		const result = await pipeline.process(testConfig, options);
 
 		expect(receivedOptions).toEqual({
 			...options,
 			onPageComplete: expect.any(Function),
 		});
-		expect(receivedOptions?.skipDetails).toBe(true);
-		expect(result.summary.detailsSkipped).toBe(0);
+		expect(receivedOptions?.detailConcurrency).toBe(10);
+		expect(result.summary.detailsCrawled).toBe(0);
 	});
 });

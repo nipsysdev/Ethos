@@ -102,22 +102,11 @@ describe("Summary calculations", () => {
 	});
 
 	it("should handle detail crawl summary fields", () => {
-		// Test new summary fields for detail crawling
+		// Test that detail crawling is always performed
 		const totalItems = 10;
-		const skipDetails = false;
-		const detailsCrawled = skipDetails ? 0 : totalItems;
-		const detailsSkipped = skipDetails ? totalItems : 0;
+		const detailsCrawled = totalItems; // Always equals total items now
 
 		expect(detailsCrawled).toBe(10);
-		expect(detailsSkipped).toBe(0);
-
-		// Test skip details scenario
-		const skipDetailsTrue = true;
-		const detailsCrawledSkipped = skipDetailsTrue ? 0 : totalItems;
-		const detailsSkippedTrue = skipDetailsTrue ? totalItems : 0;
-
-		expect(detailsCrawledSkipped).toBe(0);
-		expect(detailsSkippedTrue).toBe(10);
 	});
 });
 
@@ -393,6 +382,12 @@ describe("Configuration validation", () => {
 					},
 				},
 			},
+			detail: {
+				container_selector: ".article",
+				fields: {
+					content: { selector: ".content", attribute: "text" },
+				},
+			},
 		};
 
 		expect(configWithPagination.listing.pagination?.next_button_selector).toBe(
@@ -412,6 +407,12 @@ describe("Configuration validation", () => {
 					fields: {
 						title: { selector: ".title", attribute: "text" },
 					},
+				},
+			},
+			detail: {
+				container_selector: ".article",
+				fields: {
+					content: { selector: ".content", attribute: "text" },
 				},
 			},
 		};

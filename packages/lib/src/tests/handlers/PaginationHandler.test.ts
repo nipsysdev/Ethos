@@ -30,6 +30,12 @@ describe("PaginationHandler", () => {
 				next_button_selector: ".next-page",
 			},
 		},
+		detail: {
+			container_selector: ".article-content",
+			fields: {
+				content: { selector: ".content", attribute: "text" },
+			},
+		},
 	};
 
 	// Helper to create a mock page with common behavior

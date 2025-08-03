@@ -36,11 +36,6 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		}
 	}
 
-	// Detail crawling stats (if available)
-	if (summary.detailsSkipped && summary.detailsSkipped > 0) {
-		console.log(`   • Detail pages skipped: ${summary.detailsSkipped}`);
-	}
-
 	// Field extraction stats
 	console.log("\n📋 Listing field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
@@ -55,7 +50,7 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		);
 	});
 
-	// Detail field extraction stats (if detail crawling was performed)
+	// Detail field extraction stats (always available now)
 	if (summary.detailFieldStats && summary.detailFieldStats.length > 0) {
 		console.log("\n🔍 Detail field extraction stats:");
 		summary.detailFieldStats.forEach((stat: FieldExtractionStats) => {

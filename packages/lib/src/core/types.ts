@@ -70,7 +70,7 @@ export interface SourceConfig {
 	name: string;
 	type: CrawlerType;
 	listing: ListingConfig;
-	detail?: DetailConfig;
+	detail: DetailConfig;
 }
 
 export interface CrawlResult {
@@ -121,7 +121,7 @@ export interface CrawlSummary {
 	itemsProcessed: number;
 	itemsWithErrors: number;
 	fieldStats: FieldExtractionStats[];
-	detailFieldStats?: FieldExtractionStats[];
+	detailFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	startTime: Date;
 	endTime: Date;
@@ -129,13 +129,11 @@ export interface CrawlSummary {
 	duplicatesSkipped?: number;
 	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
 	detailsCrawled?: number;
-	detailsSkipped?: number;
 	detailErrors?: string[];
 }
 
 export interface CrawlOptions {
 	maxPages?: number;
-	skipDetails?: boolean;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 	detailConcurrency?: number;
 }

@@ -31,14 +31,14 @@ describe("Type interfaces", () => {
 		// Test that CrawlOptions has the expected shape
 		const options = {
 			maxPages: 5,
-			skipDetails: true,
+			detailConcurrency: 3,
 		};
 
 		// TypeScript compilation validates the interface
 		expect(typeof options.maxPages).toBe("number");
-		expect(typeof options.skipDetails).toBe("boolean");
+		expect(typeof options.detailConcurrency).toBe("number");
 		expect(options.maxPages).toBe(5);
-		expect(options.skipDetails).toBe(true);
+		expect(options.detailConcurrency).toBe(3);
 	});
 
 	it("should make all CrawlOptions fields optional", () => {
@@ -51,6 +51,6 @@ describe("Type interfaces", () => {
 		// Test partial options
 		const partialOptions = { maxPages: 10 };
 		expect(partialOptions.maxPages).toBe(10);
-		expect("skipDetails" in partialOptions).toBe(false);
+		expect("detailConcurrency" in partialOptions).toBe(false);
 	});
 });

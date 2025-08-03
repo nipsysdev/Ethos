@@ -20,6 +20,12 @@ describe("ListingPageExtractor", () => {
 				},
 			},
 		},
+		detail: {
+			container_selector: ".article-content",
+			fields: {
+				content: { selector: ".content", attribute: "text" },
+			},
+		},
 	};
 
 	it("should extract items from page successfully", async () => {

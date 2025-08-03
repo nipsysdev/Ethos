@@ -15,6 +15,7 @@ describe("display module", () => {
 				itemsProcessed: 0,
 				itemsWithErrors: 0,
 				fieldStats: [],
+				detailFieldStats: [],
 				listingErrors: [],
 			},
 		};
