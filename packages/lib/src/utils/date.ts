@@ -53,7 +53,7 @@ export function parsePublishedDate(
 	// Clean up the string - remove extra whitespace and common prefixes
 	const cleaned = dateString
 		.trim()
-		.replace(/^(published|posted|on)\s*/i, "")
+		.replace(/^(published|posted(\s+on)?|on)\s*/i, "")
 		.replace(/\s+/g, " ");
 
 	try {
@@ -110,8 +110,8 @@ export function parsePublishedDate(
 			}
 		}
 
-		// If all else fails, try parsing as-is but be explicit about UTC
-		const fallbackDate = new Date(`${cleaned} UTC`);
+		// If all else fails, try parsing as-is
+		const fallbackDate = new Date(cleaned);
 		if (isValidDate(fallbackDate)) {
 			return fallbackDate.toISOString();
 		}
