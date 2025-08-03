@@ -111,7 +111,7 @@ export function parsePublishedDate(
 		}
 
 		// If all else fails, try parsing as-is but be explicit about UTC
-		const fallbackDate = new Date(cleaned + " UTC");
+		const fallbackDate = new Date(`${cleaned} UTC`);
 		if (isValidDate(fallbackDate)) {
 			return fallbackDate.toISOString();
 		}
