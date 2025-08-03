@@ -15,7 +15,7 @@ const sourceRegistry = new SourceRegistry(
 	join(process.cwd(), "src", "config", "sources.yaml"),
 );
 const crawlerRegistry = new CrawlerRegistry();
-const pipeline = new ProcessingPipeline(crawlerRegistry);
+const pipeline = new ProcessingPipeline(crawlerRegistry, "./storage");
 
 // Register crawlers
 crawlerRegistry.register(new ArticleListingCrawler());

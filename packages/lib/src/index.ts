@@ -7,3 +7,5 @@ export { SourceRegistry } from "./core/SourceRegistry.js";
 export * from "./core/types.js";
 
 export { ArticleListingCrawler } from "./crawlers/ArticleListingCrawler.js";
+export type { ContentStoreOptions, StorageResult } from "./storage/index.js";
+export { ContentStore } from "./storage/index.js";

@@ -2,16 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { showExtractedData } from "../../cli/ui/viewer.js";
 import type { ProcessingResult } from "../../index.js";
 
-// Mock child_process, fs, and os
+// Mock child_process and inquirer
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
-vi.mock("node:fs", () => ({ writeFileSync: vi.fn(), unlinkSync: vi.fn() }));
-vi.mock("node:os", () => ({ tmpdir: () => "/tmp" }));
+vi.mock("inquirer", () => ({
+	default: {
+		prompt: vi.fn(),
+	},
+}));
 
 const mockSpawn = vi.mocked((await import("node:child_process")).spawn);
-const mockWriteFileSync = vi.mocked((await import("node:fs")).writeFileSync);
-const mockUnlinkSync = vi.mocked((await import("node:fs")).unlinkSync);
+const mockInquirer = vi.mocked((await import("inquirer")).default);
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
-const mockError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 describe("Data Viewer", () => {
 	beforeEach(() => {
@@ -28,6 +29,11 @@ describe("Data Viewer", () => {
 				content: "Test content",
 				metadata: {},
 				analysis: [],
+				storage: {
+					hash: "abc123",
+					path: "/storage/content/abc123.json",
+					storedAt: new Date(),
+				},
 			},
 		],
 		summary: {
@@ -43,52 +49,122 @@ describe("Data Viewer", () => {
 		},
 	});
 
-	it("should display message when no data exists", async () => {
+	it("should display message when no stored files found", async () => {
 		const result = createMockResult();
-		result.data = [];
+		// Remove storage info to simulate no stored files
+		result.data[0].storage = undefined;
 
 		await showExtractedData(result);
 
-		expect(mockLog).toHaveBeenCalledWith("No data to display.");
-		expect(mockWriteFileSync).not.toHaveBeenCalled();
+		expect(mockLog).toHaveBeenCalledWith("No stored files found.");
+		expect(mockInquirer.prompt).not.toHaveBeenCalled();
 	});
 
-	it("should create temp file and spawn less successfully", async () => {
+	it("should show file selection menu and open file with less", async () => {
 		const result = createMockResult();
 
+		// Mock inquirer responses - first select a file, then select "back" to exit
+		mockInquirer.prompt
+			.mockResolvedValueOnce({
+				selectedFile: "/storage/content/abc123.json",
+			})
+			.mockResolvedValueOnce({
+				selectedFile: "back", // This will exit the loop
+			});
+
+		// Mock less process
 		const mockLessProcess = {
 			on: vi.fn((event, callback) => {
 				if (event === "close") callback(0);
 			}),
 		};
 
-		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
-		mockSpawn.mockReturnValue(mockLessProcess as any);
+		// Mock 'which less' command to indicate less is available
+		const mockWhichProcess = {
+			on: vi.fn((event, callback) => {
+				if (event === "close") callback(0); // less is available
+			}),
+		};
+
+		mockSpawn
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockWhichProcess as any) // which/where command
+			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+			.mockReturnValueOnce(mockLessProcess as any); // less command
 
 		await showExtractedData(result);
 
-		expect(mockWriteFileSync).toHaveBeenCalledWith(
-			expect.stringMatching(/\/tmp\/ethos-crawl-[\w-]+\.txt$/),
-			expect.stringContaining("EXTRACTED DATA - Test Source"),
-			"utf8",
+		expect(mockInquirer.prompt).toHaveBeenCalledWith([
+			{
+				type: "list",
+				name: "selectedFile",
+				message: "Select an item to view (1 files):",
+				choices: [
+					{
+						name: "1. Test Article",
+						value: "/storage/content/abc123.json",
+						short: "Test Article",
+					},
+					{
+						name: "← Back to menu",
+						value: "back",
+						short: "Back",
+					},
+				],
+				pageSize: 15,
+			},
+		]);
+
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"less",
+			["-R", "/storage/content/abc123.json"],
+			{
+				stdio: "inherit",
+			},
 		);
-		expect(mockUnlinkSync).toHaveBeenCalled();
 	});
 
-	it("should handle file system errors gracefully", async () => {
+	it("should handle when less is not available", async () => {
 		const result = createMockResult();
 
-		mockWriteFileSync.mockImplementation(() => {
-			throw new Error("Permission denied");
+		mockInquirer.prompt
+			.mockResolvedValueOnce({
+				selectedFile: "/storage/content/abc123.json",
+			})
+			.mockResolvedValueOnce({
+				selectedFile: "back", // Exit after showing the message
+			});
+
+		// Mock 'which less' command to indicate less is NOT available
+		const mockWhichProcess = {
+			on: vi.fn((event, callback) => {
+				if (event === "close") callback(1); // less not found
+			}),
+		};
+
+		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
+		mockSpawn.mockReturnValueOnce(mockWhichProcess as any);
+
+		await showExtractedData(result);
+
+		expect(mockLog).toHaveBeenCalledWith(
+			"Less viewer not available. Please install 'less' to view files.",
+		);
+		expect(mockLog).toHaveBeenCalledWith(
+			"File location: /storage/content/abc123.json",
+		);
+	});
+
+	it("should handle back option", async () => {
+		const result = createMockResult();
+
+		mockInquirer.prompt.mockResolvedValueOnce({
+			selectedFile: "back",
 		});
 
 		await showExtractedData(result);
 
-		expect(mockError).toHaveBeenCalledWith(
-			"Could not create temp file:",
-			"Permission denied",
-		);
-		expect(mockLog).toHaveBeenCalledWith("Displaying data directly:");
+		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();
 	});
 });

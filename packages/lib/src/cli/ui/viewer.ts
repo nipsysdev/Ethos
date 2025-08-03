@@ -1,18 +1,5 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { ProcessingResult } from "../../index.js";
-import { formatDataForViewing } from "./formatter.js";
-
-function cleanupTempFile(filePath: string): void {
-	try {
-		unlinkSync(filePath);
-	} catch {
-		// Ignore cleanup errors - file might not exist or be locked
-	}
-}
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
@@ -33,70 +20,79 @@ async function isLessAvailable(): Promise<boolean> {
 	});
 }
 
-async function handleLessProcess(
-	less: ReturnType<typeof spawn>,
-	formattedData: string,
-): Promise<void> {
-	return new Promise<void>((resolve, reject) => {
-		less.on("close", (code) => {
-			if (code === 0) {
-				resolve();
-			} else {
-				reject(new Error(`less exited with code ${code}`));
-			}
-		});
-
-		less.on("error", (err) => {
-			console.error("Error opening less viewer:", err.message);
-			console.log("Displaying data directly:");
-			console.log(formattedData);
-			resolve();
-		});
-	});
-}
-
 export async function showExtractedData(
 	result: ProcessingResult,
 ): Promise<void> {
-	const { data, summary } = result;
+	const inquirer = (await import("inquirer")).default;
 
-	if (data.length === 0) {
-		console.log("No data to display.");
+	// Filter items that have storage info
+	const storedItems = result.data.filter((item) => item.storage);
+
+	if (storedItems.length === 0) {
+		console.log("No stored files found.");
 		return;
 	}
 
-	// Format the data for display
-	const formattedData = formatDataForViewing(data, summary);
+	// Create choices with titles and file info
+	const choices = storedItems.map((item, index) => ({
+		name: `${index + 1}. ${item.title}`,
+		value: item.storage?.path || "",
+		short: item.title,
+	}));
 
-	// Create a temporary file with unique identifier
-	const tempFile = join(tmpdir(), `ethos-crawl-${randomUUID()}.txt`);
+	choices.push({
+		name: "← Back to menu",
+		value: "back",
+		short: "Back",
+	});
+
+	const { selectedFile } = await inquirer.prompt([
+		{
+			type: "list",
+			name: "selectedFile",
+			message: `Select an item to view (${storedItems.length} files):`,
+			choices,
+			pageSize: 15,
+		},
+	]);
+
+	if (selectedFile === "back") {
+		return;
+	}
 
 	try {
-		writeFileSync(tempFile, formattedData, "utf8");
+		if (await isLessAvailable()) {
+			const less = spawn("less", ["-R", selectedFile], {
+				stdio: "inherit",
+			});
 
-		// Check if less is available before trying to use it
-		const lessAvailable = await isLessAvailable();
-		if (!lessAvailable) {
-			console.log("Less viewer not available. Displaying data directly:");
-			console.log(formattedData);
-			return;
+			await new Promise<void>((resolve, reject) => {
+				less.on("close", (code) => {
+					if (code === 0) {
+						resolve();
+					} else {
+						reject(new Error(`less exited with code ${code}`));
+					}
+				});
+
+				less.on("error", (err) => {
+					console.error("Error opening less viewer:", err.message);
+					reject(err);
+				});
+			});
+		} else {
+			console.log(
+				"Less viewer not available. Please install 'less' to view files.",
+			);
+			console.log(`File location: ${selectedFile}`);
 		}
-
-		// Open with less
-		const less = spawn("less", ["-R", tempFile], {
-			stdio: "inherit",
-		});
-
-		await handleLessProcess(less, formattedData);
 	} catch (error) {
 		console.error(
-			"Could not create temp file:",
+			"Error viewing file:",
 			error instanceof Error ? error.message : error,
 		);
-		console.log("Displaying data directly:");
-		console.log(formattedData);
-	} finally {
-		// Clean up temp file
-		cleanupTempFile(tempFile);
 	}
+
+	// Loop back to file selection
+	await showExtractedData(result);
 }

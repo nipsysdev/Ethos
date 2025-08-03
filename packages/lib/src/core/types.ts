@@ -29,6 +29,11 @@ export interface AnalysisResult {
 
 export interface ProcessedData extends CrawledData {
 	analysis: AnalysisResult[];
+	storage?: {
+		hash: string;
+		path: string;
+		storedAt: Date;
+	};
 }
 
 export interface FieldConfig {
@@ -131,4 +136,5 @@ export interface CrawlSummary {
 export interface CrawlOptions {
 	maxPages?: number;
 	skipDetails?: boolean;
+	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 }

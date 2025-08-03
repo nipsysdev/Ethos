@@ -1,4 +1,6 @@
+import { ContentStore } from "../storage/ContentStore.js";
 import type {
+	CrawledData,
 	CrawlerRegistry,
 	CrawlOptions,
 	CrawlSummary,
@@ -13,7 +15,16 @@ export interface ProcessingResult {
 }
 
 export class ProcessingPipeline {
-	constructor(private crawlerRegistry: CrawlerRegistry) {}
+	private contentStore: ContentStore;
+
+	constructor(
+		private crawlerRegistry: CrawlerRegistry,
+		storageBasePath: string = "./storage",
+	) {
+		this.contentStore = new ContentStore({
+			storageDir: `${storageBasePath}/content`,
+		});
+	}
 
 	async process(
 		config: SourceConfig,
@@ -27,12 +38,53 @@ export class ProcessingPipeline {
 			);
 		}
 
-		const result = await crawler.crawl(config, options);
+		// Storage for processed data and streaming storage results
+		const processedData: ProcessedData[] = [];
+		const storageResults = new Map<
+			string,
+			{ hash: string; path: string; storedAt: Date }
+		>();
 
-		const processedData = result.data.map((data) => ({
-			...data,
-			analysis: [],
-		}));
+		// Create streaming storage callback
+		const onPageComplete = async (items: CrawledData[]) => {
+			for (const data of items) {
+				try {
+					const storageResult = await this.contentStore.store(data);
+					storageResults.set(data.url, {
+						hash: storageResult.hash,
+						path: storageResult.path,
+						storedAt: storageResult.storedAt,
+					});
+				} catch (error) {
+					console.warn(`Failed to store item ${data.url}:`, error);
+				}
+			}
+		};
+
+		// Add the streaming callback to options
+		const streamingOptions: CrawlOptions = {
+			...options,
+			onPageComplete,
+		};
+
+		const result = await crawler.crawl(config, streamingOptions);
+
+		// Build processed data with storage info from streaming results
+		for (const data of result.data) {
+			const storage = storageResults.get(data.url);
+
+			processedData.push({
+				...data,
+				analysis: [],
+				storage: storage
+					? {
+							hash: storage.hash,
+							path: storage.path,
+							storedAt: storage.storedAt,
+						}
+					: undefined,
+			});
+		}
 
 		return {
 			data: processedData,

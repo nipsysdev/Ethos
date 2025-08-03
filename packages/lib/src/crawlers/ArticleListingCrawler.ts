@@ -186,6 +186,11 @@ export class ArticleListingCrawler implements Crawler {
 				detailsSkipped += newItems.length;
 			}
 
+			// Call storage callback if provided (for immediate processing/storage)
+			if (options?.onPageComplete && newItems.length > 0) {
+				await options.onPageComplete(newItems);
+			}
+
 			// Try to navigate to next page
 			const hasNextPage = await this.paginationHandler.navigateToNextPage(
 				page,
