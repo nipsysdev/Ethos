@@ -145,8 +145,8 @@ export class DetailPageExtractor {
 
 			// Process items in batches with controlled concurrency
 			const promises: Promise<void>[] = [];
-			let activePromises = 0;
 			let itemIndex = 0;
+			let nextPageIndex = 0; // Round-robin counter for page allocation
 
 			// Helper function to process next item when a slot becomes available
 			const processNext = async (): Promise<void> => {
@@ -154,9 +154,9 @@ export class DetailPageExtractor {
 
 				const currentIndex = itemIndex++;
 				const item = items[currentIndex];
-				const pageIndex = activePromises % pagePool.length;
+				const pageIndex = nextPageIndex;
+				nextPageIndex = (nextPageIndex + 1) % pagePool.length;
 
-				activePromises++;
 				try {
 					await this.extractDetailForSingleItem(
 						pagePool[pageIndex],
@@ -167,7 +167,6 @@ export class DetailPageExtractor {
 						itemOffset + currentIndex,
 					);
 				} finally {
-					activePromises--;
 					// Process next item if available
 					if (itemIndex < items.length) {
 						promises.push(processNext());
