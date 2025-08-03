@@ -4,9 +4,9 @@ import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../../core/types.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
-import { DetailPageExtractor } from "../../crawlers/extractors/DetailPageExtractor.js";
+} from "../../../core/types.js";
+import { CRAWLER_TYPES } from "../../../core/types.js";
+import { DetailPageExtractor } from "../../../crawlers/extractors/DetailPageExtractor.js";
 
 describe("DetailPageExtractor - Concurrent Processing", () => {
 	let extractor: DetailPageExtractor;

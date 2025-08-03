@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveAbsoluteUrl } from "../utils/url.js";
+import { resolveAbsoluteUrl } from "../../utils/url.js";
 
 describe("URL Utilities", () => {
 	describe("resolveAbsoluteUrl", () => {

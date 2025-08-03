@@ -1,14 +1,14 @@
 import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
-import { CrawlerRegistry } from "../core/CrawlerRegistry.js";
-import { ProcessingPipeline } from "../core/ProcessingPipeline.js";
+import { CrawlerRegistry } from "../../core/CrawlerRegistry.js";
+import { ProcessingPipeline } from "../../core/ProcessingPipeline.js";
 import type {
 	Crawler,
 	CrawlOptions,
 	CrawlResult,
 	SourceConfig,
-} from "../core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
+} from "../../core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "../../core/types.js";
 
 describe("ProcessingPipeline", () => {
 	afterEach(async () => {

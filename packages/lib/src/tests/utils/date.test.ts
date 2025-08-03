@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateForDisplay, parsePublishedDate } from "../utils/date.js";
+import { formatDateForDisplay, parsePublishedDate } from "../../utils/date.js";
 
 describe("Date parsing utilities", () => {
 	describe("parsePublishedDate", () => {
