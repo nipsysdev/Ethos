@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { SourceConfig } from "../../core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "../../core/types.js";
-import { ArticleListingCrawler } from "../../crawlers/ArticleListingCrawler.js";
+import type { SourceConfig } from "@/core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
+import { ArticleListingCrawler } from "@/crawlers/ArticleListingCrawler.js";
 
 describe("ArticleListingCrawler", () => {
 	it("should have correct type", () => {

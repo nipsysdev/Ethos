@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { displayResults } from "../../cli/ui/display.js";
+import { displayResults } from "@/cli/ui/display.js";
 
 describe("display module", () => {
 	it("should call displayResults without throwing", () => {

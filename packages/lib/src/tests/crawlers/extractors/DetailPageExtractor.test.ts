@@ -1,8 +1,8 @@
 import type { Page } from "puppeteer";
 import { describe, expect, it, vi } from "vitest";
-import type { SourceConfig } from "../../../core/types.js";
-import { CRAWLER_TYPES } from "../../../core/types.js";
-import { DetailPageExtractor } from "../../../crawlers/extractors/DetailPageExtractor.js";
+import type { SourceConfig } from "@/core/types.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
+import { DetailPageExtractor } from "@/crawlers/extractors/DetailPageExtractor.js";
 
 describe("DetailPageExtractor", () => {
 	const mockConfig: SourceConfig = {

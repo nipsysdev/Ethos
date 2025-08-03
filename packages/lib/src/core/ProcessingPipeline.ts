@@ -1,4 +1,4 @@
-import { ContentStore } from "../storage/ContentStore.js";
+import { ContentStore } from "@/storage/ContentStore.js";
 import type {
 	CrawledData,
 	CrawlerRegistry,

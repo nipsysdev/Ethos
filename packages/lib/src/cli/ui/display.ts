@@ -1,4 +1,4 @@
-import type { ProcessingResult } from "../../index.js";
+import type { ProcessingResult } from "@/index.js";
 import { showPostCrawlMenu } from "./menus.js";
 import { displayCrawlSummary } from "./summary.js";
 import { showExtractedData } from "./viewer.js";

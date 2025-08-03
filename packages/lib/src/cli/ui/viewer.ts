@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import type { ProcessingResult } from "../../index.js";
+import type { ProcessingResult } from "@/index.js";
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {

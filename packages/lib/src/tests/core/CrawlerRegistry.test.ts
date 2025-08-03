@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CrawlerRegistry } from "../../core/CrawlerRegistry.js";
-import type { Crawler, CrawlResult, SourceConfig } from "../../core/types.js";
+import { CrawlerRegistry } from "@/core/CrawlerRegistry.js";
+import type { Crawler, CrawlResult, SourceConfig } from "@/core/types.js";
 
 describe("CrawlerRegistry", () => {
 	it("should register and retrieve crawlers", () => {

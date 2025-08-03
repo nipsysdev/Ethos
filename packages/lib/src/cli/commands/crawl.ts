@@ -3,7 +3,7 @@ import type {
 	CrawlOptions,
 	ProcessingPipeline,
 	SourceRegistry,
-} from "../../index.js";
+} from "@/index.js";
 import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
 
 /**

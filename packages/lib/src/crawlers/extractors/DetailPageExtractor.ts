@@ -3,9 +3,9 @@ import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../../core/types.js";
-import { parsePublishedDate } from "../../utils/date.js";
-import { resolveAbsoluteUrl } from "../../utils/url.js";
+} from "@/core/types.js";
+import { parsePublishedDate } from "@/utils/date.js";
+import { resolveAbsoluteUrl } from "@/utils/url.js";
 
 export interface DetailExtractionResult {
 	detailData: Record<string, string | null>;

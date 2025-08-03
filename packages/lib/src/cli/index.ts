@@ -5,7 +5,7 @@ import {
 	CrawlerRegistry,
 	ProcessingPipeline,
 	SourceRegistry,
-} from "../index.js";
+} from "@/index.js";
 import { showMainMenu } from "./menu.js";
 
 const program = new Command();

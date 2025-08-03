@@ -1,5 +1,5 @@
 import type { Page } from "puppeteer";
-import type { SourceConfig } from "../../core/types.js";
+import type { SourceConfig } from "@/core/types.js";
 
 // Timeout constants for pagination handling
 const NAVIGATION_TIMEOUT_MS = 8000; // Increased from 3000

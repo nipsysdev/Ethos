@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SourceRegistry } from "../../core/SourceRegistry.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
+import { SourceRegistry } from "@/core/SourceRegistry.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
 
 describe("SourceRegistry", () => {
 	it("should load valid YAML config and retrieve sources", async () => {

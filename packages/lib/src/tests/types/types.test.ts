@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CrawlerError } from "../../core/types.js";
+import { CrawlerError } from "@/core/types.js";
 
 describe("CrawlerError", () => {
 	it("should create error with all properties", () => {

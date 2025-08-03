@@ -3,9 +3,9 @@ import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../../core/types.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
-import { parsePublishedDate } from "../../utils/date.js";
+} from "@/core/types.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
+import { parsePublishedDate } from "@/utils/date.js";
 
 export interface ListingExtractionResult {
 	items: CrawledData[];

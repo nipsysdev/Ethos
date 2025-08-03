@@ -10,8 +10,8 @@ import type {
 	CrawlSummary,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
+} from "@/core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";

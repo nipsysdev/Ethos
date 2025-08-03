@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { CrawledData } from "../core/types.js";
+import type { CrawledData } from "@/core/types.js";
 
 export interface StorageResult {
 	hash: string;

@@ -1,4 +1,4 @@
-import type { ProcessingPipeline, SourceRegistry } from "../index.js";
+import type { ProcessingPipeline, SourceRegistry } from "@/index.js";
 import { handleCrawl } from "./commands/crawl.js";
 
 interface Command {

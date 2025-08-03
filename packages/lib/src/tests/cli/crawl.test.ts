@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePositiveIntegerOrEmpty } from "../../cli/commands/crawl.js";
+import { validatePositiveIntegerOrEmpty } from "@/cli/commands/crawl.js";
 
 describe("Crawl Command Validation", () => {
 	describe("validatePositiveIntegerOrEmpty", () => {
