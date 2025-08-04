@@ -9,6 +9,7 @@ interface CrawlMetadataItem {
 	url: string;
 	title: string;
 	hash: string;
+	publishedDate?: string;
 }
 
 interface TempCrawlMetadata {
@@ -71,11 +72,16 @@ export async function showExtractedData(
 	const storageDir = contentStore.getStorageDirectory();
 
 	// Create choices with titles and file info
-	const choices = storedItems.map((item: CrawlMetadataItem, index: number) => ({
-		name: `${index + 1}. ${item.title}`,
-		value: join(storageDir, `${item.hash}.json`),
-		short: item.title,
-	}));
+	const choices = storedItems.map((item: CrawlMetadataItem, index: number) => {
+		const publishedInfo = item.publishedDate
+			? ` (${new Date(item.publishedDate).toLocaleDateString()})`
+			: "";
+		return {
+			name: `${index + 1}. ${item.title}${publishedInfo}`,
+			value: join(storageDir, `${item.hash}.json`),
+			short: item.title,
+		};
+	});
 
 	choices.push({
 		name: "← Back to menu",

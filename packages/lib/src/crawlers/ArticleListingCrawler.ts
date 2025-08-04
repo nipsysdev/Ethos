@@ -30,7 +30,12 @@ interface CrawlMetadata {
 	startTime: Date;
 	itemUrls: string[]; // Just URLs for final summary, not full items
 	// Store basic item info for viewer access
-	itemsForViewer: Array<{ url: string; title: string; hash: string }>;
+	itemsForViewer: Array<{
+		url: string;
+		title: string;
+		hash: string;
+		publishedDate?: string;
+	}>;
 	duplicatesSkipped: number;
 	totalFilteredItems: number;
 	pagesProcessed: number;
@@ -232,6 +237,7 @@ export class ArticleListingCrawler implements Crawler {
 								url: item.url,
 								title: item.title,
 								hash,
+								publishedDate: item.publishedDate,
 							});
 						}
 					}
@@ -290,6 +296,21 @@ export class ArticleListingCrawler implements Crawler {
 		metadata: CrawlMetadata,
 		tempFile?: string,
 	): CrawlResult {
+		// Sort items by published date (newest first) for viewer display
+		metadata.itemsForViewer.sort((a, b) => {
+			// Handle cases where publishedDate might be undefined
+			const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+			const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+
+			// Sort newest first (descending order)
+			return dateB - dateA;
+		});
+
+		// Update the metadata file with sorted items
+		if (tempFile) {
+			writeFileSync(tempFile, JSON.stringify(metadata, null, 2));
+		}
+
 		const endTime = new Date();
 		const summary: CrawlSummary = {
 			sourceId: metadata.sourceId,
