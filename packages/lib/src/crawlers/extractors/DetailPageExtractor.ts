@@ -135,58 +135,86 @@ export class DetailPageExtractor {
 		// Create a pool of pages for concurrent processing
 		const pagePool: Page[] = [];
 		try {
-			// Create additional pages for concurrent processing (main page + extra pages)
-			for (let i = 0; i < Math.min(concurrencyLimit, items.length) - 1; i++) {
+			// Calculate how many total pages we need for concurrent processing
+			const totalPagesNeeded = Math.min(concurrencyLimit, items.length);
+			// Create additional pages (we can use the main page as one of them)
+			const additionalPagesNeeded = Math.max(0, totalPagesNeeded - 1);
+
+			// Add main page as first page in pool
+			pagePool.push(page);
+
+			// Create additional pages for concurrent processing
+			for (let i = 0; i < additionalPagesNeeded; i++) {
 				const newPage = await browser.newPage();
 				pagePool.push(newPage);
 			}
-			// Add the main page to the pool
-			pagePool.push(page);
+			// Use only the additional pages for processing (never the main page)
 
-			// Process items in batches with controlled concurrency
-			const promises: Promise<void>[] = [];
+			// Process items with proper concurrency control
+			const availablePages = new Set<number>();
+			const runningTasks = new Map<Promise<void>, number>();
 			let itemIndex = 0;
-			let nextPageIndex = 0; // Round-robin counter for page allocation
 
-			// Helper function to process next item when a slot becomes available
-			const processNext = async (): Promise<void> => {
-				if (itemIndex >= items.length) return;
+			// Initialize available pages
+			for (let i = 0; i < pagePool.length; i++) {
+				availablePages.add(i);
+			}
 
-				const currentIndex = itemIndex++;
-				const item = items[currentIndex];
-				const pageIndex = nextPageIndex;
-				nextPageIndex = (nextPageIndex + 1) % pagePool.length;
-
-				try {
-					await this.extractDetailForSingleItem(
-						pagePool[pageIndex],
-						item,
-						config,
-						detailErrors,
-						detailFieldStats,
-						itemOffset + currentIndex,
-					);
-				} finally {
-					// Process next item if available
-					if (itemIndex < items.length) {
-						promises.push(processNext());
-					}
-				}
+			// Helper function to process a single item
+			const processItem = async (
+				page: Page,
+				item: CrawledData,
+				index: number,
+			): Promise<void> => {
+				await this.extractDetailForSingleItem(
+					page,
+					item,
+					config,
+					detailErrors,
+					detailFieldStats,
+					itemOffset + index,
+				);
 			};
 
-			// Start initial batch of concurrent operations
-			const initialBatch = Math.min(concurrencyLimit, items.length);
-			for (let i = 0; i < initialBatch; i++) {
-				promises.push(processNext());
+			// Process all items with controlled concurrency
+			while (itemIndex < items.length || runningTasks.size > 0) {
+				// Start new tasks if we have available pages and items
+				while (itemIndex < items.length && availablePages.size > 0) {
+					const currentIndex = itemIndex++;
+					const item = items[currentIndex];
+					const pageIndex = availablePages.values().next().value as number;
+					availablePages.delete(pageIndex);
+
+					const task = processItem(pagePool[pageIndex], item, currentIndex);
+					runningTasks.set(task, pageIndex);
+
+					// Remove task and free up page when it completes
+					task.finally(() => {
+						const freedPageIndex = runningTasks.get(task);
+						runningTasks.delete(task);
+						if (freedPageIndex !== undefined) {
+							availablePages.add(freedPageIndex);
+						}
+					});
+				}
+
+				// Wait for at least one task to complete before continuing
+				if (runningTasks.size > 0) {
+					await Promise.race([...runningTasks.keys()]);
+				}
 			}
 
-			// Wait for all processing to complete
-			await Promise.all(promises);
+			// Clear task tracking structures to help with garbage collection
+			runningTasks.clear();
+			availablePages.clear();
 		} finally {
-			// Clean up extra pages (keep the original main page)
-			for (let i = 0; i < pagePool.length - 1; i++) {
+			// Clean up only the additional pages we created (skip index 0 which is the main page)
+			for (let i = 1; i < pagePool.length; i++) {
 				await pagePool[i].close();
 			}
+
+			// Clear references to help garbage collection
+			pagePool.length = 0;
 		}
 	}
 
