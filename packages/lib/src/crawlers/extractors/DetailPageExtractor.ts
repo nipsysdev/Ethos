@@ -162,6 +162,7 @@ export class DetailPageExtractor {
 					const currentIndex = itemIndex++;
 					const item = items[currentIndex];
 					const pageIndex = Array.from(availablePages)[0];
+					// Defensive check - should never happen given availablePages.size > 0 above
 					if (pageIndex === undefined) {
 						throw new Error(
 							"No available page index found for detail extraction.",
