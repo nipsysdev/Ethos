@@ -98,7 +98,7 @@ export class ArticleListingCrawler implements Crawler {
 		// Create temporary file for tracking crawl metadata
 		const tempFile = join(
 			tmpdir(),
-			`ethos-crawl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.json`,
+			`ethos-crawl-${Date.now()}-${Math.random().toString(36).substring(2, 11)}.json`,
 		);
 		console.log(`📝 Using temporary metadata file: ${tempFile}`);
 

@@ -39,7 +39,7 @@ describe("ContentStore", () => {
 
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
-		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 		contentStore = new ContentStore({ storageDir: testStorageDir });
 
 		// Ensure clean state by removing directory if it exists
