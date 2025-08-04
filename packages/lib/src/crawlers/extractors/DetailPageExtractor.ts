@@ -135,20 +135,15 @@ export class DetailPageExtractor {
 		// Create a pool of pages for concurrent processing
 		const pagePool: Page[] = [];
 		try {
-			// Calculate how many total pages we need for concurrent processing
+			// Calculate how many pages we need for concurrent processing
+			// Never use the main page - it's needed for listing navigation
 			const totalPagesNeeded = Math.min(concurrencyLimit, items.length);
-			// Create additional pages (we can use the main page as one of them)
-			const additionalPagesNeeded = Math.max(0, totalPagesNeeded - 1);
 
-			// Add main page as first page in pool
-			pagePool.push(page);
-
-			// Create additional pages for concurrent processing
-			for (let i = 0; i < additionalPagesNeeded; i++) {
+			// Create dedicated pages for detail extraction only
+			for (let i = 0; i < totalPagesNeeded; i++) {
 				const newPage = await browser.newPage();
 				pagePool.push(newPage);
 			}
-			// Use only the additional pages for processing (never the main page)
 
 			// Process items with proper concurrency control
 			const availablePages = new Set<number>();
@@ -208,8 +203,8 @@ export class DetailPageExtractor {
 			runningTasks.clear();
 			availablePages.clear();
 		} finally {
-			// Clean up only the additional pages we created (skip index 0 which is the main page)
-			for (let i = 1; i < pagePool.length; i++) {
+			// Clean up all created pages (all were created for detail extraction)
+			for (let i = 0; i < pagePool.length; i++) {
 				await pagePool[i].close();
 			}
 

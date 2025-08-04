@@ -91,9 +91,9 @@ describe("DetailPageExtractor - Concurrent Processing", () => {
 			concurrency,
 		);
 
-		// Should create concurrency-1 additional pages (main page + 2 extra = 3 total)
-		expect(mockBrowser.newPage).toHaveBeenCalledTimes(2);
-		expect(mockNewPage.close).toHaveBeenCalledTimes(2);
+		// Should create concurrency dedicated pages (never uses main page)
+		expect(mockBrowser.newPage).toHaveBeenCalledTimes(3);
+		expect(mockNewPage.close).toHaveBeenCalledTimes(3);
 	});
 
 	it("should not create more pages than items", async () => {
@@ -113,9 +113,9 @@ describe("DetailPageExtractor - Concurrent Processing", () => {
 			concurrency,
 		);
 
-		// Should only create 1 additional page (2 items - 1 = 1 extra page)
-		expect(mockBrowser.newPage).toHaveBeenCalledTimes(1);
-		expect(mockNewPage.close).toHaveBeenCalledTimes(1);
+		// Should only create 2 pages (limited by items count, never uses main page)
+		expect(mockBrowser.newPage).toHaveBeenCalledTimes(2);
+		expect(mockNewPage.close).toHaveBeenCalledTimes(2);
 	});
 
 	it("should process all items with concurrent pages", async () => {
@@ -192,8 +192,8 @@ describe("DetailPageExtractor - Concurrent Processing", () => {
 			3,
 		);
 
-		// Should still clean up the extra pages
+		// Should still clean up all dedicated pages
 		expect(failingMockPage.close).toHaveBeenCalledTimes(1);
-		expect(vi.mocked(mockNewPage.close)).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(mockNewPage.close)).toHaveBeenCalledTimes(2);
 	});
 });
