@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
@@ -18,6 +22,25 @@ import { PaginationHandler } from "./handlers/PaginationHandler.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
+
+// Temporary crawl metadata for memory-efficient tracking
+interface CrawlMetadata {
+	sourceId: string;
+	sourceName: string;
+	startTime: Date;
+	itemUrls: string[]; // Just URLs for final summary, not full items
+	// Store basic item info for viewer access
+	itemsForViewer: Array<{ url: string; title: string; hash: string }>;
+	duplicatesSkipped: number;
+	totalFilteredItems: number;
+	pagesProcessed: number;
+	detailsCrawled: number;
+	fieldStats: FieldExtractionStats[];
+	detailFieldStats: FieldExtractionStats[];
+	listingErrors: string[];
+	detailErrors: string[];
+	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+}
 
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
@@ -72,149 +95,174 @@ export class ArticleListingCrawler implements Crawler {
 		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
-		const allCrawledItems: CrawledData[] = [];
+		// Create temporary file for tracking crawl metadata
+		const tempFile = join(
+			tmpdir(),
+			`ethos-crawl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.json`,
+		);
+		console.log(`📝 Using temporary metadata file: ${tempFile}`);
+
+		// Register temp file for cleanup (if running in CLI context)
+		try {
+			const { registerTempFile } = await import("@/cli/index.js");
+			registerTempFile(tempFile);
+		} catch {
+			// Not in CLI context, ignore
+		}
+		// Initialize crawl metadata
+		const metadata: CrawlMetadata = {
+			sourceId: config.id,
+			sourceName: config.name,
+			startTime,
+			itemUrls: [],
+			itemsForViewer: [],
+			duplicatesSkipped: 0,
+			totalFilteredItems: 0,
+			pagesProcessed: 0,
+			detailsCrawled: 0,
+			fieldStats: Object.entries(config.listing.items.fields).map(
+				([fieldName, fieldConfig]) => ({
+					fieldName,
+					successCount: 0,
+					totalAttempts: 0,
+					isOptional: fieldConfig.optional || false,
+					missingItems: [],
+				}),
+			),
+			detailFieldStats: Object.entries(config.detail.fields).map(
+				([fieldName]) => ({
+					fieldName,
+					successCount: 0,
+					totalAttempts: 0,
+					isOptional: true,
+					missingItems: [],
+				}),
+			),
+			listingErrors: [],
+			detailErrors: [],
+		};
+
 		const seenUrls = new Set<string>();
-		let pagesProcessed = 0;
-		let duplicatesSkipped = 0;
-		let totalFilteredItems = 0;
-		let detailsCrawled = 0;
-		const detailErrors: string[] = [];
-		const listingErrors: string[] = [];
-		let stoppedReason:
-			| "max_pages"
-			| "no_next_button"
-			| "all_duplicates"
-			| undefined;
 
-		// Initialize field stats tracking
-		const fieldStats: FieldExtractionStats[] = Object.entries(
-			config.listing.items.fields,
-		).map(([fieldName, fieldConfig]) => ({
-			fieldName,
-			successCount: 0,
-			totalAttempts: 0,
-			isOptional: fieldConfig.optional || false,
-			missingItems: [],
-		}));
+		try {
+			// Main pagination loop
+			while (true) {
+				// Check max pages limit before processing
+				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
+					metadata.stoppedReason = "max_pages";
+					break;
+				}
 
-		// Initialize detail field stats tracking
-		const detailFieldStats: FieldExtractionStats[] = Object.entries(
-			config.detail.fields,
-		).map(([fieldName]) => ({
-			fieldName,
-			successCount: 0,
-			totalAttempts: 0,
-			isOptional: true, // Detail fields are effectively optional since we fall back to listing data
-			missingItems: [],
-		}));
+				metadata.pagesProcessed++;
 
-		// Main pagination loop
-		while (true) {
-			// Check max pages limit before processing
-			if (options.maxPages && pagesProcessed >= options.maxPages) {
-				stoppedReason = "max_pages";
-				break;
-			}
+				// Extract items from current page
+				const pageResult = await this.listingExtractor.extractItemsFromPage(
+					page,
+					config,
+					metadata.fieldStats,
+					metadata.itemUrls.length,
+				);
 
-			pagesProcessed++;
+				// Track filtered items
+				metadata.totalFilteredItems += pageResult.filteredCount;
+				metadata.listingErrors.push(...pageResult.filteredReasons);
 
-			// Extract items from current page
-			const pageResult = await this.listingExtractor.extractItemsFromPage(
-				page,
-				config,
-				fieldStats,
-				allCrawledItems.length,
-			);
+				// Filter out duplicates and count them
+				const newItems: CrawledData[] = [];
+				let allItemsAreDuplicates = true;
 
-			// Track filtered items
-			totalFilteredItems += pageResult.filteredCount;
-			listingErrors.push(...pageResult.filteredReasons);
+				for (const item of pageResult.items) {
+					if (seenUrls.has(item.url)) {
+						metadata.duplicatesSkipped++;
+					} else {
+						seenUrls.add(item.url);
+						metadata.itemUrls.push(item.url); // Only store URL for metadata
+						newItems.push(item);
+						allItemsAreDuplicates = false;
+					}
+				}
 
-			// Filter out duplicates and count them
-			const newItems: CrawledData[] = [];
-			let allItemsAreDuplicates = true;
+				// Log page summary
+				const duplicatesOnPage = pageResult.items.length - newItems.length;
+				this.logPageSummary(
+					metadata.pagesProcessed,
+					pageResult,
+					newItems.length,
+					duplicatesOnPage,
+				);
 
-			for (const item of pageResult.items) {
-				if (seenUrls.has(item.url)) {
-					duplicatesSkipped++;
-				} else {
-					seenUrls.add(item.url);
-					newItems.push(item);
-					allItemsAreDuplicates = false;
+				// If all items on this page were duplicates, stop
+				if (pageResult.items.length > 0 && allItemsAreDuplicates) {
+					metadata.stoppedReason = "all_duplicates";
+					break;
+				}
+
+				// Extract detail data if we have new items
+				if (newItems.length > 0) {
+					// Store current listing page URL so we can return to it after detail extraction
+					const currentListingUrl = page.url();
+
+					const concurrency = options?.detailConcurrency ?? 5;
+					console.log(
+						`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
+					);
+					await this.detailExtractor.extractDetailData(
+						page,
+						newItems,
+						config,
+						metadata.detailErrors,
+						metadata.detailFieldStats,
+						metadata.itemUrls.length - newItems.length, // Offset based on stored URLs
+						concurrency,
+					);
+					metadata.detailsCrawled += newItems.length;
+
+					// Navigate back to the listing page for pagination
+					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
+
+					// Process items immediately through storage callback
+					if (options?.onPageComplete) {
+						await options.onPageComplete(newItems);
+
+						// After storage, capture the hash for each item for viewer access
+						// Hash is generated from URL, so we can compute it the same way
+						for (const item of newItems) {
+							const hash = this.generateHash(item.url);
+							metadata.itemsForViewer.push({
+								url: item.url,
+								title: item.title,
+								hash,
+							});
+						}
+					}
+
+					// Write updated metadata to temp file
+					writeFileSync(tempFile, JSON.stringify(metadata, null, 2));
+
+					// Clear items from memory immediately after processing
+					console.log(
+						`🧹 Cleared ${newItems.length} items from memory after storage`,
+					);
+					newItems.length = 0; // Free memory
+				}
+
+				// Try to navigate to next page
+				const hasNextPage = await this.paginationHandler.navigateToNextPage(
+					page,
+					config,
+				);
+				if (!hasNextPage) {
+					metadata.stoppedReason = "no_next_button";
+					break;
 				}
 			}
 
-			// Log page summary
-			const duplicatesOnPage = pageResult.items.length - newItems.length;
-			this.logPageSummary(
-				pagesProcessed,
-				pageResult,
-				newItems.length,
-				duplicatesOnPage,
-			);
-
-			// If all items on this page were duplicates, stop
-			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
-				stoppedReason = "all_duplicates";
-				break;
-			}
-
-			allCrawledItems.push(...newItems);
-
-			// Extract detail data - always required now
-			if (newItems.length > 0) {
-				// Store current listing page URL so we can return to it after detail extraction
-				const currentListingUrl = page.url();
-
-				const concurrency = options?.detailConcurrency ?? 5;
-				console.log(
-					`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
-				);
-				await this.detailExtractor.extractDetailData(
-					page,
-					newItems,
-					config,
-					detailErrors,
-					detailFieldStats,
-					allCrawledItems.length,
-					concurrency,
-				);
-				detailsCrawled += newItems.length;
-
-				// Navigate back to the listing page for pagination
-				await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
-			}
-
-			// Call storage callback if provided (for immediate processing/storage)
-			if (options?.onPageComplete && newItems.length > 0) {
-				await options.onPageComplete(newItems);
-			}
-
-			// Try to navigate to next page
-			const hasNextPage = await this.paginationHandler.navigateToNextPage(
-				page,
-				config,
-			);
-			if (!hasNextPage) {
-				stoppedReason = "no_next_button";
-				break;
-			}
+			// Build final result from metadata
+			return this.buildCrawlResultFromMetadata(metadata, tempFile);
+		} finally {
+			// Keep temporary file for viewer access - it will be cleaned up later
+			// Don't delete the temp file here anymore
 		}
-
-		return this.buildCrawlResult(
-			config,
-			allCrawledItems,
-			duplicatesSkipped,
-			totalFilteredItems,
-			fieldStats,
-			detailFieldStats,
-			listingErrors,
-			detailErrors,
-			startTime,
-			pagesProcessed,
-			stoppedReason,
-			detailsCrawled,
-		);
 	}
 
 	private logPageSummary(
@@ -236,6 +284,44 @@ export class ArticleListingCrawler implements Crawler {
 		if (filteredOnPage > 0) {
 			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
 		}
+	}
+
+	private buildCrawlResultFromMetadata(
+		metadata: CrawlMetadata,
+		tempFile?: string,
+	): CrawlResult {
+		const endTime = new Date();
+		const summary: CrawlSummary = {
+			sourceId: metadata.sourceId,
+			sourceName: metadata.sourceName,
+			itemsFound:
+				metadata.itemUrls.length +
+				metadata.duplicatesSkipped +
+				metadata.totalFilteredItems,
+			itemsProcessed: metadata.itemUrls.length,
+			itemsWithErrors: metadata.totalFilteredItems,
+			fieldStats: metadata.fieldStats,
+			detailFieldStats: metadata.detailFieldStats,
+			listingErrors: metadata.listingErrors,
+			startTime: metadata.startTime,
+			endTime,
+			pagesProcessed: metadata.pagesProcessed,
+			duplicatesSkipped: metadata.duplicatesSkipped,
+			stoppedReason: metadata.stoppedReason,
+			detailsCrawled: metadata.detailsCrawled,
+			detailErrors: metadata.detailErrors,
+		};
+
+		// Return empty data array since all items were processed immediately
+		// The actual data was stored via onPageComplete callback
+		return {
+			data: [], // Empty since items were processed and stored immediately
+			summary: {
+				...summary,
+				// Include temp file path for viewer to access crawl metadata
+				tempMetadataFile: tempFile,
+			},
+		};
 	}
 
 	private buildCrawlResult(
@@ -280,5 +366,13 @@ export class ArticleListingCrawler implements Crawler {
 			data: allCrawledItems,
 			summary,
 		};
+	}
+
+	/**
+	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
+	 * This matches the ContentStore implementation for consistent hashing
+	 */
+	private generateHash(content: string): string {
+		return createHash("sha1").update(content, "utf8").digest("hex");
 	}
 }
