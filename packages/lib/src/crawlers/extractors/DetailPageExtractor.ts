@@ -155,22 +155,6 @@ export class DetailPageExtractor {
 				availablePages.add(i);
 			}
 
-			// Helper function to process a single item
-			const processItem = async (
-				page: Page,
-				item: CrawledData,
-				index: number,
-			): Promise<void> => {
-				await this.extractDetailForSingleItem(
-					page,
-					item,
-					config,
-					detailErrors,
-					detailFieldStats,
-					itemOffset + index,
-				);
-			};
-
 			// Process all items with controlled concurrency
 			while (itemIndex < items.length || runningTasks.size > 0) {
 				// Start new tasks if we have available pages and items
@@ -180,7 +164,14 @@ export class DetailPageExtractor {
 					const pageIndex = availablePages.values().next().value as number;
 					availablePages.delete(pageIndex);
 
-					const task = processItem(pagePool[pageIndex], item, currentIndex);
+					const task = this.extractDetailForSingleItem(
+						pagePool[pageIndex],
+						item,
+						config,
+						detailErrors,
+						detailFieldStats,
+						itemOffset + currentIndex,
+					);
 					runningTasks.set(task, pageIndex);
 
 					// Remove task and free up page when it completes
