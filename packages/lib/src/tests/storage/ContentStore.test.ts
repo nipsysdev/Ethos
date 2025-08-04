@@ -41,7 +41,10 @@ describe("ContentStore", () => {
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
 		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-		contentStore = new ContentStore({ storageDir: testStorageDir });
+		contentStore = new ContentStore({
+			storageDir: testStorageDir,
+			enableMetadata: false,
+		});
 
 		// Ensure clean state by removing directory if it exists
 		try {
@@ -75,12 +78,15 @@ describe("ContentStore", () => {
 
 	describe("constructor", () => {
 		it("should use default options when none provided", () => {
-			const defaultStore = new ContentStore();
+			const defaultStore = new ContentStore({ enableMetadata: false });
 			expect(defaultStore).toBeInstanceOf(ContentStore);
 		});
 
 		it("should accept custom storage directory", () => {
-			const customStore = new ContentStore({ storageDir: "./custom-storage" });
+			const customStore = new ContentStore({
+				storageDir: "./custom-storage",
+				enableMetadata: false,
+			});
 			expect(customStore).toBeInstanceOf(ContentStore);
 		});
 	});
@@ -163,6 +169,7 @@ describe("ContentStore", () => {
 			// Try to store in a location that would cause permission errors
 			const restrictedStore = new ContentStore({
 				storageDir: "/root/restricted",
+				enableMetadata: false,
 			});
 
 			await expect(restrictedStore.store(sampleData)).rejects.toThrow(

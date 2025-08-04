@@ -2,23 +2,37 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { CrawledData } from "@/core/types.js";
 import { generateContentHash } from "@/utils/hash.js";
+import { MetadataStore, type MetadataStoreOptions } from "./MetadataStore.js";
 
 export interface StorageResult {
 	hash: string;
 	path: string;
 	existed: boolean;
 	storedAt: Date;
+	metadata?: {
+		id: number;
+		stored: boolean;
+	};
 }
 
 export interface ContentStoreOptions {
 	storageDir?: string;
+	enableMetadata?: boolean;
+	metadataOptions?: MetadataStoreOptions;
 }
 
 export class ContentStore {
 	private readonly storageDir: string;
+	private readonly metadataStore?: MetadataStore;
+	private readonly enableMetadata: boolean;
 
 	constructor(options: ContentStoreOptions = {}) {
 		this.storageDir = resolve(options.storageDir ?? "./storage/content");
+		this.enableMetadata = options.enableMetadata ?? true;
+
+		if (this.enableMetadata) {
+			this.metadataStore = new MetadataStore(options.metadataOptions);
+		}
 	}
 
 	/**
@@ -53,12 +67,45 @@ export class ContentStore {
 			// Check if file already exists (deduplication)
 			const existed = await this.fileExists(filePath);
 
+			let metadataResult: { id: number; stored: boolean } | undefined;
 			if (!existed) {
 				// Ensure storage directory exists
 				await this.ensureDirectoryExists(this.storageDir);
 
 				// Write the file
 				await writeFile(filePath, serialized, "utf8");
+
+				// Store metadata if enabled
+				if (this.metadataStore) {
+					try {
+						const metadata = await this.metadataStore.store(data, hash);
+						metadataResult = {
+							id: metadata.id as number,
+							stored: true,
+						};
+					} catch (metadataError) {
+						// Log but don't fail the whole operation
+						console.warn(
+							`Failed to store metadata: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+						);
+					}
+				}
+			} else {
+				// File exists, check if metadata also exists
+				if (this.metadataStore && !this.metadataStore.existsByHash(hash)) {
+					try {
+						const metadata = await this.metadataStore.store(data, hash);
+						metadataResult = {
+							id: metadata.id as number,
+							stored: true,
+						};
+					} catch (metadataError) {
+						// Metadata might already exist, that's ok
+						console.warn(
+							`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+						);
+					}
+				}
 			}
 
 			return {
@@ -66,6 +113,7 @@ export class ContentStore {
 				path: filePath,
 				existed,
 				storedAt: new Date(),
+				metadata: metadataResult,
 			};
 		} catch (error) {
 			throw new Error(
@@ -110,6 +158,12 @@ export class ContentStore {
 	 * @returns True if content exists, false otherwise
 	 */
 	async exists(url: string): Promise<boolean> {
+		// Use metadata store for fast lookup if available
+		if (this.metadataStore) {
+			return this.metadataStore.existsByUrl(url);
+		}
+
+		// Fallback to filesystem check
 		const hash = this.generateHash(url);
 		const filePath = join(this.storageDir, `${hash}.json`);
 		return this.fileExists(filePath);
@@ -180,5 +234,21 @@ export class ContentStore {
 	 */
 	getStorageDirectory(): string {
 		return this.storageDir;
+	}
+
+	/**
+	 * Get the metadata store instance
+	 */
+	getMetadataStore(): MetadataStore | undefined {
+		return this.metadataStore;
+	}
+
+	/**
+	 * Close any open connections
+	 */
+	close(): void {
+		if (this.metadataStore) {
+			this.metadataStore.close();
+		}
 	}
 }
