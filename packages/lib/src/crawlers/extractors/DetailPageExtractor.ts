@@ -161,7 +161,12 @@ export class DetailPageExtractor {
 				while (itemIndex < items.length && availablePages.size > 0) {
 					const currentIndex = itemIndex++;
 					const item = items[currentIndex];
-					const pageIndex = availablePages.values().next().value as number;
+					const pageIndex = Array.from(availablePages)[0];
+					if (pageIndex === undefined) {
+						throw new Error(
+							"No available page index found for detail extraction.",
+						);
+					}
 					availablePages.delete(pageIndex);
 
 					const task = this.extractDetailForSingleItem(
