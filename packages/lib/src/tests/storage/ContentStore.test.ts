@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { access, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -331,7 +332,10 @@ describe("ContentStore", () => {
 			await contentStore.store(sampleData);
 
 			// Now corrupt the file by writing invalid JSON
-			const hash = contentStore["generateHash"](sampleData.url);
+			// Generate hash the same way ContentStore does (SHA-1 of URL)
+			const hash = createHash("sha1")
+				.update(sampleData.url, "utf8")
+				.digest("hex");
 			const filePath = join(testStorageDir, `${hash}.json`);
 			await writeFile(filePath, "invalid json content", "utf8");
 

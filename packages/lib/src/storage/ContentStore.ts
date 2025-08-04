@@ -104,7 +104,7 @@ export class ContentStore {
 	/**
 	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
 	 */
-	private generateHash(content: string): string {
+	protected generateHash(content: string): string {
 		return createHash("sha1").update(content, "utf8").digest("hex");
 	}
 
