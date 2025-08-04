@@ -129,8 +129,8 @@ describe("Summary Display", () => {
 			"   • Stop reason: reached maximum pages limit",
 		);
 		expect(mockLog).toHaveBeenCalledWith("\n🔍 Detail field extraction stats:");
-		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%) (optional)");
-		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%) (optional)");
+		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%)");
+		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%)");
 	});
 
 	it("should show detail extraction errors when present", () => {
