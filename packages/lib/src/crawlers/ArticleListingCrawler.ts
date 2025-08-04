@@ -1,7 +1,3 @@
-import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
@@ -9,17 +5,15 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type {
 	CrawledData,
 	Crawler,
-	CrawlMetadata,
 	CrawlOptions,
 	CrawlResult,
-	CrawlSummary,
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
-import { generateContentHash } from "@/utils/hash.js";
 import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
+import { MetadataTracker } from "./MetadataTracker.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -77,52 +71,9 @@ export class ArticleListingCrawler implements Crawler {
 		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
-		// Create temporary file for tracking crawl metadata
-		const tempFile = join(
-			tmpdir(),
-			`ethos-crawl-${Date.now()}-${randomUUID()}.json`,
-		);
-		console.log(`📝 Using temporary metadata file: ${tempFile}`);
-
-		// Register temp file for cleanup (if running in CLI context)
-		try {
-			const { registerTempFile } = await import("@/cli/index.js");
-			registerTempFile(tempFile);
-		} catch {
-			// Not in CLI context, ignore
-		}
-		// Initialize crawl metadata
-		const metadata: CrawlMetadata = {
-			sourceId: config.id,
-			sourceName: config.name,
-			startTime,
-			itemUrls: [],
-			itemsForViewer: [],
-			duplicatesSkipped: 0,
-			totalFilteredItems: 0,
-			pagesProcessed: 0,
-			detailsCrawled: 0,
-			fieldStats: Object.entries(config.listing.items.fields).map(
-				([fieldName, fieldConfig]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: fieldConfig.optional || false,
-					missingItems: [],
-				}),
-			),
-			detailFieldStats: Object.entries(config.detail.fields).map(
-				([fieldName]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: true,
-					missingItems: [],
-				}),
-			),
-			listingErrors: [],
-			detailErrors: [],
-		};
+		// Initialize metadata tracker
+		const metadataTracker = new MetadataTracker(config, startTime);
+		const metadata = metadataTracker.getMetadata();
 
 		const seenUrls = new Set<string>();
 
@@ -131,11 +82,11 @@ export class ArticleListingCrawler implements Crawler {
 			while (true) {
 				// Check max pages limit before processing
 				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
-					metadata.stoppedReason = "max_pages";
+					metadataTracker.setStoppedReason("max_pages");
 					break;
 				}
 
-				metadata.pagesProcessed++;
+				metadataTracker.incrementPagesProcessed();
 
 				// Extract items from current page
 				const pageResult = await this.listingExtractor.extractItemsFromPage(
@@ -146,8 +97,10 @@ export class ArticleListingCrawler implements Crawler {
 				);
 
 				// Track filtered items
-				metadata.totalFilteredItems += pageResult.filteredCount;
-				metadata.listingErrors.push(...pageResult.filteredReasons);
+				metadataTracker.addFilteredItems(
+					pageResult.filteredCount,
+					pageResult.filteredReasons,
+				);
 
 				// Filter out duplicates and count them
 				const newItems: CrawledData[] = [];
@@ -155,10 +108,9 @@ export class ArticleListingCrawler implements Crawler {
 
 				for (const item of pageResult.items) {
 					if (seenUrls.has(item.url)) {
-						metadata.duplicatesSkipped++;
+						metadataTracker.addDuplicatesSkipped(1);
 					} else {
 						seenUrls.add(item.url);
-						metadata.itemUrls.push(item.url); // Only store URL for metadata
 						newItems.push(item);
 						allItemsAreDuplicates = false;
 					}
@@ -175,7 +127,7 @@ export class ArticleListingCrawler implements Crawler {
 
 				// If all items on this page were duplicates, stop
 				if (pageResult.items.length > 0 && allItemsAreDuplicates) {
-					metadata.stoppedReason = "all_duplicates";
+					metadataTracker.setStoppedReason("all_duplicates");
 					break;
 				}
 
@@ -194,10 +146,10 @@ export class ArticleListingCrawler implements Crawler {
 						config,
 						metadata.detailErrors,
 						metadata.detailFieldStats,
-						metadata.itemUrls.length - newItems.length, // Offset based on stored URLs
+						metadata.itemUrls.length, // Current offset
 						concurrency,
 					);
-					metadata.detailsCrawled += newItems.length;
+					metadataTracker.addDetailsCrawled(newItems.length);
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
@@ -205,22 +157,10 @@ export class ArticleListingCrawler implements Crawler {
 					// Process items immediately through storage callback
 					if (options?.onPageComplete) {
 						await options.onPageComplete(newItems);
-
-						// After storage, capture the hash for each item for viewer access
-						// Hash is generated from URL, so we can compute it the same way
-						for (const item of newItems) {
-							const hash = this.generateHash(item.url);
-							metadata.itemsForViewer.push({
-								url: item.url,
-								title: item.title,
-								hash,
-								publishedDate: item.publishedDate,
-							});
-						}
 					}
 
-					// Write updated metadata to temp file
-					writeFileSync(tempFile, JSON.stringify(metadata, null, 2));
+					// Add items to metadata tracking
+					metadataTracker.addItems(newItems);
 
 					// Clear items from memory immediately after processing
 					console.log(
@@ -235,13 +175,13 @@ export class ArticleListingCrawler implements Crawler {
 					config,
 				);
 				if (!hasNextPage) {
-					metadata.stoppedReason = "no_next_button";
+					metadataTracker.setStoppedReason("no_next_button");
 					break;
 				}
 			}
 
-			// Build final result from metadata
-			return this.buildCrawlResultFromMetadata(metadata, tempFile);
+			// Build final result from metadata tracker
+			return metadataTracker.buildCrawlResult();
 		} finally {
 			// Keep temporary file for viewer access - it will be cleaned up later
 			// Don't delete the temp file here anymore
@@ -267,66 +207,5 @@ export class ArticleListingCrawler implements Crawler {
 		if (filteredOnPage > 0) {
 			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
 		}
-	}
-
-	private buildCrawlResultFromMetadata(
-		metadata: CrawlMetadata,
-		tempFile?: string,
-	): CrawlResult {
-		// Sort items by published date (newest first) for viewer display
-		metadata.itemsForViewer.sort((a, b) => {
-			// Handle cases where publishedDate might be undefined
-			const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
-			const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
-
-			// Sort newest first (descending order)
-			return dateB - dateA;
-		});
-
-		// Update the metadata file with sorted items
-		if (tempFile) {
-			writeFileSync(tempFile, JSON.stringify(metadata, null, 2));
-		}
-
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: metadata.sourceId,
-			sourceName: metadata.sourceName,
-			itemsFound:
-				metadata.itemUrls.length +
-				metadata.duplicatesSkipped +
-				metadata.totalFilteredItems,
-			itemsProcessed: metadata.itemUrls.length,
-			itemsWithErrors: metadata.totalFilteredItems,
-			fieldStats: metadata.fieldStats,
-			detailFieldStats: metadata.detailFieldStats,
-			listingErrors: metadata.listingErrors,
-			startTime: metadata.startTime,
-			endTime,
-			pagesProcessed: metadata.pagesProcessed,
-			duplicatesSkipped: metadata.duplicatesSkipped,
-			stoppedReason: metadata.stoppedReason,
-			detailsCrawled: metadata.detailsCrawled,
-			detailErrors: metadata.detailErrors,
-		};
-
-		// Return empty data array since all items were processed immediately
-		// The actual data was stored via onPageComplete callback
-		return {
-			data: [], // Empty since items were processed and stored immediately
-			summary: {
-				...summary,
-				// Include temp file path for viewer to access crawl metadata
-				tempMetadataFile: tempFile,
-			},
-		};
-	}
-
-	/**
-	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
-	 * This matches the ContentStore implementation for consistent hashing
-	 */
-	private generateHash(content: string): string {
-		return generateContentHash(content);
 	}
 }
