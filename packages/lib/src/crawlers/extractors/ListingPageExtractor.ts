@@ -177,7 +177,6 @@ export class ListingPageExtractor {
 					author: result.item.author || undefined,
 					publishedDate,
 					image: result.item.image || undefined,
-					tags: [],
 					metadata: {
 						crawlerType: CRAWLER_TYPES.LISTING,
 						configId: config.id,

@@ -5,16 +5,18 @@ export const CRAWLER_TYPES = {
 
 export type CrawlerType = (typeof CRAWLER_TYPES)[keyof typeof CRAWLER_TYPES];
 
-export interface CrawledData {
+export interface ContentData {
 	url: string;
-	timestamp: Date;
-	source: string;
 	title: string;
 	content: string;
 	author?: string;
 	publishedDate?: string; // ISO 8601 string, strictly validated (throws if unparseable)
 	image?: string;
-	tags?: string[];
+}
+
+export interface CrawledData extends ContentData {
+	timestamp: Date;
+	source: string;
 	metadata: Record<string, unknown>;
 }
 

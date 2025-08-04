@@ -26,7 +26,6 @@ describe("Data Formatter", () => {
 			author: "John Doe",
 			publishedDate: "2025-01-01",
 			image: "https://example.com/image1.jpg",
-			tags: ["tech", "news"],
 			metadata: { wordCount: 100, category: "technology" },
 			analysis: [],
 		},
@@ -55,7 +54,6 @@ describe("Data Formatter", () => {
 		expect(result).toContain("--- Item 1 of 2 ---");
 		expect(result).toContain("Title: First Article");
 		expect(result).toContain("URL: https://example.com/article1");
-		expect(result).toContain("Tags: tech, news");
 		expect(result).toContain("--- Item 2 of 2 ---");
 		expect(result).toContain("Title: Second Article");
 	});

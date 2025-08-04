@@ -1,6 +1,6 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { CrawledData } from "@/core/types.js";
+import type { ContentData, CrawledData } from "@/core/types.js";
 import { generateContentHash } from "@/utils/hash.js";
 import { MetadataStore, type MetadataStoreOptions } from "./MetadataStore.js";
 
@@ -50,6 +50,21 @@ export class ContentStore {
 	}
 
 	/**
+	 * Extract pure content data from crawled data (removing tracking metadata)
+	 */
+	private extractContentData(data: CrawledData): ContentData {
+		const { url, title, content, author, publishedDate, image } = data;
+		return {
+			url,
+			title,
+			content,
+			...(author && { author }),
+			...(publishedDate && { publishedDate }),
+			...(image && { image }),
+		};
+	}
+
+	/**
 	 * Store crawled data using content-addressed storage
 	 * @param data The crawled data to store
 	 * @returns Storage result with hash, path, and whether file already existed
@@ -58,8 +73,9 @@ export class ContentStore {
 		// Create content hash based only on URL (natural unique identifier)
 		const hash = this.generateHash(data.url);
 
-		// Serialize the full data for storage
-		const serialized = JSON.stringify(data, null, 2);
+		// Extract only the content data for JSON storage (no tracking metadata)
+		const contentData = this.extractContentData(data);
+		const serialized = JSON.stringify(contentData, null, 2);
 		const filename = `${hash}.json`;
 		const filePath = join(this.storageDir, filename);
 
@@ -125,9 +141,9 @@ export class ContentStore {
 	/**
 	 * Retrieve stored data by URL
 	 * @param url The URL to look up
-	 * @returns The stored data if found, null otherwise
+	 * @returns The stored content data if found, null otherwise
 	 */
-	async retrieve(url: string): Promise<CrawledData | null> {
+	async retrieve(url: string): Promise<ContentData | null> {
 		const hash = this.generateHash(url);
 		const filePath = join(this.storageDir, `${hash}.json`);
 
@@ -137,12 +153,7 @@ export class ContentStore {
 				const content = await readFile(filePath, "utf8");
 				const parsed = JSON.parse(content);
 
-				// Convert timestamp back to Date object
-				if (parsed.timestamp) {
-					parsed.timestamp = new Date(parsed.timestamp);
-				}
-
-				return parsed as CrawledData;
+				return parsed as ContentData;
 			}
 			return null;
 		} catch (error) {
