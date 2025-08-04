@@ -88,7 +88,9 @@ export class ContentStore {
 				`Failed to retrieve content for URL ${url}: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
-	} /**
+	}
+
+	/**
 	 * Check if content exists for a given URL
 	 * @param url The URL to check
 	 * @returns True if content exists, false otherwise
