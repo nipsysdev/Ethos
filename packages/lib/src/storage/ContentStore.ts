@@ -61,6 +61,45 @@ export class ContentStore {
 	}
 
 	/**
+	 * Retrieve stored data by URL
+	 * @param url The URL to look up
+	 * @returns The stored data if found, null otherwise
+	 */
+	async retrieve(url: string): Promise<CrawledData | null> {
+		const hash = this.generateHash(url);
+		const filePath = join(this.storageDir, `${hash}.json`);
+
+		try {
+			if (await this.fileExists(filePath)) {
+				const { readFile } = await import("node:fs/promises");
+				const content = await readFile(filePath, "utf8");
+				const parsed = JSON.parse(content);
+
+				// Convert timestamp back to Date object
+				if (parsed.timestamp) {
+					parsed.timestamp = new Date(parsed.timestamp);
+				}
+
+				return parsed as CrawledData;
+			}
+			return null;
+		} catch (error) {
+			throw new Error(
+				`Failed to retrieve content for URL ${url}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	} /**
+	 * Check if content exists for a given URL
+	 * @param url The URL to check
+	 * @returns True if content exists, false otherwise
+	 */
+	async exists(url: string): Promise<boolean> {
+		const hash = this.generateHash(url);
+		const filePath = join(this.storageDir, `${hash}.json`);
+		return this.fileExists(filePath);
+	}
+
+	/**
 	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
 	 */
 	private generateHash(content: string): string {
@@ -118,5 +157,12 @@ export class ContentStore {
 		throw new Error(
 			`Failed to create directory ${dirPath} after 3 attempts: ${lastError instanceof Error ? lastError.message : "Unknown error"}`,
 		);
+	}
+
+	/**
+	 * Get the storage directory path
+	 */
+	getStorageDirectory(): string {
+		return this.storageDir;
 	}
 }
