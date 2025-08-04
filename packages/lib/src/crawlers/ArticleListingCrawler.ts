@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,9 +24,6 @@ import { PaginationHandler } from "./handlers/PaginationHandler.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
-
-// Random ID length for temporary file names
-const RANDOM_ID_LENGTH = 9;
 
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
@@ -83,9 +81,7 @@ export class ArticleListingCrawler implements Crawler {
 		// Create temporary file for tracking crawl metadata
 		const tempFile = join(
 			tmpdir(),
-			`ethos-crawl-${Date.now()}-${Math.random()
-				.toString(36)
-				.substring(2, 2 + RANDOM_ID_LENGTH)}.json`,
+			`ethos-crawl-${Date.now()}-${randomUUID()}.json`,
 		);
 		console.log(`📝 Using temporary metadata file: ${tempFile}`);
 
