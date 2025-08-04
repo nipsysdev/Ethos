@@ -22,6 +22,20 @@ export class ContentStore {
 	}
 
 	/**
+	 * Type guard to check if an error is a Node.js errno exception
+	 */
+	private static isErrnoException(
+		error: unknown,
+	): error is NodeJS.ErrnoException {
+		return (
+			error != null &&
+			typeof error === "object" &&
+			"code" in error &&
+			typeof (error as Record<string, unknown>).code === "string"
+		);
+	}
+
+	/**
 	 * Store crawled data using content-addressed storage
 	 * @param data The crawled data to store
 	 * @returns Storage result with hash, path, and whether file already existed
@@ -137,7 +151,7 @@ export class ContentStore {
 				retries--;
 
 				// Don't retry on permission or path errors
-				if (error && typeof error === "object" && "code" in error) {
+				if (ContentStore.isErrnoException(error)) {
 					if (error.code === "EACCES") {
 						throw new Error(`Permission denied creating directory ${dirPath}`);
 					}
