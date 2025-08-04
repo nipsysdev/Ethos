@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { CrawledData } from "@/core/types.js";
+import { generateContentHash } from "@/utils/hash.js";
 
 export interface StorageResult {
 	hash: string;
@@ -105,7 +105,7 @@ export class ContentStore {
 	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
 	 */
 	protected generateHash(content: string): string {
-		return createHash("sha1").update(content, "utf8").digest("hex");
+		return generateContentHash(content);
 	}
 
 	/**

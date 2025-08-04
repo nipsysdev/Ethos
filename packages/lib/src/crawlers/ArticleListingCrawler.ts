@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +15,7 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
+import { generateContentHash } from "@/utils/hash.js";
 import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
@@ -373,6 +373,6 @@ export class ArticleListingCrawler implements Crawler {
 	 * This matches the ContentStore implementation for consistent hashing
 	 */
 	private generateHash(content: string): string {
-		return createHash("sha1").update(content, "utf8").digest("hex");
+		return generateContentHash(content);
 	}
 }

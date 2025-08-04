@@ -1,9 +1,9 @@
-import { createHash } from "node:crypto";
 import { access, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { ContentStore } from "@/storage/ContentStore.js";
+import { generateContentHash } from "@/utils/hash.js";
 
 describe("ContentStore", () => {
 	let testStorageDir: string;
@@ -332,10 +332,8 @@ describe("ContentStore", () => {
 			await contentStore.store(sampleData);
 
 			// Now corrupt the file by writing invalid JSON
-			// Generate hash the same way ContentStore does (SHA-1 of URL)
-			const hash = createHash("sha1")
-				.update(sampleData.url, "utf8")
-				.digest("hex");
+			// Generate hash the same way ContentStore does
+			const hash = generateContentHash(sampleData.url);
 			const filePath = join(testStorageDir, `${hash}.json`);
 			await writeFile(filePath, "invalid json content", "utf8");
 
