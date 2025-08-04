@@ -1,5 +1,19 @@
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ProcessingResult } from "@/index.js";
+import { ContentStore } from "@/storage/ContentStore.js";
+
+// Type for the metadata stored in temp file
+interface CrawlMetadataItem {
+	url: string;
+	title: string;
+	hash: string;
+}
+
+interface TempCrawlMetadata {
+	itemsForViewer?: CrawlMetadataItem[];
+}
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
@@ -25,18 +39,41 @@ export async function showExtractedData(
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
 
-	// Filter items that have storage info
-	const storedItems = result.data.filter((item) => item.storage);
+	// Check if we have temp metadata file for accessing crawl data
+	if (!result.summary.tempMetadataFile) {
+		console.log("No crawl metadata available for viewing.");
+		return;
+	}
+
+	let crawlMetadata: TempCrawlMetadata;
+	try {
+		const metadataContent = readFileSync(
+			result.summary.tempMetadataFile,
+			"utf8",
+		);
+		crawlMetadata = JSON.parse(metadataContent);
+	} catch (error) {
+		console.log("Could not read crawl metadata file.");
+		console.error("Error:", error);
+		return;
+	}
+
+	// Use itemsForViewer from metadata to create file choices
+	const storedItems = crawlMetadata.itemsForViewer || [];
 
 	if (storedItems.length === 0) {
 		console.log("No stored files found.");
 		return;
 	}
 
+	// Create a ContentStore instance to get the storage directory
+	const contentStore = new ContentStore();
+	const storageDir = contentStore.getStorageDirectory();
+
 	// Create choices with titles and file info
-	const choices = storedItems.map((item, index) => ({
+	const choices = storedItems.map((item: CrawlMetadataItem, index: number) => ({
 		name: `${index + 1}. ${item.title}`,
-		value: item.storage?.path || "",
+		value: join(storageDir, `${item.hash}.json`),
 		short: item.title,
 	}));
 
