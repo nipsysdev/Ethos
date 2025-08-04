@@ -136,7 +136,7 @@ export interface CrawlSummary {
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
-	detailConcurrency?: number;
+	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
 }
 
 // Shared types for crawl metadata
