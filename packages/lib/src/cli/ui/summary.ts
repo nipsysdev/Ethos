@@ -58,10 +58,9 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 				stat.totalAttempts > 0
 					? Math.round((stat.successCount / stat.totalAttempts) * 100)
 					: 0;
-			const optionalLabel = stat.isOptional ? " (optional)" : "";
 
 			console.log(
-				`   • ${stat.fieldName}: ${stat.successCount}/${stat.totalAttempts} (${percentage}%)${optionalLabel}`,
+				`   • ${stat.fieldName}: ${stat.successCount}/${stat.totalAttempts} (${percentage}%)`,
 			);
 		});
 	}

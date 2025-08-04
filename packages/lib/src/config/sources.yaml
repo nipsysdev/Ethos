@@ -28,6 +28,7 @@ sources:
           author:
             selector: ".node-author"
             attribute: "text"
+            optional: true
           image:
             selector: ".teaser-thumbnail img"
             attribute: "src"
@@ -81,6 +82,7 @@ sources:
           author:
             selector: ".meta-info .card-meta-link:not(:nth-child(1))"
             attribute: "text"
+            optional: true
           image:
             selector: ".card-image"
             attribute: "src"
