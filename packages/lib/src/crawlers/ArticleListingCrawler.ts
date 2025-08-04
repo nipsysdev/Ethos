@@ -13,7 +13,6 @@ import type {
 	CrawlOptions,
 	CrawlResult,
 	CrawlSummary,
-	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
@@ -320,50 +319,6 @@ export class ArticleListingCrawler implements Crawler {
 				// Include temp file path for viewer to access crawl metadata
 				tempMetadataFile: tempFile,
 			},
-		};
-	}
-
-	private buildCrawlResult(
-		config: SourceConfig,
-		allCrawledItems: CrawledData[],
-		duplicatesSkipped: number,
-		totalFilteredItems: number,
-		fieldStats: FieldExtractionStats[],
-		detailFieldStats: FieldExtractionStats[],
-		listingErrors: string[],
-		detailErrors: string[],
-		startTime: Date,
-		pagesProcessed: number,
-		stoppedReason:
-			| "max_pages"
-			| "no_next_button"
-			| "all_duplicates"
-			| undefined,
-		detailsCrawled: number,
-	): CrawlResult {
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: config.id,
-			sourceName: config.name,
-			itemsFound:
-				allCrawledItems.length + duplicatesSkipped + totalFilteredItems,
-			itemsProcessed: allCrawledItems.length,
-			itemsWithErrors: totalFilteredItems,
-			fieldStats,
-			detailFieldStats,
-			listingErrors,
-			startTime,
-			endTime,
-			pagesProcessed,
-			duplicatesSkipped,
-			stoppedReason,
-			detailsCrawled,
-			detailErrors,
-		};
-
-		return {
-			data: allCrawledItems,
-			summary,
 		};
 	}
 
