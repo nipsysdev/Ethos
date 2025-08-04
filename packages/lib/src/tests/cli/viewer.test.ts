@@ -1,3 +1,6 @@
+import { unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { showExtractedData } from "@/cli/ui/viewer.js";
 import type { ProcessingResult } from "@/index.js";
@@ -19,55 +22,68 @@ describe("Data Viewer", () => {
 		vi.clearAllMocks();
 	});
 
-	const createMockResult = (): ProcessingResult => ({
-		data: [
-			{
-				url: "https://example.com/article1",
-				timestamp: new Date("2025-01-01T10:00:01Z"),
-				source: "test-source",
-				title: "Test Article",
-				content: "Test content",
-				metadata: {},
-				analysis: [],
-				storage: {
-					hash: "abc123",
-					path: "/storage/content/abc123.json",
-					storedAt: new Date(),
-				},
-			},
-		],
-		summary: {
-			sourceId: "test-source",
-			sourceName: "Test Source",
-			itemsFound: 1,
-			itemsProcessed: 1,
-			itemsWithErrors: 0,
-			fieldStats: [],
-			detailFieldStats: [],
-			listingErrors: [],
-			startTime: new Date("2025-01-01T10:00:00Z"),
-			endTime: new Date("2025-01-01T10:00:05Z"),
-		},
-	});
+	const createMockResult = (withTempFile = true): ProcessingResult => {
+		let tempMetadataFile: string | undefined;
 
-	it("should display message when no stored files found", async () => {
-		const result = createMockResult();
-		// Remove storage info to simulate no stored files
-		result.data[0].storage = undefined;
+		if (withTempFile) {
+			// Create a temp file with mock metadata
+			tempMetadataFile = join(tmpdir(), `test-crawl-${Date.now()}.json`);
+			const mockMetadata = {
+				itemsForViewer: [
+					{
+						url: "https://example.com/article1",
+						title: "Test Article",
+						hash: "abc123",
+					},
+				],
+			};
+			writeFileSync(tempMetadataFile, JSON.stringify(mockMetadata));
+		}
+
+		return {
+			data: [], // Empty since items are now processed immediately
+			summary: {
+				sourceId: "test-source",
+				sourceName: "Test Source",
+				itemsFound: 1,
+				itemsProcessed: 1,
+				itemsWithErrors: 0,
+				fieldStats: [],
+				detailFieldStats: [],
+				listingErrors: [],
+				startTime: new Date("2025-01-01T10:00:00Z"),
+				endTime: new Date("2025-01-01T10:00:05Z"),
+				tempMetadataFile,
+			},
+		};
+	};
+
+	it("should display message when no crawl metadata available", async () => {
+		const result = createMockResult(false); // Don't create temp file
 
 		await showExtractedData(result);
 
-		expect(mockLog).toHaveBeenCalledWith("No stored files found.");
+		expect(mockLog).toHaveBeenCalledWith(
+			"No crawl metadata available for viewing.",
+		);
 		expect(mockInquirer.prompt).not.toHaveBeenCalled();
 	});
 
 	it("should show file selection menu and open file with less", async () => {
 		const result = createMockResult();
+		let actualSelectedFile = "";
 
-		// Mock inquirer responses - first select a file, then select "back" to exit
+		// Capture the actual file path from inquirer choices
 		mockInquirer.prompt
-			.mockResolvedValueOnce({
-				selectedFile: "/storage/content/abc123.json",
+			.mockImplementationOnce(async (questions) => {
+				const questionArray = Array.isArray(questions)
+					? questions
+					: [questions];
+				const question = questionArray[0] as {
+					choices: Array<{ value: string; name: string }>;
+				};
+				actualSelectedFile = question.choices[0].value; // Get the actual file path
+				return { selectedFile: actualSelectedFile };
 			})
 			.mockResolvedValueOnce({
 				selectedFile: "back", // This will exit the loop
@@ -95,42 +111,53 @@ describe("Data Viewer", () => {
 
 		await showExtractedData(result);
 
+		// Verify inquirer was called with the correct structure
 		expect(mockInquirer.prompt).toHaveBeenCalledWith([
-			{
+			expect.objectContaining({
 				type: "list",
 				name: "selectedFile",
 				message: "Select an item to view (1 files):",
-				choices: [
-					{
+				choices: expect.arrayContaining([
+					expect.objectContaining({
 						name: "1. Test Article",
-						value: "/storage/content/abc123.json",
 						short: "Test Article",
-					},
-					{
+					}),
+					expect.objectContaining({
 						name: "← Back to menu",
 						value: "back",
 						short: "Back",
-					},
-				],
+					}),
+				]),
 				pageSize: 15,
-			},
+			}),
 		]);
 
-		expect(mockSpawn).toHaveBeenCalledWith(
-			"less",
-			["-R", "/storage/content/abc123.json"],
-			{
-				stdio: "inherit",
-			},
-		);
+		// Verify less was called with the actual file path
+		expect(actualSelectedFile).toContain("abc123.json");
+		expect(mockSpawn).toHaveBeenCalledWith("less", ["-R", actualSelectedFile], {
+			stdio: "inherit",
+		});
+
+		// Cleanup temp file
+		if (result.summary.tempMetadataFile) {
+			unlinkSync(result.summary.tempMetadataFile);
+		}
 	});
 
 	it("should handle when less is not available", async () => {
 		const result = createMockResult();
+		let actualSelectedFile = "";
 
 		mockInquirer.prompt
-			.mockResolvedValueOnce({
-				selectedFile: "/storage/content/abc123.json",
+			.mockImplementationOnce(async (questions) => {
+				const questionArray = Array.isArray(questions)
+					? questions
+					: [questions];
+				const question = questionArray[0] as {
+					choices: Array<{ value: string; name: string }>;
+				};
+				actualSelectedFile = question.choices[0].value; // Get the actual file path
+				return { selectedFile: actualSelectedFile };
 			})
 			.mockResolvedValueOnce({
 				selectedFile: "back", // Exit after showing the message
@@ -152,8 +179,13 @@ describe("Data Viewer", () => {
 			"Less viewer not available. Please install 'less' to view files.",
 		);
 		expect(mockLog).toHaveBeenCalledWith(
-			"File location: /storage/content/abc123.json",
+			`File location: ${actualSelectedFile}`,
 		);
+
+		// Cleanup temp file
+		if (result.summary.tempMetadataFile) {
+			unlinkSync(result.summary.tempMetadataFile);
+		}
 	});
 
 	it("should handle back option", async () => {
@@ -167,5 +199,10 @@ describe("Data Viewer", () => {
 
 		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();
+
+		// Cleanup temp file
+		if (result.summary.tempMetadataFile) {
+			unlinkSync(result.summary.tempMetadataFile);
+		}
 	});
 });

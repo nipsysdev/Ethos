@@ -1,4 +1,5 @@
-import { access, readFile, rm } from "node:fs/promises";
+import { access, readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { ContentStore } from "@/storage/ContentStore.js";
@@ -305,6 +306,56 @@ describe("ContentStore", () => {
 			const storedContent = await readFile(result.path, "utf8");
 			const parsed = JSON.parse(storedContent);
 			expect(parsed.content).toBe(largeContent);
+		});
+	});
+
+	describe("retrieve", () => {
+		it("should retrieve stored data by URL", async () => {
+			await contentStore.store(sampleData);
+
+			const retrieved = await contentStore.retrieve(sampleData.url);
+
+			expect(retrieved).toEqual(sampleData);
+		});
+
+		it("should return null for non-existent URL", async () => {
+			const retrieved = await contentStore.retrieve(
+				"https://nonexistent.com/article",
+			);
+
+			expect(retrieved).toBeNull();
+		});
+
+		it("should handle retrieval errors gracefully", async () => {
+			// Store data first so the file exists
+			await contentStore.store(sampleData);
+
+			// Now corrupt the file by writing invalid JSON
+			const hash = contentStore["generateHash"](sampleData.url);
+			const filePath = join(testStorageDir, `${hash}.json`);
+			await writeFile(filePath, "invalid json content", "utf8");
+
+			await expect(contentStore.retrieve(sampleData.url)).rejects.toThrow(
+				"Failed to retrieve content for URL",
+			);
+		});
+	});
+
+	describe("exists", () => {
+		it("should return true for stored content", async () => {
+			await contentStore.store(sampleData);
+
+			const exists = await contentStore.exists(sampleData.url);
+
+			expect(exists).toBe(true);
+		});
+
+		it("should return false for non-existent content", async () => {
+			const exists = await contentStore.exists(
+				"https://nonexistent.com/article",
+			);
+
+			expect(exists).toBe(false);
 		});
 	});
 });
