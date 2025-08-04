@@ -1,4 +1,4 @@
-import type { FieldExtractionStats, ProcessingResult } from "../../index.js";
+import type { FieldExtractionStats, ProcessingResult } from "@/index.js";
 
 export function displayCrawlSummary(result: ProcessingResult): void {
 	const { summary } = result;
@@ -36,11 +36,6 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		}
 	}
 
-	// Detail crawling stats (if available)
-	if (summary.detailsSkipped && summary.detailsSkipped > 0) {
-		console.log(`   • Detail pages skipped: ${summary.detailsSkipped}`);
-	}
-
 	// Field extraction stats
 	console.log("\n📋 Listing field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
@@ -55,7 +50,7 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 		);
 	});
 
-	// Detail field extraction stats (if detail crawling was performed)
+	// Detail field extraction stats (always available now)
 	if (summary.detailFieldStats && summary.detailFieldStats.length > 0) {
 		console.log("\n🔍 Detail field extraction stats:");
 		summary.detailFieldStats.forEach((stat: FieldExtractionStats) => {
@@ -116,6 +111,18 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 			if (summary.detailErrors && summary.detailErrors.length > 3) {
 				console.log(`        ... and ${summary.detailErrors.length - 3} more`);
 			}
+		}
+	}
+
+	// Storage stats
+	const storedItems = result.data.filter((item) => item.storage).length;
+	if (storedItems > 0) {
+		console.log(`\n💾 Storage:`);
+		console.log(`   • Items stored: ${storedItems}`);
+		if (storedItems < result.data.length) {
+			console.log(
+				`   • Items failed to store: ${result.data.length - storedItems}`,
+			);
 		}
 	}
 

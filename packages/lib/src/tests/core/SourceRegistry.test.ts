@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SourceRegistry } from "../core/SourceRegistry.js";
-import { CRAWLER_TYPES } from "../core/types.js";
+import { SourceRegistry } from "@/core/SourceRegistry.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
 
 describe("SourceRegistry", () => {
 	it("should load valid YAML config and retrieve sources", async () => {
@@ -42,7 +42,16 @@ describe("SourceRegistry", () => {
           image:
             selector: ".teaser-thumbnail img"
             attribute: "src"
-            optional: true`;
+            optional: true
+    detail:
+      container_selector: ".node-type-blog"
+      fields:
+        title:
+          selector: ".pane-page-title h1"
+          attribute: "text"
+        content:
+          selector: ".pane-node .node__content"
+          attribute: "text"`;
 
 		await writeFile(configPath, testConfig);
 
@@ -122,6 +131,12 @@ describe("SourceRegistry", () => {
           title:
             selector: ".title"
             attribute: "text"
+    detail:
+      container_selector: ".article"
+      fields:
+        content:
+          selector: ".content"
+          attribute: "text"
   - id: "test2"
     name: "Test Source 2"
     type: "listing"
@@ -132,7 +147,13 @@ describe("SourceRegistry", () => {
         fields:
           title:
             selector: ".title"
-            attribute: "text"`;
+            attribute: "text"
+    detail:
+      container_selector: ".article"
+      fields:
+        content:
+          selector: ".content"
+          attribute: "text"`;
 
 		await writeFile(configPath, testConfig);
 		const registry = new SourceRegistry(configPath);

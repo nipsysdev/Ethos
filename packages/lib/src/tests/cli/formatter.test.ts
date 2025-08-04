@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatDataForViewing } from "../../cli/ui/formatter.js";
-import type { CrawledData, CrawlSummary } from "../../index.js";
+import { formatDataForViewing } from "@/cli/ui/formatter.js";
+import type { CrawlSummary, ProcessedData } from "@/index.js";
 
 describe("Data Formatter", () => {
 	const createMockSummary = (): CrawlSummary => ({
@@ -10,12 +10,13 @@ describe("Data Formatter", () => {
 		itemsProcessed: 2,
 		itemsWithErrors: 0,
 		fieldStats: [],
+		detailFieldStats: [],
 		listingErrors: [],
 		startTime: new Date("2025-01-01T10:00:00Z"),
 		endTime: new Date("2025-01-01T10:00:05Z"),
 	});
 
-	const createMockData = (): CrawledData[] => [
+	const createMockData = (): ProcessedData[] => [
 		{
 			url: "https://example.com/article1",
 			timestamp: new Date("2025-01-01T10:00:01Z"),
@@ -27,6 +28,7 @@ describe("Data Formatter", () => {
 			image: "https://example.com/image1.jpg",
 			tags: ["tech", "news"],
 			metadata: { wordCount: 100, category: "technology" },
+			analysis: [],
 		},
 		{
 			url: "https://example.com/article2",
@@ -35,6 +37,7 @@ describe("Data Formatter", () => {
 			title: "Second Article",
 			content: "This is the second article content.",
 			metadata: { wordCount: 150 },
+			analysis: [],
 		},
 	];
 
@@ -58,7 +61,7 @@ describe("Data Formatter", () => {
 	});
 
 	it("should handle missing optional fields and null values", () => {
-		const dataWithNulls: CrawledData[] = [
+		const dataWithNulls: ProcessedData[] = [
 			{
 				url: "",
 				timestamp: new Date("2025-01-01T10:00:01Z"),
@@ -66,6 +69,7 @@ describe("Data Formatter", () => {
 				title: "",
 				content: "",
 				metadata: {},
+				analysis: [],
 			},
 		];
 		const summary = createMockSummary();

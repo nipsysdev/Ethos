@@ -3,8 +3,9 @@ import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../../core/types.js";
-import { resolveAbsoluteUrl } from "../../utils/url.js";
+} from "@/core/types.js";
+import { parsePublishedDate } from "@/utils/date.js";
+import { resolveAbsoluteUrl } from "@/utils/url.js";
 
 export interface DetailExtractionResult {
 	detailData: Record<string, string | null>;
@@ -126,66 +127,163 @@ export class DetailPageExtractor {
 		detailErrors: string[],
 		detailFieldStats: FieldExtractionStats[],
 		itemOffset: number,
+		concurrencyLimit: number = 5,
 	): Promise<void> {
-		for (const [itemIndex, item] of items.entries()) {
-			if (!item.url) continue;
+		// Get browser instance to create additional pages for concurrency
+		const browser = page.browser();
 
-			try {
-				const { detailData, errors } = await this.extractFromDetailPage(
-					page,
-					item.url,
-					config,
-				);
+		// Create a pool of pages for concurrent processing
+		const pagePool: Page[] = [];
+		try {
+			// Calculate how many pages we need for concurrent processing
+			// Never use the main page - it's needed for listing navigation
+			const totalPagesNeeded = Math.min(concurrencyLimit, items.length);
 
-				// Merge detail data, overwriting listing data where detail data exists
-				if (detailData.title) item.title = detailData.title;
-				if (detailData.content) item.content = detailData.content;
-				if (detailData.author) item.author = detailData.author;
-				if (detailData.date) item.publishedDate = detailData.date;
-				if (detailData.image) item.image = detailData.image;
+			// Create dedicated pages for detail extraction only
+			for (let i = 0; i < totalPagesNeeded; i++) {
+				const newPage = await browser.newPage();
+				pagePool.push(newPage);
+			}
 
-				// Track what we got from detail vs listing
-				const detailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] !== null,
-				);
-				const failedDetailFields = Object.keys(detailData).filter(
-					(key) => detailData[key] === null,
-				);
+			// Process items with proper concurrency control
+			const availablePages = new Set<number>();
+			const runningTasks = new Map<Promise<void>, number>();
+			let itemIndex = 0;
 
-				// Update detail field stats
-				detailFieldStats.forEach((stat) => {
-					stat.totalAttempts++;
-					if (detailFields.includes(stat.fieldName)) {
-						stat.successCount++;
-					} else {
-						stat.missingItems.push(itemOffset + itemIndex + 1);
+			// Initialize available pages
+			for (let i = 0; i < pagePool.length; i++) {
+				availablePages.add(i);
+			}
+
+			// Process all items with controlled concurrency
+			while (itemIndex < items.length || runningTasks.size > 0) {
+				// Start new tasks if we have available pages and items
+				while (itemIndex < items.length && availablePages.size > 0) {
+					const currentIndex = itemIndex++;
+					const item = items[currentIndex];
+					const pageIndex = Array.from(availablePages)[0];
+					// Defensive check - should never happen given availablePages.size > 0 above
+					if (pageIndex === undefined) {
+						throw new Error(
+							"No available page index found for detail extraction.",
+						);
 					}
-				});
+					availablePages.delete(pageIndex);
 
-				// Update metadata
-				item.metadata = {
-					...item.metadata,
-					detailFieldsExtracted: detailFields,
-					detailFieldsFailed: failedDetailFields,
-					detailExtractionErrors: errors,
-				};
+					const task = this.extractDetailForSingleItem(
+						pagePool[pageIndex],
+						item,
+						config,
+						detailErrors,
+						detailFieldStats,
+						itemOffset + currentIndex,
+					);
+					runningTasks.set(task, pageIndex);
 
-				// Add errors to main error list
-				if (errors.length > 0) {
-					detailErrors.push(
-						...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
+					// Remove task and free up page when it completes
+					task.finally(() => {
+						const freedPageIndex = runningTasks.get(task);
+						runningTasks.delete(task);
+						if (freedPageIndex !== undefined) {
+							availablePages.add(freedPageIndex);
+						}
+					});
+				}
+
+				// Wait for at least one task to complete before continuing
+				if (runningTasks.size > 0) {
+					await Promise.race([...runningTasks.keys()]);
+				}
+			}
+
+			// Clear task tracking structures to help with garbage collection
+			runningTasks.clear();
+			availablePages.clear();
+		} finally {
+			// Clean up all created pages (all were created for detail extraction)
+			for (let i = 0; i < pagePool.length; i++) {
+				await pagePool[i].close();
+			}
+
+			// Clear references to help garbage collection
+			pagePool.length = 0;
+		}
+	}
+
+	private async extractDetailForSingleItem(
+		page: Page,
+		item: CrawledData,
+		config: SourceConfig,
+		detailErrors: string[],
+		detailFieldStats: FieldExtractionStats[],
+		itemIndex: number,
+	): Promise<void> {
+		if (!item.url) return;
+
+		try {
+			const { detailData, errors } = await this.extractFromDetailPage(
+				page,
+				item.url,
+				config,
+			);
+
+			// Merge detail data, overwriting listing data where detail data exists
+			if (detailData.title) item.title = detailData.title;
+			if (detailData.content) item.content = detailData.content;
+			if (detailData.author) item.author = detailData.author;
+			if (detailData.date) {
+				try {
+					const parsedDate = parsePublishedDate(detailData.date);
+					item.publishedDate = parsedDate;
+				} catch (error) {
+					throw new Error(
+						`Date parsing failed for detail page "${item.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
 					);
 				}
-			} catch (error) {
-				const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
-				detailErrors.push(errorMessage);
-
-				// Add error info to metadata
-				item.metadata = {
-					...item.metadata,
-					detailExtractionErrors: [errorMessage],
-				};
 			}
+			if (detailData.image) item.image = detailData.image;
+
+			// Track what we got from detail vs listing
+			const detailFields = Object.keys(detailData).filter(
+				(key) => detailData[key] !== null,
+			);
+			const failedDetailFields = Object.keys(detailData).filter(
+				(key) => detailData[key] === null,
+			);
+
+			// Update detail field stats
+			detailFieldStats.forEach((stat) => {
+				stat.totalAttempts++;
+				if (detailFields.includes(stat.fieldName)) {
+					stat.successCount++;
+				} else {
+					stat.missingItems.push(itemIndex + 1);
+				}
+			});
+
+			// Update metadata
+			item.metadata = {
+				...item.metadata,
+				detailFieldsExtracted: detailFields,
+				detailFieldsFailed: failedDetailFields,
+				detailExtractionErrors: errors,
+			};
+
+			// Add errors to main error list
+			if (errors.length > 0) {
+				detailErrors.push(
+					...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
+				);
+			}
+		} catch (error) {
+			const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
+			detailErrors.push(errorMessage);
+
+			// Add error info to metadata
+			item.metadata = {
+				...item.metadata,
+				detailExtractionErrors: [errorMessage],
+			};
 		}
 	}
 }

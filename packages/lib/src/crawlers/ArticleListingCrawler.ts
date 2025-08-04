@@ -7,14 +7,13 @@ import type {
 	Crawler,
 	CrawlOptions,
 	CrawlResult,
-	CrawlSummary,
-	FieldExtractionStats,
 	SourceConfig,
-} from "../core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
+} from "@/core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
+import { MetadataTracker } from "./MetadataTracker.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -72,146 +71,121 @@ export class ArticleListingCrawler implements Crawler {
 		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
-		const allCrawledItems: CrawledData[] = [];
+		// Initialize metadata tracker
+		const metadataTracker = new MetadataTracker(config, startTime);
+		const metadata = metadataTracker.getMetadata();
+
 		const seenUrls = new Set<string>();
-		let pagesProcessed = 0;
-		let duplicatesSkipped = 0;
-		let totalFilteredItems = 0;
-		let detailsCrawled = 0;
-		let detailsSkipped = 0;
-		const detailErrors: string[] = [];
-		const listingErrors: string[] = [];
-		let stoppedReason:
-			| "max_pages"
-			| "no_next_button"
-			| "all_duplicates"
-			| undefined;
 
-		// Initialize field stats tracking
-		const fieldStats: FieldExtractionStats[] = Object.entries(
-			config.listing.items.fields,
-		).map(([fieldName, fieldConfig]) => ({
-			fieldName,
-			successCount: 0,
-			totalAttempts: 0,
-			isOptional: fieldConfig.optional || false,
-			missingItems: [],
-		}));
+		try {
+			// Main pagination loop
+			while (true) {
+				// Check max pages limit before processing
+				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
+					metadataTracker.setStoppedReason("max_pages");
+					break;
+				}
 
-		// Initialize detail field stats tracking
-		const detailFieldStats: FieldExtractionStats[] = config.detail?.fields
-			? Object.entries(config.detail.fields).map(([fieldName]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: true, // All detail fields are effectively optional since we fall back to listing data
-					missingItems: [],
-				}))
-			: [];
+				metadataTracker.incrementPagesProcessed();
 
-		// Main pagination loop
-		while (true) {
-			// Check max pages limit before processing
-			if (options.maxPages && pagesProcessed >= options.maxPages) {
-				stoppedReason = "max_pages";
-				break;
-			}
+				// Extract items from current page
+				const pageResult = await this.listingExtractor.extractItemsFromPage(
+					page,
+					config,
+					metadata.fieldStats,
+					metadata.itemUrls.length,
+				);
 
-			pagesProcessed++;
+				// Track filtered items
+				metadataTracker.addFilteredItems(
+					pageResult.filteredCount,
+					pageResult.filteredReasons,
+				);
 
-			// Extract items from current page
-			const pageResult = await this.listingExtractor.extractItemsFromPage(
-				page,
-				config,
-				fieldStats,
-				allCrawledItems.length,
-			);
+				// Filter out duplicates and count them
+				const newItems: CrawledData[] = [];
+				let allItemsAreDuplicates = true;
 
-			// Track filtered items
-			totalFilteredItems += pageResult.filteredCount;
-			listingErrors.push(...pageResult.filteredReasons);
+				for (const item of pageResult.items) {
+					if (seenUrls.has(item.url)) {
+						metadataTracker.addDuplicatesSkipped(1);
+					} else {
+						seenUrls.add(item.url);
+						newItems.push(item);
+						allItemsAreDuplicates = false;
+					}
+				}
 
-			// Filter out duplicates and count them
-			const newItems: CrawledData[] = [];
-			let allItemsAreDuplicates = true;
+				// Log page summary
+				const duplicatesOnPage = pageResult.items.length - newItems.length;
+				this.logPageSummary(
+					metadata.pagesProcessed,
+					pageResult,
+					newItems.length,
+					duplicatesOnPage,
+				);
 
-			for (const item of pageResult.items) {
-				if (seenUrls.has(item.url)) {
-					duplicatesSkipped++;
-				} else {
-					seenUrls.add(item.url);
-					newItems.push(item);
-					allItemsAreDuplicates = false;
+				// If all items on this page were duplicates, stop
+				if (pageResult.items.length > 0 && allItemsAreDuplicates) {
+					metadataTracker.setStoppedReason("all_duplicates");
+					break;
+				}
+
+				// Extract detail data if we have new items
+				if (newItems.length > 0) {
+					// Store current listing page URL so we can return to it after detail extraction
+					const currentListingUrl = page.url();
+
+					const concurrency = options?.detailConcurrency ?? 5;
+					console.log(
+						`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
+					);
+					await this.detailExtractor.extractDetailData(
+						page,
+						newItems,
+						config,
+						metadata.detailErrors,
+						metadata.detailFieldStats,
+						metadata.itemUrls.length, // Current offset
+						concurrency,
+					);
+					metadataTracker.addDetailsCrawled(newItems.length);
+
+					// Navigate back to the listing page for pagination
+					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
+
+					// Process items immediately through storage callback
+					if (options?.onPageComplete) {
+						await options.onPageComplete(newItems);
+					}
+
+					// Add items to metadata tracking
+					metadataTracker.addItems(newItems);
+
+					// Clear items from memory immediately after processing
+					console.log(
+						`🧹 Cleared ${newItems.length} items from memory after storage`,
+					);
+					newItems.length = 0; // Free memory
+				}
+
+				// Try to navigate to next page
+				const hasNextPage = await this.paginationHandler.navigateToNextPage(
+					page,
+					config,
+				);
+				if (!hasNextPage) {
+					metadataTracker.setStoppedReason("no_next_button");
+					break;
 				}
 			}
 
-			// Log page summary
-			const duplicatesOnPage = pageResult.items.length - newItems.length;
-			this.logPageSummary(
-				pagesProcessed,
-				pageResult,
-				newItems.length,
-				duplicatesOnPage,
-			);
-
-			// If all items on this page were duplicates, stop
-			if (pageResult.items.length > 0 && allItemsAreDuplicates) {
-				stoppedReason = "all_duplicates";
-				break;
-			}
-
-			allCrawledItems.push(...newItems);
-
-			// Extract detail data if not skipped and config has detail section
-			if (!options?.skipDetails && config.detail && newItems.length > 0) {
-				// Store current listing page URL so we can return to it after detail extraction
-				const currentListingUrl = page.url();
-
-				console.log(
-					`🔍 Extracting detail data for ${newItems.length} items...`,
-				);
-				await this.detailExtractor.extractDetailData(
-					page,
-					newItems,
-					config,
-					detailErrors,
-					detailFieldStats,
-					allCrawledItems.length,
-				);
-				detailsCrawled += newItems.length;
-
-				// Navigate back to the listing page for pagination
-				await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
-			} else if (options?.skipDetails) {
-				detailsSkipped += newItems.length;
-			}
-
-			// Try to navigate to next page
-			const hasNextPage = await this.paginationHandler.navigateToNextPage(
-				page,
-				config,
-			);
-			if (!hasNextPage) {
-				stoppedReason = "no_next_button";
-				break;
-			}
+			// Build final result from metadata tracker
+			return metadataTracker.buildCrawlResult();
+		} finally {
+			// Keep temporary file for viewer access - it will be cleaned up later
+			// Don't delete the temp file here anymore
 		}
-
-		return this.buildCrawlResult(
-			config,
-			allCrawledItems,
-			duplicatesSkipped,
-			totalFilteredItems,
-			fieldStats,
-			detailFieldStats,
-			listingErrors,
-			detailErrors,
-			startTime,
-			pagesProcessed,
-			stoppedReason,
-			detailsCrawled,
-			detailsSkipped,
-		);
 	}
 
 	private logPageSummary(
@@ -233,52 +207,5 @@ export class ArticleListingCrawler implements Crawler {
 		if (filteredOnPage > 0) {
 			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
 		}
-	}
-
-	private buildCrawlResult(
-		config: SourceConfig,
-		allCrawledItems: CrawledData[],
-		duplicatesSkipped: number,
-		totalFilteredItems: number,
-		fieldStats: FieldExtractionStats[],
-		detailFieldStats: FieldExtractionStats[],
-		listingErrors: string[],
-		detailErrors: string[],
-		startTime: Date,
-		pagesProcessed: number,
-		stoppedReason:
-			| "max_pages"
-			| "no_next_button"
-			| "all_duplicates"
-			| undefined,
-		detailsCrawled: number,
-		detailsSkipped: number,
-	): CrawlResult {
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: config.id,
-			sourceName: config.name,
-			itemsFound:
-				allCrawledItems.length + duplicatesSkipped + totalFilteredItems,
-			itemsProcessed: allCrawledItems.length,
-			itemsWithErrors: totalFilteredItems,
-			fieldStats,
-			detailFieldStats:
-				detailFieldStats.length > 0 ? detailFieldStats : undefined,
-			listingErrors,
-			startTime,
-			endTime,
-			pagesProcessed,
-			duplicatesSkipped,
-			stoppedReason,
-			detailsCrawled,
-			detailsSkipped,
-			detailErrors,
-		};
-
-		return {
-			data: allCrawledItems,
-			summary,
-		};
 	}
 }

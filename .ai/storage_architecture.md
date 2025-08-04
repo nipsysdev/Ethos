@@ -1,34 +1,47 @@
-# Storage Architecture
+# Storage Architecture (Phase 2)
 
-## Four-Phase Pipeline
+## Current Status
 
-1. **Crawling** - Extract data from sources (Phase 1 - current)
-2. **Storing** - Deduplicate and store with content addressing (Phase 2 - next)
-3. **CLI Interface** - Comprehensive command-line interface (Phase 3 - future)
-4. **Analysis** - On-demand processing of stored data (Phase 4 - future)
+- **Phase 1 ✅**: Crawling returns structured data
+- **Phase 2 🔄**: Content-addressed storage implemented
 
-## Architecture
+## Content Store Implementation
 
-**Phase 2 Implementation:**
-
-- SQLite database (metadata + deduplication)
-- JSON files (content storage)
-
-**Future:**
-
-- Smart contract (coordination + metadata)
-- Codex storage (decentralized content)
-
-## Storage Flow
+The `ContentStore` class provides content-addressed storage using SHA-1 hashes:
 
 ```typescript
-const contentHash = hashContent(data);
-if (!(await metadataStore.isDuplicate(contentHash))) {
-  const cid = await contentStore.store(data);
-  await metadataStore.updateCID(contentHash, cid);
-}
+import { ContentStore } from "@ethos/lib";
+
+const contentStore = new ContentStore();
+const result = await contentStore.store(crawledData);
+// Returns: { hash: 'abc123...', path: './storage/content/abc123....json', existed: false }
+
+// Configure concurrent detail crawling
+const options = {
+  maxPages: 5,
+  detailConcurrency: 5, // Process 5 detail pages concurrently
+};
+const crawlResult = await crawler.crawl(config, options);
 ```
 
-## Deduplication
+### Features
 
-Content-addressed storage prevents duplicate data. Hash-based deduplication checks happen before storage.
+- **Content addressing**: Files named by content hash for automatic deduplication
+- **Directory management**: Auto-creates `./storage/content/` directory
+- **Error handling**: Graceful filesystem error handling
+- **Flexible configuration**: Custom storage directory and hash algorithms
+- **Concurrent detail crawling**: Configurable concurrency for detail page extraction (default: 5)
+
+### File Structure
+
+```
+./storage/
+  content/
+    {hash}.json  # Content-addressed JSON files
+    {hash}.json
+    ...
+```
+
+## Future: Smart contracts + Codex storage
+
+Phase 3 will integrate with Logos' Codex for decentralized storage while maintaining the content-addressed approach.

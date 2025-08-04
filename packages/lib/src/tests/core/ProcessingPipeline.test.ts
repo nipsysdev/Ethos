@@ -1,15 +1,34 @@
-import { describe, expect, it } from "vitest";
-import { CrawlerRegistry } from "../core/CrawlerRegistry.js";
-import { ProcessingPipeline } from "../core/ProcessingPipeline.js";
+import { rm } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CrawlerRegistry } from "@/core/CrawlerRegistry.js";
+import { ProcessingPipeline } from "@/core/ProcessingPipeline.js";
 import type {
 	Crawler,
 	CrawlOptions,
 	CrawlResult,
 	SourceConfig,
-} from "../core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "../core/types.js";
+} from "@/core/types.js";
+import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 
 describe("ProcessingPipeline", () => {
+	beforeEach(async () => {
+		// Ensure clean state by removing directory if it exists
+		try {
+			await rm("./test-storage", { recursive: true, force: true });
+		} catch {
+			// Directory might not exist
+		}
+	});
+
+	afterEach(async () => {
+		// Clean up test storage directory
+		try {
+			await rm("./test-storage", { recursive: true, force: true });
+		} catch {
+			// Directory might not exist
+		}
+	});
+
 	const testConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
@@ -23,11 +42,17 @@ describe("ProcessingPipeline", () => {
 				},
 			},
 		},
+		detail: {
+			container_selector: ".article-content",
+			fields: {
+				content: { selector: ".content", attribute: "text" },
+			},
+		},
 	};
 
 	it("should throw error when no crawler found", async () => {
 		const registry = new CrawlerRegistry();
-		const pipeline = new ProcessingPipeline(registry);
+		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(CrawlerError);
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
@@ -38,18 +63,29 @@ describe("ProcessingPipeline", () => {
 	it("should process successful crawl results", async () => {
 		const mockCrawler: Crawler = {
 			type: CRAWLER_TYPES.LISTING,
-			async crawl(): Promise<CrawlResult> {
+			async crawl(
+				_config: SourceConfig,
+				options?: CrawlOptions,
+			): Promise<CrawlResult> {
+				const data = [
+					{
+						url: "https://example.com/1",
+						timestamp: new Date(),
+						source: "test",
+						title: "Test Article",
+						content: "Test content",
+						publishedDate: "2025-07-10T00:00:00.000Z", // Use proper ISO format
+						metadata: {},
+					},
+				];
+
+				// Simulate the onPageComplete callback like a real crawler would
+				if (options?.onPageComplete) {
+					await options.onPageComplete(data);
+				}
+
 				return {
-					data: [
-						{
-							url: "https://example.com/1",
-							timestamp: new Date(),
-							source: "test",
-							title: "Test Article",
-							content: "Test content",
-							metadata: {},
-						},
-					],
+					data,
 					summary: {
 						sourceId: "test",
 						sourceName: "Test Source",
@@ -57,6 +93,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 1,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
@@ -67,13 +104,18 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry);
+		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
 		const result = await pipeline.process(testConfig);
 
 		expect(result.data).toHaveLength(1);
 		expect(result.data[0].title).toBe("Test Article");
+		expect(result.data[0].publishedDate).toBe("2025-07-10T00:00:00.000Z");
 		expect(result.data[0].analysis).toEqual([]);
+		expect(result.data[0].storage).toBeDefined();
+		expect(result.data[0].storage?.hash).toMatch(/^[a-f0-9]{40}$/); // SHA-1 hash
+		expect(result.data[0].storage?.path).toContain(".json");
+		expect(result.data[0].storage?.storedAt).toBeInstanceOf(Date);
 		expect(result.summary.itemsProcessed).toBe(1);
 	});
 
@@ -87,7 +129,7 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(failingCrawler);
-		const pipeline = new ProcessingPipeline(registry);
+		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
 			"Network failure",
@@ -113,6 +155,7 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 0,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
@@ -123,15 +166,18 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry);
+		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
 		const options: CrawlOptions = { maxPages: 5 };
 		await pipeline.process(testConfig, options);
 
-		expect(receivedOptions).toEqual(options);
+		expect(receivedOptions).toEqual({
+			...options,
+			onPageComplete: expect.any(Function),
+		});
 	});
 
-	it("should pass skipDetails option to crawler", async () => {
+	it("should pass detailConcurrency option to crawler", async () => {
 		let receivedOptions: CrawlOptions | undefined;
 
 		const mockCrawler: Crawler = {
@@ -150,10 +196,11 @@ describe("ProcessingPipeline", () => {
 						itemsProcessed: 0,
 						itemsWithErrors: 0,
 						fieldStats: [],
+						detailFieldStats: [],
 						listingErrors: [],
 						startTime: new Date(),
 						endTime: new Date(),
-						detailsSkipped: options?.skipDetails ? 0 : undefined,
+						detailsCrawled: 0,
 					},
 				};
 			},
@@ -161,13 +208,16 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry);
+		const pipeline = new ProcessingPipeline(registry, "./test-storage");
 
-		const options: CrawlOptions = { maxPages: 3, skipDetails: true };
+		const options: CrawlOptions = { maxPages: 3, detailConcurrency: 10 };
 		const result = await pipeline.process(testConfig, options);
 
-		expect(receivedOptions).toEqual(options);
-		expect(receivedOptions?.skipDetails).toBe(true);
-		expect(result.summary.detailsSkipped).toBe(0);
+		expect(receivedOptions).toEqual({
+			...options,
+			onPageComplete: expect.any(Function),
+		});
+		expect(receivedOptions?.detailConcurrency).toBe(10);
+		expect(result.summary.detailsCrawled).toBe(0);
 	});
 });

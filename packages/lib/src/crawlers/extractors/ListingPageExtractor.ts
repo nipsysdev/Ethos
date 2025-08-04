@@ -3,8 +3,9 @@ import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
-} from "../../core/types.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
+} from "@/core/types.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
+import { parsePublishedDate } from "@/utils/date.js";
 
 export interface ListingExtractionResult {
 	items: CrawledData[];
@@ -153,22 +154,37 @@ export class ListingPageExtractor {
 		});
 
 		const crawledItems: CrawledData[] = validItems.map(
-			(result: ExtractionResult) => ({
-				url: result.item.url || "",
-				timestamp: new Date(),
-				source: config.id,
-				title: result.item.title || "",
-				content: result.item.excerpt || "",
-				author: result.item.author || undefined,
-				publishedDate: result.item.date || undefined,
-				image: result.item.image || undefined,
-				tags: [],
-				metadata: {
-					crawlerType: CRAWLER_TYPES.LISTING,
-					configId: config.id,
-					extractedFields: Object.keys(result.item),
-				},
-			}),
+			(result: ExtractionResult) => {
+				// Parse the date - this will throw if parsing fails, which is what we want
+				// to indicate that the source format has changed and needs code updates
+				let publishedDate: string | undefined;
+				try {
+					publishedDate = result.item.date
+						? parsePublishedDate(result.item.date)
+						: undefined;
+				} catch (error) {
+					throw new Error(
+						`Date parsing failed for item "${result.item.title || result.item.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
+					);
+				}
+
+				return {
+					url: result.item.url || "",
+					timestamp: new Date(),
+					source: config.id,
+					title: result.item.title || "",
+					content: result.item.excerpt || "",
+					author: result.item.author || undefined,
+					publishedDate,
+					image: result.item.image || undefined,
+					tags: [],
+					metadata: {
+						crawlerType: CRAWLER_TYPES.LISTING,
+						configId: config.id,
+						extractedFields: Object.keys(result.item),
+					},
+				};
+			},
 		);
 
 		return {

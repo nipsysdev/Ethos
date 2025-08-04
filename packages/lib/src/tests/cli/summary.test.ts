@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { displayCrawlSummary } from "../../cli/ui/summary.js";
-import type { ProcessingResult } from "../../index.js";
+import { displayCrawlSummary } from "@/cli/ui/summary.js";
+import type { ProcessingResult } from "@/index.js";
 
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -33,6 +33,7 @@ describe("Summary Display", () => {
 					missingItems: [3, 7],
 				},
 			],
+			detailFieldStats: [],
 			listingErrors: ["Failed to parse item 3"],
 			startTime: new Date("2025-01-01T10:00:00Z"),
 			endTime: new Date("2025-01-01T10:00:05Z"),
@@ -101,7 +102,6 @@ describe("Summary Display", () => {
 				duplicatesSkipped: 2,
 				stoppedReason: "max_pages" as const,
 				detailsCrawled: 6,
-				detailsSkipped: 0,
 				detailFieldStats: [
 					{
 						fieldName: "content",
@@ -131,19 +131,6 @@ describe("Summary Display", () => {
 		expect(mockLog).toHaveBeenCalledWith("\n🔍 Detail field extraction stats:");
 		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%) (optional)");
 		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%) (optional)");
-	});
-
-	it("should display detail skip message when details were skipped", () => {
-		const result = createMockResult({
-			summary: {
-				...createMockResult().summary,
-				detailsSkipped: 8,
-			},
-		});
-
-		displayCrawlSummary(result);
-
-		expect(mockLog).toHaveBeenCalledWith("   • Detail pages skipped: 8");
 	});
 
 	it("should show detail extraction errors when present", () => {

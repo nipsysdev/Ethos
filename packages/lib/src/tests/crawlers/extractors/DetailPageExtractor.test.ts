@@ -1,8 +1,8 @@
 import type { Page } from "puppeteer";
 import { describe, expect, it, vi } from "vitest";
-import type { SourceConfig } from "../../core/types.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
-import { DetailPageExtractor } from "../../crawlers/extractors/DetailPageExtractor.js";
+import type { SourceConfig } from "@/core/types.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
+import { DetailPageExtractor } from "@/crawlers/extractors/DetailPageExtractor.js";
 
 describe("DetailPageExtractor", () => {
 	const mockConfig: SourceConfig = {
@@ -105,28 +105,6 @@ describe("DetailPageExtractor", () => {
 		expect(result.errors).toHaveLength(1);
 		expect(result.errors[0]).toContain("Failed to load detail page");
 		expect(result.errors[0]).toContain("Navigation timeout");
-	});
-
-	it("should return early when no detail config exists", async () => {
-		const extractor = new DetailPageExtractor();
-		const configNoDetail = { ...mockConfig };
-		delete configNoDetail.detail;
-
-		const mockPage = {
-			goto: vi.fn(),
-			evaluate: vi.fn(),
-		} as unknown as Page;
-
-		const result = await extractor.extractFromDetailPage(
-			mockPage,
-			"/article/123",
-			configNoDetail,
-		);
-
-		expect(result.detailData).toEqual({});
-		expect(result.errors).toHaveLength(0);
-		expect(mockPage.goto).not.toHaveBeenCalled();
-		expect(mockPage.evaluate).not.toHaveBeenCalled();
 	});
 
 	it("should handle absolute URLs correctly", async () => {

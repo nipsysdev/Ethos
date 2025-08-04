@@ -3,7 +3,7 @@ import {
 	CrawlerRegistry,
 	ProcessingPipeline,
 	SourceRegistry,
-} from "../index.js";
+} from "@/index.js";
 
 describe("Main Exports", () => {
 	it("should export and instantiate core classes", () => {

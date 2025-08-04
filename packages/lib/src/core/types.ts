@@ -12,7 +12,7 @@ export interface CrawledData {
 	title: string;
 	content: string;
 	author?: string;
-	publishedDate?: string;
+	publishedDate?: string; // ISO 8601 string, strictly validated (throws if unparseable)
 	image?: string;
 	tags?: string[];
 	metadata: Record<string, unknown>;
@@ -29,6 +29,11 @@ export interface AnalysisResult {
 
 export interface ProcessedData extends CrawledData {
 	analysis: AnalysisResult[];
+	storage?: {
+		hash: string;
+		path: string;
+		storedAt: Date;
+	};
 }
 
 export interface FieldConfig {
@@ -65,7 +70,7 @@ export interface SourceConfig {
 	name: string;
 	type: CrawlerType;
 	listing: ListingConfig;
-	detail?: DetailConfig;
+	detail: DetailConfig;
 }
 
 export interface CrawlResult {
@@ -116,7 +121,7 @@ export interface CrawlSummary {
 	itemsProcessed: number;
 	itemsWithErrors: number;
 	fieldStats: FieldExtractionStats[];
-	detailFieldStats?: FieldExtractionStats[];
+	detailFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	startTime: Date;
 	endTime: Date;
@@ -124,11 +129,37 @@ export interface CrawlSummary {
 	duplicatesSkipped?: number;
 	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
 	detailsCrawled?: number;
-	detailsSkipped?: number;
 	detailErrors?: string[];
+	tempMetadataFile?: string; // Path to temporary metadata file for viewer access
 }
 
 export interface CrawlOptions {
 	maxPages?: number;
-	skipDetails?: boolean;
+	onPageComplete?: (items: CrawledData[]) => Promise<void>;
+	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
+}
+
+// Shared types for crawl metadata
+export interface CrawlMetadataItem {
+	url: string;
+	title: string;
+	hash: string;
+	publishedDate?: string;
+}
+
+export interface CrawlMetadata {
+	sourceId: string;
+	sourceName: string;
+	startTime: Date;
+	itemUrls: string[];
+	itemsForViewer: CrawlMetadataItem[];
+	duplicatesSkipped: number;
+	totalFilteredItems: number;
+	pagesProcessed: number;
+	detailsCrawled: number;
+	fieldStats: FieldExtractionStats[];
+	detailFieldStats: FieldExtractionStats[];
+	listingErrors: string[];
+	detailErrors: string[];
+	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
 }

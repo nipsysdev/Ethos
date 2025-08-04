@@ -1,7 +1,7 @@
-import type { CrawledData, CrawlSummary } from "../../index.js";
+import type { CrawlSummary, ProcessedData } from "@/index.js";
 
 export function formatDataForViewing(
-	data: CrawledData[],
+	data: ProcessedData[],
 	summary: CrawlSummary,
 ): string {
 	const lines: string[] = [];
@@ -46,6 +46,16 @@ export function formatDataForViewing(
 		Object.entries(item.metadata).forEach(([key, value]) => {
 			lines.push(`  ${key}: ${JSON.stringify(value)}`);
 		});
+
+		// Storage information
+		if (item.storage) {
+			lines.push("\nStorage:");
+			lines.push(`  Hash: ${item.storage.hash}`);
+			lines.push(`  File: ${item.storage.path}`);
+			lines.push(`  Stored: ${item.storage.storedAt.toLocaleString()}`);
+		} else {
+			lines.push("\nStorage: Not stored");
+		}
 
 		if (index < data.length - 1) {
 			lines.push("");

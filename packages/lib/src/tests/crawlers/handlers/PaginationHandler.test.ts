@@ -1,8 +1,8 @@
 import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SourceConfig } from "../../core/types.js";
-import { CRAWLER_TYPES } from "../../core/types.js";
-import { PaginationHandler } from "../../crawlers/handlers/PaginationHandler.js";
+import type { SourceConfig } from "@/core/types.js";
+import { CRAWLER_TYPES } from "@/core/types.js";
+import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler", () => {
 	// Mock timers for all tests to avoid real delays
@@ -28,6 +28,12 @@ describe("PaginationHandler", () => {
 			},
 			pagination: {
 				next_button_selector: ".next-page",
+			},
+		},
+		detail: {
+			container_selector: ".article-content",
+			fields: {
+				content: { selector: ".content", attribute: "text" },
 			},
 		},
 	};

@@ -1,40 +1,32 @@
 # Library Architecture
 
-## Core Purpose
+## Core Classes (Phase 1 ✅)
 
-The TypeScript library contains ALL core logic for crawling, storage access, and analysis. Network nodes use this library to perform continuous operations and respond to client requests.
+- **SourceRegistry**: Load/validate YAML configs
+- **CrawlerRegistry**: Manage crawler implementations
+- **ArticleListingCrawler**: Pagination + item + detail extraction
+- **ProcessingPipeline**: Orchestrate operations
 
-## Core Flow
+## Storage Classes (Phase 2 ✅)
 
-1. **Load YAML Config** → Validate listing crawler config
-2. **Select Crawler** → Use listing crawler implementation
-3. **Extract Content** → Handle pagination, items, details
-4. **Store with Deduplication** → Content-addressed storage
-5. **Analysis on-demand** → Processing strategies when needed
+- **ContentStore**: Content-addressed JSON storage with SHA-1 hashing
 
-## Crawler Types
+## Flow
 
-**Phase 1 Focus:**
-
-- **listing**: Paginated item lists → detail pages (current schema expects detail page config)
-
-**Future phases:** RSS, API, social media crawlers
+1. Load YAML → Validate config
+2. Get crawler → Process pages
+3. Extract items → Optional details
+4. **Store data** → Content-addressed files
+5. Return structured data + stats
 
 ## Error Handling
 
-- **Required fields fail**: Abort current page/item
-- **Optional fields fail**: Continue extraction
-- **Per-page validation**: Errors evaluated at end of each page
+- Required fields: skip item, continue
+- Optional fields: undefined value, continue
+- Page failures: log error, continue crawl
+- URL deduplication: automatic
+- Storage failures: error thrown with context
 
-## Storage Pattern
+## Integration Points
 
-```typescript
-// Crawl → Store → Index
-const contentHash = hashContent(data);
-if (!(await metadataStore.isDuplicate(contentHash))) {
-  const cid = await contentStore.store(data);
-  await metadataStore.updateCID(contentHash, cid);
-}
-```
-
-The library provides seamless migration path from simulated to decentralized storage.
+The ContentStore can be used independently or integrated into the ProcessingPipeline for automatic storage of crawled data.
