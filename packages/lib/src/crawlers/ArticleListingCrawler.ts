@@ -8,6 +8,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type {
 	CrawledData,
 	Crawler,
+	CrawlMetadata,
 	CrawlOptions,
 	CrawlResult,
 	CrawlSummary,
@@ -25,30 +26,6 @@ puppeteer.use(AdblockerPlugin());
 
 // Random ID length for temporary file names
 const RANDOM_ID_LENGTH = 9;
-
-// Temporary crawl metadata for memory-efficient tracking
-interface CrawlMetadata {
-	sourceId: string;
-	sourceName: string;
-	startTime: Date;
-	itemUrls: string[]; // Just URLs for final summary, not full items
-	// Store basic item info for viewer access
-	itemsForViewer: Array<{
-		url: string;
-		title: string;
-		hash: string;
-		publishedDate?: string;
-	}>;
-	duplicatesSkipped: number;
-	totalFilteredItems: number;
-	pagesProcessed: number;
-	detailsCrawled: number;
-	fieldStats: FieldExtractionStats[];
-	detailFieldStats: FieldExtractionStats[];
-	listingErrors: string[];
-	detailErrors: string[];
-	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
-}
 
 export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;

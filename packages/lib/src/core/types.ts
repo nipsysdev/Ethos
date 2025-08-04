@@ -138,3 +138,28 @@ export interface CrawlOptions {
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 	detailConcurrency?: number;
 }
+
+// Shared types for crawl metadata
+export interface CrawlMetadataItem {
+	url: string;
+	title: string;
+	hash: string;
+	publishedDate?: string;
+}
+
+export interface CrawlMetadata {
+	sourceId: string;
+	sourceName: string;
+	startTime: Date;
+	itemUrls: string[];
+	itemsForViewer: CrawlMetadataItem[];
+	duplicatesSkipped: number;
+	totalFilteredItems: number;
+	pagesProcessed: number;
+	detailsCrawled: number;
+	fieldStats: FieldExtractionStats[];
+	detailFieldStats: FieldExtractionStats[];
+	listingErrors: string[];
+	detailErrors: string[];
+	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+}

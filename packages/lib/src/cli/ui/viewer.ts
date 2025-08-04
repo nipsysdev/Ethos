@@ -1,20 +1,9 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { CrawlMetadata, CrawlMetadataItem } from "@/core/types.js";
 import type { ProcessingResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
-
-// Type for the metadata stored in temp file
-interface CrawlMetadataItem {
-	url: string;
-	title: string;
-	hash: string;
-	publishedDate?: string;
-}
-
-interface TempCrawlMetadata {
-	itemsForViewer?: CrawlMetadataItem[];
-}
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
@@ -46,7 +35,7 @@ export async function showExtractedData(
 		return;
 	}
 
-	let crawlMetadata: TempCrawlMetadata;
+	let crawlMetadata: CrawlMetadata;
 	try {
 		const metadataContent = readFileSync(
 			result.summary.tempMetadataFile,
