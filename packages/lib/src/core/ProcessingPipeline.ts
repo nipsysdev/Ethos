@@ -55,8 +55,25 @@ export class ProcessingPipeline {
 						path: storageResult.path,
 						storedAt: storageResult.storedAt,
 					});
+
+					// Build processed data immediately with storage info
+					processedData.push({
+						...data,
+						analysis: [],
+						storage: {
+							hash: storageResult.hash,
+							path: storageResult.path,
+							storedAt: storageResult.storedAt,
+						},
+					});
 				} catch (error) {
 					console.warn(`Failed to store item ${data.url}:`, error);
+					// Still add to processed data without storage info
+					processedData.push({
+						...data,
+						analysis: [],
+						storage: undefined,
+					});
 				}
 			}
 		};
@@ -69,23 +86,7 @@ export class ProcessingPipeline {
 
 		const result = await crawler.crawl(config, streamingOptions);
 
-		// Build processed data with storage info from streaming results
-		for (const data of result.data) {
-			const storage = storageResults.get(data.url);
-
-			processedData.push({
-				...data,
-				analysis: [],
-				storage: storage
-					? {
-							hash: storage.hash,
-							path: storage.path,
-							storedAt: storage.storedAt,
-						}
-					: undefined,
-			});
-		}
-
+		// Return the processed data that was built during streaming
 		return {
 			data: processedData,
 			summary: result.summary,
