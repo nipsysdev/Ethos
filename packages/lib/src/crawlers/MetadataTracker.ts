@@ -72,7 +72,7 @@ export class MetadataTracker implements ContentSessionLinker {
 			);
 		} catch (error) {
 			console.error(
-				`Failed to create crawl session: ${error instanceof Error ? error.message : error}`,
+				`Failed to create crawl session (sessionId: ${this.sessionId}, sourceId: ${config.id}, sourceName: ${config.name}): ${error instanceof Error ? error.message : error}`,
 			);
 			throw error; // Re-throw to let the caller handle it
 		}
@@ -238,7 +238,7 @@ export class MetadataTracker implements ContentSessionLinker {
 			this.metadataStore.updateSession(this.sessionId, this.metadata);
 		} catch (error) {
 			console.error(
-				`Failed to update session metadata: ${error instanceof Error ? error.message : error}`,
+				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
 			// Don't throw here as this is a background operation and shouldn't break crawling
 		}
