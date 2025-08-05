@@ -34,7 +34,6 @@ interface SessionRow {
 	updated_at: string;
 }
 
-// Note: SessionContentRow interface removed as it's not used directly
 // Session content data is handled through the join query results
 
 interface DatabaseRow {

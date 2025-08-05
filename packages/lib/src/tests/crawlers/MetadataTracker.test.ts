@@ -177,7 +177,6 @@ describe("MetadataTracker", () => {
 
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.itemsProcessed).toBe(2);
-		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	it("should build crawl result and close session", () => {
@@ -241,8 +240,6 @@ describe("MetadataTracker", () => {
 
 		// Check that the session was ended
 		expect(mockEndSession).toHaveBeenCalledWith(metadataTracker.getSessionId());
-
-		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	it("should handle items correctly without depending on itemsForViewer", () => {
@@ -284,8 +281,6 @@ describe("MetadataTracker", () => {
 
 		// Should not throw an error and should complete successfully
 		expect(result.summary.itemsProcessed).toBe(2);
-
-		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	describe("Checkpoint Management", () => {

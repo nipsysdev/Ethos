@@ -235,7 +235,6 @@ export class ArticleListingCrawler implements Crawler {
 
 					itemsToProcess.length = 0; // Free memory
 				} else {
-					// No longer needed - we already logged the page summary above
 				}
 
 				// Try to navigate to next page

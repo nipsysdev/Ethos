@@ -112,7 +112,6 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	addItems(items: CrawledData[]): void {
 		this.metadata.itemsProcessed += items.length;
-		// Note: Items are now tracked in the junction table instead of in-memory
 
 		this.updateSessionInDatabase();
 	}
@@ -185,8 +184,6 @@ export class MetadataTracker implements ContentSessionLinker {
 	 * Build the final crawl result from tracked metadata
 	 */
 	buildCrawlResult(): CrawlResult {
-		// Note: Items are now tracked via the junction table instead of in-memory
-
 		// Get session data from database for summary
 		const session = this.metadataStore.getSession(this.sessionId);
 		if (!session) {
