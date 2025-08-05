@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { displayResults, showPostCrawlMenuWithFlow } from "@/cli/ui/display.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 
 // Mock inquirer and other dependencies
 vi.mock("inquirer", () => ({
@@ -25,8 +25,7 @@ const mockShowExtractedData = vi.mocked(
 );
 
 describe("display module", () => {
-	const mockResult: ProcessingResult = {
-		data: [],
+	const mockResult: ProcessingSummaryResult = {
 		summary: {
 			sourceName: "test",
 			sourceId: "test-id",

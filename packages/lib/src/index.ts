@@ -2,6 +2,7 @@ export { CrawlerRegistry } from "./core/CrawlerRegistry.js";
 export {
 	ProcessingPipeline,
 	type ProcessingResult,
+	type ProcessingSummaryResult,
 } from "./core/ProcessingPipeline.js";
 export { SourceRegistry } from "./core/SourceRegistry.js";
 export * from "./core/types.js";

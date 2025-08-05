@@ -74,7 +74,7 @@ export async function handleCrawl(
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
 
 		try {
-			const result = await pipeline.process(selectedSource, options);
+			const result = await pipeline.processSummary(selectedSource, options);
 			spinner.succeed("Crawl completed successfully!");
 			displayResults(result);
 

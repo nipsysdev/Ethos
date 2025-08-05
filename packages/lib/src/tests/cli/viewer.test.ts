@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { showExtractedData } from "@/cli/ui/viewer.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 
 // Mock child_process and inquirer
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
@@ -37,7 +37,7 @@ describe("Data Viewer", () => {
 		mockClose.mockImplementation(() => {});
 	});
 
-	const createMockResult = (withSession = true): ProcessingResult => {
+	const createMockResult = (withSession = true): ProcessingSummaryResult => {
 		const sessionId = withSession ? "test-session-123" : undefined;
 
 		if (withSession) {
@@ -75,7 +75,6 @@ describe("Data Viewer", () => {
 		// and the viewer will check for that first before calling getSession
 
 		return {
-			data: [], // Empty since items are now processed immediately
 			summary: {
 				sourceId: "test-source",
 				sourceName: "Test Source",

@@ -133,6 +133,10 @@ export interface CrawlSummary {
 	detailsCrawled?: number;
 	detailErrors?: string[];
 	sessionId?: string; // Session ID for accessing crawl metadata from database
+	storageStats?: {
+		itemsStored: number;
+		itemsFailed: number;
+	};
 }
 
 // Interface for junction table linking without circular imports

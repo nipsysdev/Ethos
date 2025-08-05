@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
 
@@ -24,7 +24,7 @@ async function isLessAvailable(): Promise<boolean> {
 }
 
 export async function showExtractedData(
-	result: ProcessingResult,
+	result: ProcessingSummaryResult,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
 

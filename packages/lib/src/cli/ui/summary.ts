@@ -1,6 +1,6 @@
-import type { FieldExtractionStats, ProcessingResult } from "@/index.js";
+import type { FieldExtractionStats, ProcessingSummaryResult } from "@/index.js";
 
-export function displayCrawlSummary(result: ProcessingResult): void {
+export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	const { summary } = result;
 	const duration =
 		(summary.endTime.getTime() - summary.startTime.getTime()) / 1000;
@@ -114,13 +114,12 @@ export function displayCrawlSummary(result: ProcessingResult): void {
 	}
 
 	// Storage stats
-	const storedItems = result.data.filter((item) => item.storage).length;
-	if (storedItems > 0) {
+	if (summary.storageStats && summary.storageStats.itemsStored > 0) {
 		console.log(`\n💾 Storage:`);
-		console.log(`   • Items stored: ${storedItems}`);
-		if (storedItems < result.data.length) {
+		console.log(`   • Items stored: ${summary.storageStats.itemsStored}`);
+		if (summary.storageStats.itemsFailed > 0) {
 			console.log(
-				`   • Items failed to store: ${result.data.length - storedItems}`,
+				`   • Items failed to store: ${summary.storageStats.itemsFailed}`,
 			);
 		}
 	}

@@ -17,6 +17,11 @@ export interface ProcessingResult {
 	summary: CrawlSummary;
 }
 
+// Lightweight version for UI that doesn't hold full content in memory
+export interface ProcessingSummaryResult {
+	summary: CrawlSummary;
+}
+
 export interface ProcessingPipelineOptions {
 	storageBasePath?: string;
 	contentStoreOptions?: ContentStoreOptions;
@@ -119,10 +124,45 @@ export class ProcessingPipeline {
 
 		const result = await crawler.crawl(config, streamingOptions);
 
+		// Calculate storage statistics
+		const itemsStored = processedData.filter((item) => item.storage).length;
+		const itemsFailed = processedData.length - itemsStored;
+
+		// Add storage stats to summary
+		const summaryWithStorage = {
+			...result.summary,
+			storageStats: {
+				itemsStored,
+				itemsFailed,
+			},
+		};
+
 		// Return the processed data that was built during streaming
 		return {
 			data: processedData,
+			summary: summaryWithStorage,
+		};
+	}
+
+	/**
+	 * Creates a memory-efficient summary result that doesn't hold full content
+	 */
+	static createSummaryResult(
+		result: ProcessingResult,
+	): ProcessingSummaryResult {
+		return {
 			summary: result.summary,
 		};
+	}
+
+	/**
+	 * Process and return only summary result for memory efficiency
+	 */
+	async processSummary(
+		config: SourceConfig,
+		options?: CrawlOptions,
+	): Promise<ProcessingSummaryResult> {
+		const fullResult = await this.process(config, options);
+		return ProcessingPipeline.createSummaryResult(fullResult);
 	}
 }

@@ -1,14 +1,14 @@
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 import { showPostCrawlMenu } from "./menus.js";
 import { displayCrawlSummary } from "./summary.js";
 import { showExtractedData } from "./viewer.js";
 
-export function displayResults(result: ProcessingResult): void {
+export function displayResults(result: ProcessingSummaryResult): void {
 	displayCrawlSummary(result);
 }
 
 export async function showPostCrawlMenuWithFlow(
-	result: ProcessingResult,
+	result: ProcessingSummaryResult,
 ): Promise<"main" | "crawl" | "exit"> {
 	// Keep looping until user chooses to leave this crawl result context
 	while (true) {
