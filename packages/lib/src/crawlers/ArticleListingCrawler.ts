@@ -14,6 +14,7 @@ import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
 import { MetadataTracker } from "./MetadataTracker.js";
+import { InterruptionHandler } from "./utils/InterruptionHandler.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -24,12 +25,24 @@ export class ArticleListingCrawler implements Crawler {
 	private listingExtractor = new ListingPageExtractor();
 	private detailExtractor = new DetailPageExtractor();
 	private paginationHandler = new PaginationHandler();
+	private interruptionHandler = new InterruptionHandler();
+
+	private checkForInterruption(metadataTracker: MetadataTracker): boolean {
+		if (this.interruptionHandler.isProcessInterrupted()) {
+			metadataTracker.setStoppedReason("process_interrupted");
+			return true;
+		}
+		return false;
+	}
 
 	async crawl(
 		config: SourceConfig,
 		options?: CrawlOptions,
 	): Promise<CrawlResult> {
 		const startTime = new Date();
+
+		// Set up signal handlers for this crawl session
+		this.interruptionHandler.setup();
 
 		if (config.type !== CRAWLER_TYPES.LISTING) {
 			throw new CrawlerError(
@@ -62,6 +75,8 @@ export class ArticleListingCrawler implements Crawler {
 			);
 		} finally {
 			await browser.close();
+			// Clean up signal handlers
+			this.interruptionHandler.cleanup();
 		}
 	}
 
@@ -80,6 +95,9 @@ export class ArticleListingCrawler implements Crawler {
 		try {
 			// Main pagination loop
 			while (true) {
+				// Single interruption check at the start of each loop
+				if (this.checkForInterruption(metadataTracker)) break;
+
 				// Check max pages limit before processing
 				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
 					metadataTracker.setStoppedReason("max_pages");
@@ -184,6 +202,10 @@ export class ArticleListingCrawler implements Crawler {
 					page,
 					config,
 				);
+
+				// Check for interruption - if interrupted, it takes precedence over no next page
+				if (this.checkForInterruption(metadataTracker)) break;
+
 				if (!hasNextPage) {
 					metadataTracker.setStoppedReason("no_next_button");
 					break;

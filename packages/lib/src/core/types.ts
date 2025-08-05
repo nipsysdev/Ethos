@@ -129,7 +129,11 @@ export interface CrawlSummary {
 	endTime: Date;
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
-	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+	stoppedReason?:
+		| "max_pages"
+		| "no_next_button"
+		| "all_duplicates"
+		| "process_interrupted";
 	detailsCrawled?: number;
 	detailErrors?: string[];
 	sessionId?: string; // Session ID for accessing crawl metadata from database
@@ -173,5 +177,9 @@ export interface CrawlMetadata {
 	detailFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	detailErrors: string[];
-	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+	stoppedReason?:
+		| "max_pages"
+		| "no_next_button"
+		| "all_duplicates"
+		| "process_interrupted";
 }

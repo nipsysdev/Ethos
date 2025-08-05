@@ -171,7 +171,11 @@ export class MetadataTracker implements ContentSessionLinker {
 	 * Set the reason why crawling stopped
 	 */
 	setStoppedReason(
-		reason: "max_pages" | "no_next_button" | "all_duplicates",
+		reason:
+			| "max_pages"
+			| "no_next_button"
+			| "all_duplicates"
+			| "process_interrupted",
 	): void {
 		this.metadata.stoppedReason = reason;
 		this.updateSessionInDatabase();

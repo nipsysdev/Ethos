@@ -175,6 +175,10 @@ describe("Summary Display", () => {
 				expected: "all items on page were already crawled",
 			},
 			{ reason: "max_pages" as const, expected: "reached maximum pages limit" },
+			{
+				reason: "process_interrupted" as const,
+				expected: "process was interrupted",
+			},
 		];
 
 		testCases.forEach(({ reason, expected }) => {

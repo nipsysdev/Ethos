@@ -31,6 +31,7 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 				max_pages: "reached maximum pages limit",
 				no_next_button: "no more pages available",
 				all_duplicates: "all items on page were already crawled",
+				process_interrupted: "process was interrupted",
 			};
 			console.log(`   • Stop reason: ${reasonMessages[summary.stoppedReason]}`);
 		}
