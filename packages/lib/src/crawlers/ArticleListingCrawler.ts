@@ -169,6 +169,10 @@ export class ArticleListingCrawler implements Crawler {
 					// Add items to metadata tracking
 					metadataTracker.addItems(newItems);
 
+					// Checkpoint WAL files periodically to prevent them from growing too large
+					// Do this after processing each page during long crawls
+					metadataTracker.checkpoint();
+
 					// Clear items from memory immediately after processing
 					console.log(
 						`🧹 Cleared ${newItems.length} items from memory after storage`,

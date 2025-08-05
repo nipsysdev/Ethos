@@ -121,6 +121,15 @@ export class MetadataStore {
 		this.sessionStore.close();
 	}
 
+	/**
+	 * Checkpoint WAL files to prevent them from growing too large.
+	 * Call this periodically during long-running crawl operations.
+	 */
+	checkpoint(): void {
+		this.contentStore.checkpoint();
+		this.sessionStore.checkpoint();
+	}
+
 	getDatabasePath(): string {
 		return this.contentStore.getDatabasePath();
 	}

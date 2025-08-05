@@ -93,6 +93,14 @@ export class MetadataTracker implements ContentSessionLinker {
 	}
 
 	/**
+	 * Checkpoint WAL files to prevent them from growing too large.
+	 * Call this periodically during long crawl operations.
+	 */
+	checkpoint(): void {
+		this.metadataStore.checkpoint();
+	}
+
+	/**
 	 * Add new items to tracking and update the session in database
 	 */
 	addItems(items: CrawledData[]): void {

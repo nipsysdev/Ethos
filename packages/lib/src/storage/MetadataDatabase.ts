@@ -91,7 +91,24 @@ export class MetadataDatabase {
 	 * Close database connection
 	 */
 	close(): void {
+		// Checkpoint WAL file before closing to merge changes back to main database
+		// This prevents WAL files from growing indefinitely
+		try {
+			this.db.pragma("wal_checkpoint(TRUNCATE)");
+		} catch (error) {
+			// Log warning but don't throw - database can still close
+			console.warn("Failed to checkpoint WAL file:", error);
+		}
 		this.db.close();
+	}
+
+	/**
+	 * Manually checkpoint WAL file to merge changes back to main database.
+	 * Call this periodically during long-running operations to prevent
+	 * WAL files from growing too large.
+	 */
+	checkpoint(): void {
+		this.db.pragma("wal_checkpoint(PASSIVE)");
 	}
 
 	/**

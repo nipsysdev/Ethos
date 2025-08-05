@@ -126,9 +126,10 @@ const count = metadataStore.countBySource("eff");
 
 1. **Fast Duplicate Detection**: O(1) hash lookup vs O(n) filesystem scan
 2. **Rich Queries**: SQL-powered filtering, sorting, pagination
-3. **Concurrent Access**: SQLite WAL mode supports concurrent reads
+3. **Concurrent Access**: SQLite WAL mode supports concurrent reads during writes
 4. **Prepared Statements**: Optimized database operations
-5. **Indexed Searches**: Fast queries by source, date, hash, URL
+5. **WAL Checkpointing**: Automatic periodic checkpointing prevents WAL files from growing too large during long crawl sessions
+6. **Indexed Searches**: Fast queries by source, date, hash, URL
 
 ## Error Handling
 
@@ -248,6 +249,7 @@ interface MetadataQueryOptions {
 4. **Backup regularly**: SQLite databases should be backed up
 5. **Monitor size**: Track database growth and content counts
 6. **Handle failures gracefully**: Metadata is optional - content storage takes priority
+7. **WAL Checkpointing**: The database uses WAL mode for better concurrency. WAL files are automatically checkpointed on database close and periodically during long crawl operations to prevent excessive disk usage
 
 ## Examples
 

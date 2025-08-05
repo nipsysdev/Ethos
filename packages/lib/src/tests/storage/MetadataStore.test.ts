@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
 
@@ -430,6 +430,39 @@ describe("MetadataStore", () => {
 			expect(sessionContents[1].id).toBe(content2.id);
 			expect(sessionContents[1].processedOrder).toBe(2);
 			expect(sessionContents[1].hadDetailExtractionError).toBe(true);
+		});
+	});
+
+	describe("Checkpoint Management", () => {
+		it("should have a checkpoint method", () => {
+			expect(typeof metadataStore.checkpoint).toBe("function");
+		});
+
+		it("should execute checkpoint without error", () => {
+			// This should not throw
+			expect(() => metadataStore.checkpoint()).not.toThrow();
+		});
+
+		it("should call checkpoint on both content and session stores", () => {
+			// Access the internal stores through type assertion for testing
+			// biome-ignore lint/suspicious/noExplicitAny: Testing internal implementation
+			const internalStore = metadataStore as any;
+			const contentCheckpointSpy = vi.spyOn(
+				internalStore.contentStore,
+				"checkpoint",
+			);
+			const sessionCheckpointSpy = vi.spyOn(
+				internalStore.sessionStore,
+				"checkpoint",
+			);
+
+			metadataStore.checkpoint();
+
+			expect(contentCheckpointSpy).toHaveBeenCalledOnce();
+			expect(sessionCheckpointSpy).toHaveBeenCalledOnce();
+
+			contentCheckpointSpy.mockRestore();
+			sessionCheckpointSpy.mockRestore();
 		});
 	});
 });

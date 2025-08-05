@@ -7,12 +7,14 @@ import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
 const mockCreateSession = vi.fn();
 const mockUpdateSession = vi.fn();
 const mockCloseSession = vi.fn();
+const mockCheckpoint = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
 	MetadataStore: vi.fn().mockImplementation(() => ({
 		createSession: mockCreateSession,
 		updateSession: mockUpdateSession,
 		closeSession: mockCloseSession,
+		checkpoint: mockCheckpoint,
 	})),
 }));
 
@@ -24,6 +26,10 @@ describe("MetadataTracker", () => {
 	beforeEach(() => {
 		// Clear mocks before each test
 		vi.clearAllMocks();
+		mockCreateSession.mockClear();
+		mockUpdateSession.mockClear();
+		mockCloseSession.mockClear();
+		mockCheckpoint.mockClear();
 
 		startTime = new Date();
 		mockConfig = {
@@ -262,5 +268,22 @@ describe("MetadataTracker", () => {
 		const metadata = metadataTracker.getMetadata();
 		// Note: itemsForViewer is no longer used - items are tracked via junction table
 		expect(metadata.itemsForViewer).toEqual([]);
+	});
+
+	describe("Checkpoint Management", () => {
+		it("should have a checkpoint method", () => {
+			expect(typeof metadataTracker.checkpoint).toBe("function");
+		});
+
+		it("should execute checkpoint without error", () => {
+			// This should not throw
+			expect(() => metadataTracker.checkpoint()).not.toThrow();
+		});
+
+		it("should call checkpoint on the metadata store", () => {
+			metadataTracker.checkpoint();
+
+			expect(mockCheckpoint).toHaveBeenCalledOnce();
+		});
 	});
 });
