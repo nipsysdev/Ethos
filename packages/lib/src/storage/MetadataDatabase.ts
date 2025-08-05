@@ -96,8 +96,12 @@ export class MetadataDatabase {
 		try {
 			this.db.pragma("wal_checkpoint(TRUNCATE)");
 		} catch (error) {
-			// Log warning but don't throw - database can still close
-			console.warn("Failed to checkpoint WAL file:", error);
+			// Log warning but don't throw - checkpoint is an optimization, not critical
+			// Database integrity is maintained even if checkpoint fails
+			console.warn(
+				"Failed to checkpoint WAL file during close (this is usually harmless):",
+				error instanceof Error ? error.message : error,
+			);
 		}
 		this.db.close();
 	}

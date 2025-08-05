@@ -104,8 +104,8 @@ describe("MetadataDatabase", () => {
 
 			expect(pragmaSpy).toHaveBeenCalledWith("wal_checkpoint(TRUNCATE)");
 			expect(consoleSpy).toHaveBeenCalledWith(
-				"Failed to checkpoint WAL file:",
-				expect.any(Error),
+				"Failed to checkpoint WAL file during close (this is usually harmless):",
+				"Checkpoint failed",
 			);
 			expect(closeSpy).toHaveBeenCalled();
 
