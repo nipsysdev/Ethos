@@ -93,7 +93,7 @@ export class ArticleListingCrawler implements Crawler {
 					page,
 					config,
 					metadata.fieldStats,
-					metadata.itemUrls.length,
+					metadata.itemsProcessed,
 				);
 
 				// Track filtered items
@@ -147,7 +147,7 @@ export class ArticleListingCrawler implements Crawler {
 						config,
 						metadata.detailErrors,
 						metadata.detailFieldStats,
-						metadata.itemUrls.length, // Current offset
+						metadata.itemsProcessed, // Current offset
 						concurrency,
 						metadataTracker.getMetadataStore(),
 						skipExisting,
@@ -176,10 +176,6 @@ export class ArticleListingCrawler implements Crawler {
 					// Do this after processing each page during long crawls
 					metadataTracker.checkpoint();
 
-					// Clear items from memory immediately after processing
-					console.log(
-						`🧹 Cleared ${newItems.length} items from memory after storage`,
-					);
 					newItems.length = 0; // Free memory
 				}
 

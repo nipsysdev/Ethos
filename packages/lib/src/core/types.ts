@@ -160,13 +160,9 @@ export interface CrawlMetadataItem {
 }
 
 export interface CrawlMetadata {
-	sourceId: string;
-	sourceName: string;
-	startTime: Date;
-	itemUrls: string[];
-	itemsForViewer: CrawlMetadataItem[];
 	duplicatesSkipped: number;
 	totalFilteredItems: number;
+	itemsProcessed: number; // Track total items processed (replaces itemUrls.length)
 	pagesProcessed: number;
 	detailsCrawled: number;
 	fieldStats: FieldExtractionStats[];

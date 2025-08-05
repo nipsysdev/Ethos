@@ -6,6 +6,7 @@ import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
 // Mock the MetadataStore to avoid database operations in tests
 const mockCreateSession = vi.fn();
 const mockUpdateSession = vi.fn();
+const mockGetSession = vi.fn();
 const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
 
@@ -13,6 +14,7 @@ vi.mock("@/storage/MetadataStore.js", () => ({
 	MetadataStore: vi.fn().mockImplementation(() => ({
 		createSession: mockCreateSession,
 		updateSession: mockUpdateSession,
+		getSession: mockGetSession,
 		endSession: mockEndSession,
 		checkpoint: mockCheckpoint,
 	})),
@@ -28,6 +30,7 @@ describe("MetadataTracker", () => {
 		vi.clearAllMocks();
 		mockCreateSession.mockClear();
 		mockUpdateSession.mockClear();
+		mockGetSession.mockClear();
 		mockEndSession.mockClear();
 		mockCheckpoint.mockClear();
 
@@ -65,11 +68,7 @@ describe("MetadataTracker", () => {
 	it("should initialize metadata correctly", () => {
 		const metadata = metadataTracker.getMetadata();
 
-		expect(metadata.sourceId).toBe("test-source");
-		expect(metadata.sourceName).toBe("Test Source");
-		expect(metadata.startTime).toBe(startTime);
-		expect(metadata.itemUrls).toEqual([]);
-		expect(metadata.itemsForViewer).toEqual([]);
+		expect(metadata.itemsProcessed).toBe(0);
 		expect(metadata.duplicatesSkipped).toBe(0);
 		expect(metadata.totalFilteredItems).toBe(0);
 		expect(metadata.pagesProcessed).toBe(0);
@@ -94,8 +93,9 @@ describe("MetadataTracker", () => {
 			"Test Source",
 			startTime,
 			expect.objectContaining({
-				sourceId: "test-source",
-				sourceName: "Test Source",
+				duplicatesSkipped: 0,
+				totalFilteredItems: 0,
+				itemsProcessed: 0,
 			}),
 		);
 	});
@@ -172,15 +172,23 @@ describe("MetadataTracker", () => {
 		metadataTracker.addItems(mockItems);
 
 		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemUrls).toEqual([
-			"https://example.com/article1",
-			"https://example.com/article2",
-		]);
-		// Note: itemsForViewer is no longer used - items are tracked via junction table
-		expect(metadata.itemsForViewer).toEqual([]);
+		expect(metadata.itemsProcessed).toBe(2);
+		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	it("should build crawl result and close session", () => {
+		// Mock getSession to return session data
+		mockGetSession.mockReturnValue({
+			id: metadataTracker.getSessionId(),
+			sourceId: "test-source",
+			sourceName: "Test Source",
+			startTime: startTime,
+			endTime: null,
+			metadata: "{}",
+			createdAt: startTime,
+			updatedAt: startTime,
+		});
+
 		// Add items with different dates
 		const mockItems: CrawledData[] = [
 			{
@@ -230,12 +238,22 @@ describe("MetadataTracker", () => {
 		// Check that the session was ended
 		expect(mockEndSession).toHaveBeenCalledWith(metadataTracker.getSessionId());
 
-		// Note: itemsForViewer is no longer used for sorting - items are tracked via junction table
-		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemsForViewer).toEqual([]);
+		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	it("should handle items correctly without depending on itemsForViewer", () => {
+		// Mock getSession to return session data
+		mockGetSession.mockReturnValue({
+			id: metadataTracker.getSessionId(),
+			sourceId: "test-source",
+			sourceName: "Test Source",
+			startTime: startTime,
+			endTime: null,
+			metadata: "{}",
+			createdAt: startTime,
+			updatedAt: startTime,
+		});
+
 		const mockItems: CrawledData[] = [
 			{
 				url: "https://example.com/article1",
@@ -263,9 +281,7 @@ describe("MetadataTracker", () => {
 		// Should not throw an error and should complete successfully
 		expect(result.summary.itemsProcessed).toBe(2);
 
-		const metadata = metadataTracker.getMetadata();
-		// Note: itemsForViewer is no longer used - items are tracked via junction table
-		expect(metadata.itemsForViewer).toEqual([]);
+		// Note: Items are now tracked via junction table instead of in-memory
 	});
 
 	describe("Checkpoint Management", () => {

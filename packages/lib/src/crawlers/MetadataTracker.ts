@@ -30,13 +30,9 @@ export class MetadataTracker implements ContentSessionLinker {
 
 		// Initialize crawl metadata
 		this.metadata = {
-			sourceId: config.id,
-			sourceName: config.name,
-			startTime,
-			itemUrls: [],
-			itemsForViewer: [],
 			duplicatesSkipped: 0,
 			totalFilteredItems: 0,
+			itemsProcessed: 0,
 			pagesProcessed: 0,
 			detailsCrawled: 0,
 			fieldStats: Object.entries(config.listing.items.fields).map(
@@ -111,10 +107,8 @@ export class MetadataTracker implements ContentSessionLinker {
 	 * Add new items to tracking and update the session in database
 	 */
 	addItems(items: CrawledData[]): void {
-		for (const item of items) {
-			this.metadata.itemUrls.push(item.url);
-			// Note: We no longer store itemsForViewer here since it's now in the junction table
-		}
+		this.metadata.itemsProcessed += items.length;
+		// Note: Items are now tracked in the junction table instead of in-memory
 
 		this.updateSessionInDatabase();
 	}
@@ -183,25 +177,31 @@ export class MetadataTracker implements ContentSessionLinker {
 	 * Build the final crawl result from tracked metadata
 	 */
 	buildCrawlResult(): CrawlResult {
-		// Note: We no longer sort itemsForViewer here since that's handled by the junction table
+		// Note: Items are now tracked via the junction table instead of in-memory
+
+		// Get session data from database for summary
+		const session = this.metadataStore.getSession(this.sessionId);
+		if (!session) {
+			throw new Error(`Session not found: ${this.sessionId}`);
+		}
 
 		// End the session as crawling is complete
 		this.metadataStore.endSession(this.sessionId);
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {
-			sourceId: this.metadata.sourceId,
-			sourceName: this.metadata.sourceName,
+			sourceId: session.sourceId,
+			sourceName: session.sourceName,
 			itemsFound:
-				this.metadata.itemUrls.length +
+				this.metadata.itemsProcessed +
 				this.metadata.duplicatesSkipped +
 				this.metadata.totalFilteredItems,
-			itemsProcessed: this.metadata.itemUrls.length,
+			itemsProcessed: this.metadata.itemsProcessed,
 			itemsWithErrors: this.metadata.totalFilteredItems,
 			fieldStats: this.metadata.fieldStats,
 			detailFieldStats: this.metadata.detailFieldStats,
 			listingErrors: this.metadata.listingErrors,
-			startTime: this.metadata.startTime,
+			startTime: session.startTime,
 			endTime,
 			pagesProcessed: this.metadata.pagesProcessed,
 			duplicatesSkipped: this.metadata.duplicatesSkipped,
