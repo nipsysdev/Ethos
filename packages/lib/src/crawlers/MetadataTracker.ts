@@ -240,7 +240,8 @@ export class MetadataTracker implements ContentSessionLinker {
 			console.error(
 				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
-			// Don't throw here as this is a background operation and shouldn't break crawling
+			// Intentionally do not re-throw the error: this method runs as a background operation,
+			// and any failure to update session metadata should not interrupt or break the main crawling process.
 		}
 	}
 }
