@@ -10,7 +10,7 @@ export interface CrawlSession {
 	sourceId: string;
 	sourceName: string;
 	startTime: Date;
-	isActive: boolean;
+	endTime?: Date; // NULL = session still active
 	metadata: string; // JSON serialized CrawlMetadata (without item duplicates)
 	createdAt: Date;
 	updatedAt: Date;
@@ -28,7 +28,7 @@ interface SessionRow {
 	source_id: string;
 	source_name: string;
 	start_time: string;
-	is_active: number;
+	end_time: string | null;
 	metadata: string;
 	created_at: string;
 	updated_at: string;
@@ -56,9 +56,8 @@ export class SessionMetadataStore extends MetadataDatabase {
 	// Session-related statements
 	private createSessionStmt!: Database.Statement;
 	private updateSessionStmt!: Database.Statement;
-	private getActiveSessionStmt!: Database.Statement;
 	private getSessionStmt!: Database.Statement;
-	private closeSessionStmt!: Database.Statement;
+	private endSessionStmt!: Database.Statement;
 
 	// Session-content junction statements
 	private linkContentToSessionStmt!: Database.Statement;
@@ -85,17 +84,13 @@ export class SessionMetadataStore extends MetadataDatabase {
 			WHERE id = ?
 		`);
 
-		this.getActiveSessionStmt = this.db.prepare(`
-			SELECT * FROM crawl_sessions WHERE id = ? AND is_active = 1 LIMIT 1
-		`);
-
 		this.getSessionStmt = this.db.prepare(`
 			SELECT * FROM crawl_sessions WHERE id = ? LIMIT 1
 		`);
 
-		this.closeSessionStmt = this.db.prepare(`
+		this.endSessionStmt = this.db.prepare(`
 			UPDATE crawl_sessions 
-			SET is_active = 0, updated_at = CURRENT_TIMESTAMP 
+			SET end_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
 			WHERE id = ?
 		`);
 
@@ -141,7 +136,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 				sourceId,
 				sourceName,
 				startTime,
-				isActive: true,
+				endTime: undefined, // Session is active (not ended)
 				metadata: JSON.stringify(metadata),
 				createdAt: new Date(),
 				updatedAt: new Date(),
@@ -158,10 +153,10 @@ export class SessionMetadataStore extends MetadataDatabase {
 	 */
 	updateSession(sessionId: string, metadata: object): void {
 		try {
-			// Validate that session exists and is active before updating
-			const session = this.getActiveSession(sessionId);
+			// Validate that session exists before updating
+			const session = this.getSession(sessionId);
 			if (!session) {
-				throw new Error(`Active session not found: ${sessionId}`);
+				throw new Error(`Session not found: ${sessionId}`);
 			}
 
 			this.updateSessionStmt.run(JSON.stringify(metadata), sessionId);
@@ -173,16 +168,6 @@ export class SessionMetadataStore extends MetadataDatabase {
 	}
 
 	/**
-	 * Get active session by ID
-	 */
-	getActiveSession(sessionId: string): CrawlSession | null {
-		const row = this.getActiveSessionStmt.get(sessionId) as
-			| SessionRow
-			| undefined;
-		return row ? this.mapSessionRowToSession(row) : null;
-	}
-
-	/**
 	 * Get session by ID (active or inactive)
 	 */
 	getSession(sessionId: string): CrawlSession | null {
@@ -191,14 +176,22 @@ export class SessionMetadataStore extends MetadataDatabase {
 	}
 
 	/**
-	 * Close an active session
+	 * Check if a session is currently active (not ended)
 	 */
-	closeSession(sessionId: string): void {
+	isSessionActive(sessionId: string): boolean {
+		const session = this.getSession(sessionId);
+		return session ? !session.endTime : false;
+	}
+
+	/**
+	 * End an active session by setting end_time
+	 */
+	endSession(sessionId: string): void {
 		try {
-			this.closeSessionStmt.run(sessionId);
+			this.endSessionStmt.run(sessionId);
 		} catch (error) {
 			throw new Error(
-				`Failed to close session: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
 	}
@@ -213,10 +206,10 @@ export class SessionMetadataStore extends MetadataDatabase {
 		hadDetailExtractionError = false,
 	): void {
 		try {
-			// Validate that session exists and is active
-			const session = this.getActiveSession(sessionId);
+			// Validate that session exists
+			const session = this.getSession(sessionId);
 			if (!session) {
-				throw new Error(`Active session not found: ${sessionId}`);
+				throw new Error(`Session not found: ${sessionId}`);
 			}
 
 			this.linkContentToSessionStmt.run(
@@ -283,7 +276,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 			sourceId: row.source_id,
 			sourceName: row.source_name,
 			startTime: new Date(row.start_time),
-			isActive: row.is_active === 1,
+			endTime: row.end_time ? new Date(row.end_time) : undefined,
 			metadata: row.metadata,
 			createdAt: new Date(row.created_at),
 			updatedAt: new Date(row.updated_at),

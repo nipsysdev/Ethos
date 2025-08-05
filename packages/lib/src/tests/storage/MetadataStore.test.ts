@@ -340,7 +340,7 @@ describe("MetadataStore", () => {
 			expect(session.sourceId).toBe(sourceId);
 			expect(session.sourceName).toBe(sourceName);
 			expect(session.startTime).toEqual(startTime);
-			expect(session.isActive).toBe(true);
+			expect(session.endTime).toBeUndefined(); // Session is active (not ended)
 			expect(JSON.parse(session.metadata)).toEqual(metadata);
 		});
 
@@ -379,11 +379,11 @@ describe("MetadataStore", () => {
 				{},
 			);
 
-			expect(metadataStore.getActiveSession(sessionId)).not.toBeNull();
+			expect(metadataStore.isSessionActive(sessionId)).toBe(true);
 
-			metadataStore.closeSession(sessionId);
+			metadataStore.endSession(sessionId);
 
-			expect(metadataStore.getActiveSession(sessionId)).toBeNull();
+			expect(metadataStore.isSessionActive(sessionId)).toBe(false);
 			expect(metadataStore.getSession(sessionId)).not.toBeNull(); // Still exists but inactive
 		});
 

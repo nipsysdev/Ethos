@@ -6,14 +6,14 @@ import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
 // Mock the MetadataStore to avoid database operations in tests
 const mockCreateSession = vi.fn();
 const mockUpdateSession = vi.fn();
-const mockCloseSession = vi.fn();
+const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
 	MetadataStore: vi.fn().mockImplementation(() => ({
 		createSession: mockCreateSession,
 		updateSession: mockUpdateSession,
-		closeSession: mockCloseSession,
+		endSession: mockEndSession,
 		checkpoint: mockCheckpoint,
 	})),
 }));
@@ -28,7 +28,7 @@ describe("MetadataTracker", () => {
 		vi.clearAllMocks();
 		mockCreateSession.mockClear();
 		mockUpdateSession.mockClear();
-		mockCloseSession.mockClear();
+		mockEndSession.mockClear();
 		mockCheckpoint.mockClear();
 
 		startTime = new Date();
@@ -227,10 +227,8 @@ describe("MetadataTracker", () => {
 		expect(result.summary.stoppedReason).toBe("no_next_button");
 		expect(result.summary.sessionId).toBe(metadataTracker.getSessionId());
 
-		// Check that the session was closed
-		expect(mockCloseSession).toHaveBeenCalledWith(
-			metadataTracker.getSessionId(),
-		);
+		// Check that the session was ended
+		expect(mockEndSession).toHaveBeenCalledWith(metadataTracker.getSessionId());
 
 		// Note: itemsForViewer is no longer used for sorting - items are tracked via junction table
 		const metadata = metadataTracker.getMetadata();

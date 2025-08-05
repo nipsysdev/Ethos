@@ -11,14 +11,12 @@ vi.mock("inquirer", () => ({
 }));
 
 // Mock MetadataStore
-const mockGetActiveSession = vi.fn();
 const mockGetSession = vi.fn();
 const mockGetSessionContents = vi.fn();
 const mockClose = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
 	MetadataStore: vi.fn().mockImplementation(() => ({
-		getActiveSession: mockGetActiveSession,
 		getSession: mockGetSession,
 		getSessionContents: mockGetSessionContents,
 		close: mockClose,
@@ -33,7 +31,7 @@ describe("Data Viewer", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Reset mock implementations
-		mockGetActiveSession.mockReset();
+		mockGetSession.mockReset();
 		mockGetSession.mockReset();
 		mockGetSessionContents.mockReset();
 		mockClose.mockImplementation(() => {});

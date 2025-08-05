@@ -80,16 +80,16 @@ export class MetadataStore {
 		this.sessionStore.updateSession(sessionId, metadata);
 	}
 
-	getActiveSession(sessionId: string): CrawlSession | null {
-		return this.sessionStore.getActiveSession(sessionId);
-	}
-
 	getSession(sessionId: string): CrawlSession | null {
 		return this.sessionStore.getSession(sessionId);
 	}
 
-	closeSession(sessionId: string): void {
-		this.sessionStore.closeSession(sessionId);
+	isSessionActive(sessionId: string): boolean {
+		return this.sessionStore.isSessionActive(sessionId);
+	}
+
+	endSession(sessionId: string): void {
+		this.sessionStore.endSession(sessionId);
 	}
 
 	linkContentToSession(

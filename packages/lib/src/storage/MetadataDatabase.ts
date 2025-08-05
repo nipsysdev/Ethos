@@ -55,7 +55,7 @@ export class MetadataDatabase {
 				source_id TEXT NOT NULL,
 				source_name TEXT NOT NULL,
 				start_time DATETIME NOT NULL,
-				is_active INTEGER NOT NULL DEFAULT 1,
+				end_time DATETIME NULL,
 				metadata TEXT NOT NULL DEFAULT '{}',
 				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -78,7 +78,7 @@ export class MetadataDatabase {
 			CREATE INDEX IF NOT EXISTS idx_url ON crawled_content(url);
 			
 			CREATE INDEX IF NOT EXISTS idx_session_source ON crawl_sessions(source_id);
-			CREATE INDEX IF NOT EXISTS idx_session_active ON crawl_sessions(is_active);
+			CREATE INDEX IF NOT EXISTS idx_session_end_time ON crawl_sessions(end_time);
 			
 			CREATE INDEX IF NOT EXISTS idx_session_content_session ON session_content(session_id);
 			CREATE INDEX IF NOT EXISTS idx_session_content_order ON session_content(session_id, processed_order);

@@ -185,8 +185,8 @@ export class MetadataTracker implements ContentSessionLinker {
 	buildCrawlResult(): CrawlResult {
 		// Note: We no longer sort itemsForViewer here since that's handled by the junction table
 
-		// Close the session as crawling is complete
-		this.metadataStore.closeSession(this.sessionId);
+		// End the session as crawling is complete
+		this.metadataStore.endSession(this.sessionId);
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {

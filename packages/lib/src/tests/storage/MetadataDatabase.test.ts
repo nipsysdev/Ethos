@@ -166,7 +166,7 @@ describe("MetadataDatabase", () => {
 			expect(indexNames).toContain("idx_hash");
 			expect(indexNames).toContain("idx_url");
 			expect(indexNames).toContain("idx_session_source");
-			expect(indexNames).toContain("idx_session_active");
+			expect(indexNames).toContain("idx_session_end_time");
 			expect(indexNames).toContain("idx_session_content_session");
 			expect(indexNames).toContain("idx_session_content_order");
 		});
