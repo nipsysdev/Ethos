@@ -72,7 +72,7 @@ export async function showExtractedData(
 	}
 
 	// Create a ContentStore instance to get the storage directory
-	const contentStore = new ContentStore();
+	const contentStore = new ContentStore({ enableMetadata: false });
 	const storageDir = contentStore.getStorageDirectory();
 
 	// Create choices with titles and file info
