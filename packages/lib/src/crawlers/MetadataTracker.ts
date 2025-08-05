@@ -1,7 +1,3 @@
-import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type {
 	CrawledData,
 	CrawlMetadata,
@@ -9,26 +5,26 @@ import type {
 	CrawlSummary,
 	SourceConfig,
 } from "@/core/types.js";
+import { MetadataStore } from "@/storage/MetadataStore.js";
 import { generateContentHash } from "@/utils/hash.js";
 
 /**
- * Handles metadata tracking and temporary file management for crawl operations.
- * Separated from the main crawler to improve separation of concerns.
+ * Handles metadata tracking and session management for crawl operations.
+ * Uses SQLite database instead of temporary files for better persistence and concurrency.
  */
 export class MetadataTracker {
 	private metadata: CrawlMetadata;
-	private tempFile: string;
+	private sessionId: string;
+	private metadataStore: MetadataStore;
 
 	constructor(config: SourceConfig, startTime: Date) {
-		// Create temporary file for tracking crawl metadata
-		this.tempFile = join(
-			tmpdir(),
-			`ethos-crawl-${Date.now()}-${randomUUID()}.json`,
-		);
-		console.log(`📝 Using temporary metadata file: ${this.tempFile}`);
+		// Create epoch timestamp-based session ID
+		const epochTimestamp = Math.floor(startTime.getTime() / 1000);
+		this.sessionId = `crawl-session-${epochTimestamp}`;
+		console.log(`📝 Starting crawl session: ${this.sessionId}`);
 
-		// Register temp file for cleanup (if running in CLI context)
-		this.registerTempFile();
+		// Initialize metadata store
+		this.metadataStore = new MetadataStore();
 
 		// Initialize crawl metadata
 		this.metadata = {
@@ -62,18 +58,15 @@ export class MetadataTracker {
 			listingErrors: [],
 			detailErrors: [],
 		};
-	}
 
-	/**
-	 * Register temp file for cleanup (if running in CLI context)
-	 */
-	private async registerTempFile(): Promise<void> {
-		try {
-			const { registerTempFile } = await import("@/cli/index.js");
-			registerTempFile(this.tempFile);
-		} catch {
-			// Not in CLI context, ignore
-		}
+		// Create session in database
+		this.metadataStore.createSession(
+			this.sessionId,
+			config.id,
+			config.name,
+			startTime,
+			this.metadata,
+		);
 	}
 
 	/**
@@ -84,14 +77,14 @@ export class MetadataTracker {
 	}
 
 	/**
-	 * Get the temporary file path
+	 * Get the session ID
 	 */
-	getTempFilePath(): string {
-		return this.tempFile;
+	getSessionId(): string {
+		return this.sessionId;
 	}
 
 	/**
-	 * Add new items to tracking and update the temp file
+	 * Add new items to tracking and update the session in database
 	 */
 	addItems(items: CrawledData[]): void {
 		for (const item of items) {
@@ -107,7 +100,7 @@ export class MetadataTracker {
 			});
 		}
 
-		this.writeMetadataToFile();
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -115,6 +108,7 @@ export class MetadataTracker {
 	 */
 	incrementPagesProcessed(): void {
 		this.metadata.pagesProcessed++;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -122,6 +116,7 @@ export class MetadataTracker {
 	 */
 	addDuplicatesSkipped(count: number): void {
 		this.metadata.duplicatesSkipped += count;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -130,6 +125,7 @@ export class MetadataTracker {
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
 		this.metadata.listingErrors.push(...reasons);
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -137,6 +133,7 @@ export class MetadataTracker {
 	 */
 	addDetailsCrawled(count: number): void {
 		this.metadata.detailsCrawled += count;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -146,6 +143,7 @@ export class MetadataTracker {
 		reason: "max_pages" | "no_next_button" | "all_duplicates",
 	): void {
 		this.metadata.stoppedReason = reason;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -162,8 +160,8 @@ export class MetadataTracker {
 			return dateB - dateA;
 		});
 
-		// Update the metadata file with sorted items
-		this.writeMetadataToFile();
+		// Close the session as crawling is complete
+		this.metadataStore.closeSession(this.sessionId);
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {
@@ -193,17 +191,17 @@ export class MetadataTracker {
 			data: [], // Empty since items were processed and stored immediately
 			summary: {
 				...summary,
-				// Include temp file path for viewer to access crawl metadata
-				tempMetadataFile: this.tempFile,
+				// Include session ID for viewer to access crawl metadata from database
+				sessionId: this.sessionId,
 			},
 		};
 	}
 
 	/**
-	 * Write current metadata to the temporary file
+	 * Update session metadata in the database
 	 */
-	private writeMetadataToFile(): void {
-		writeFileSync(this.tempFile, JSON.stringify(this.metadata, null, 2));
+	private updateSessionInDatabase(): void {
+		this.metadataStore.updateSession(this.sessionId, this.metadata);
 	}
 
 	/**

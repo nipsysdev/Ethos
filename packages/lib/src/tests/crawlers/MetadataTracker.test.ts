@@ -3,9 +3,17 @@ import type { CrawledData, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
 
-// Mock the CLI import to avoid issues in test environment
-vi.mock("@/cli/index.js", () => ({
-	registerTempFile: vi.fn(),
+// Mock the MetadataStore to avoid database operations in tests
+const mockCreateSession = vi.fn();
+const mockUpdateSession = vi.fn();
+const mockCloseSession = vi.fn();
+
+vi.mock("@/storage/MetadataStore.js", () => ({
+	MetadataStore: vi.fn().mockImplementation(() => ({
+		createSession: mockCreateSession,
+		updateSession: mockUpdateSession,
+		closeSession: mockCloseSession,
+	})),
 }));
 
 describe("MetadataTracker", () => {
@@ -14,6 +22,9 @@ describe("MetadataTracker", () => {
 	let startTime: Date;
 
 	beforeEach(() => {
+		// Clear mocks before each test
+		vi.clearAllMocks();
+
 		startTime = new Date();
 		mockConfig = {
 			id: "test-source",
@@ -63,10 +74,24 @@ describe("MetadataTracker", () => {
 		expect(metadata.detailErrors).toEqual([]);
 	});
 
-	it("should provide a temp file path", () => {
-		const tempFilePath = metadataTracker.getTempFilePath();
-		expect(tempFilePath).toContain("ethos-crawl-");
-		expect(tempFilePath).toContain(".json");
+	it("should provide a session ID", () => {
+		const sessionId = metadataTracker.getSessionId();
+		expect(typeof sessionId).toBe("string");
+		expect(sessionId).toMatch(/^crawl-session-\d+$/); // Format: crawl-session-[epoch-timestamp]
+		expect(sessionId).toContain("crawl-session-");
+	});
+
+	it("should create a session in the database on initialization", () => {
+		expect(mockCreateSession).toHaveBeenCalledWith(
+			expect.stringMatching(/^crawl-session-\d+$/), // Epoch timestamp format
+			"test-source",
+			"Test Source",
+			startTime,
+			expect.objectContaining({
+				sourceId: "test-source",
+				sourceName: "Test Source",
+			}),
+		);
 	});
 
 	it("should track page processing", () => {
@@ -75,6 +100,9 @@ describe("MetadataTracker", () => {
 
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.pagesProcessed).toBe(2);
+
+		// Check that the session is updated in the database
+		expect(mockUpdateSession).toHaveBeenCalledTimes(2);
 	});
 
 	it("should track duplicates", () => {
@@ -197,8 +225,11 @@ describe("MetadataTracker", () => {
 		expect(result.summary.duplicatesSkipped).toBe(1);
 		expect(result.summary.pagesProcessed).toBe(1);
 		expect(result.summary.stoppedReason).toBe("no_next_button");
-		expect(result.summary.tempMetadataFile).toBe(
-			metadataTracker.getTempFilePath(),
+		expect(result.summary.sessionId).toBe(metadataTracker.getSessionId());
+
+		// Check that the session was closed
+		expect(mockCloseSession).toHaveBeenCalledWith(
+			metadataTracker.getSessionId(),
 		);
 
 		// Check that items are sorted by date (newest first)

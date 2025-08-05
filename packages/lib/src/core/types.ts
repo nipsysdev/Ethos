@@ -132,7 +132,7 @@ export interface CrawlSummary {
 	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
 	detailsCrawled?: number;
 	detailErrors?: string[];
-	tempMetadataFile?: string; // Path to temporary metadata file for viewer access
+	sessionId?: string; // Session ID for accessing crawl metadata from database
 }
 
 export interface CrawlOptions {

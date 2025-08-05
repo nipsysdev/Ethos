@@ -15,6 +15,17 @@ export interface ContentMetadata {
 	createdAt: Date;
 }
 
+export interface CrawlSession {
+	id?: string;
+	sourceId: string;
+	sourceName: string;
+	startTime: Date;
+	isActive: boolean;
+	metadata: string; // JSON serialized CrawlMetadata
+	createdAt: Date;
+	updatedAt: Date;
+}
+
 export interface MetadataQueryOptions {
 	source?: string;
 	startDate?: Date;
@@ -39,6 +50,17 @@ interface DatabaseRow {
 	created_at: string;
 }
 
+interface SessionRow {
+	id: string;
+	source_id: string;
+	source_name: string;
+	start_time: string;
+	is_active: number;
+	metadata: string;
+	created_at: string;
+	updated_at: string;
+}
+
 export class MetadataStore {
 	private db: Database.Database;
 	private readonly dbPath: string;
@@ -50,6 +72,13 @@ export class MetadataStore {
 	private getByHashStmt!: Database.Statement;
 	private getBySourceStmt!: Database.Statement;
 	private countBySourceStmt!: Database.Statement;
+
+	// Session-related statements
+	private createSessionStmt!: Database.Statement;
+	private updateSessionStmt!: Database.Statement;
+	private getActiveSessionStmt!: Database.Statement;
+	private getSessionStmt!: Database.Statement;
+	private closeSessionStmt!: Database.Statement;
 
 	constructor(options: MetadataStoreOptions = {}) {
 		this.dbPath = resolve(options.dbPath ?? "./storage/metadata.db");
@@ -83,11 +112,25 @@ export class MetadataStore {
 				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 			);
 
+			CREATE TABLE IF NOT EXISTS crawl_sessions (
+				id TEXT PRIMARY KEY,
+				source_id TEXT NOT NULL,
+				source_name TEXT NOT NULL,
+				start_time DATETIME NOT NULL,
+				is_active INTEGER NOT NULL DEFAULT 1,
+				metadata TEXT NOT NULL DEFAULT '{}',
+				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+
 			CREATE INDEX IF NOT EXISTS idx_source ON crawled_content(source);
 			CREATE INDEX IF NOT EXISTS idx_crawled_at ON crawled_content(crawled_at);
 			CREATE INDEX IF NOT EXISTS idx_published_date ON crawled_content(published_date);
 			CREATE INDEX IF NOT EXISTS idx_hash ON crawled_content(hash);
 			CREATE INDEX IF NOT EXISTS idx_url ON crawled_content(url);
+			
+			CREATE INDEX IF NOT EXISTS idx_session_source ON crawl_sessions(source_id);
+			CREATE INDEX IF NOT EXISTS idx_session_active ON crawl_sessions(is_active);
 		`;
 
 		this.db.exec(schema);
@@ -123,6 +166,32 @@ export class MetadataStore {
 
 		this.countBySourceStmt = this.db.prepare(`
 			SELECT COUNT(*) as count FROM crawled_content WHERE source = ?
+		`);
+
+		// Session statements
+		this.createSessionStmt = this.db.prepare(`
+			INSERT INTO crawl_sessions (id, source_id, source_name, start_time, metadata)
+			VALUES (?, ?, ?, ?, ?)
+		`);
+
+		this.updateSessionStmt = this.db.prepare(`
+			UPDATE crawl_sessions 
+			SET metadata = ?, updated_at = CURRENT_TIMESTAMP 
+			WHERE id = ?
+		`);
+
+		this.getActiveSessionStmt = this.db.prepare(`
+			SELECT * FROM crawl_sessions WHERE id = ? AND is_active = 1 LIMIT 1
+		`);
+
+		this.getSessionStmt = this.db.prepare(`
+			SELECT * FROM crawl_sessions WHERE id = ? LIMIT 1
+		`);
+
+		this.closeSessionStmt = this.db.prepare(`
+			UPDATE crawl_sessions 
+			SET is_active = 0, updated_at = CURRENT_TIMESTAMP 
+			WHERE id = ?
 		`);
 	}
 
@@ -272,6 +341,88 @@ export class MetadataStore {
 		return stmt.all() as Array<{ source: string; count: number }>;
 	}
 
+	// Session Management Methods
+
+	/**
+	 * Create a new crawl session
+	 */
+	createSession(
+		sessionId: string,
+		sourceId: string,
+		sourceName: string,
+		startTime: Date,
+		metadata: object,
+	): CrawlSession {
+		try {
+			this.createSessionStmt.run(
+				sessionId,
+				sourceId,
+				sourceName,
+				startTime.toISOString(),
+				JSON.stringify(metadata),
+			);
+
+			return {
+				id: sessionId,
+				sourceId,
+				sourceName,
+				startTime,
+				isActive: true,
+				metadata: JSON.stringify(metadata),
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+		} catch (error) {
+			throw new Error(
+				`Failed to create crawl session: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	}
+
+	/**
+	 * Update session metadata
+	 */
+	updateSession(sessionId: string, metadata: object): void {
+		try {
+			this.updateSessionStmt.run(JSON.stringify(metadata), sessionId);
+		} catch (error) {
+			throw new Error(
+				`Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	}
+
+	/**
+	 * Get active session by ID
+	 */
+	getActiveSession(sessionId: string): CrawlSession | null {
+		const row = this.getActiveSessionStmt.get(sessionId) as
+			| SessionRow
+			| undefined;
+		return row ? this.mapSessionRowToSession(row) : null;
+	}
+
+	/**
+	 * Get session by ID (active or inactive)
+	 */
+	getSession(sessionId: string): CrawlSession | null {
+		const row = this.getSessionStmt.get(sessionId) as SessionRow | undefined;
+		return row ? this.mapSessionRowToSession(row) : null;
+	}
+
+	/**
+	 * Close an active session
+	 */
+	closeSession(sessionId: string): void {
+		try {
+			this.closeSessionStmt.run(sessionId);
+		} catch (error) {
+			throw new Error(
+				`Failed to close session: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	}
+
 	/**
 	 * Map database row to ContentMetadata
 	 */
@@ -288,6 +439,22 @@ export class MetadataStore {
 				: undefined,
 			crawledAt: new Date(row.crawled_at),
 			createdAt: new Date(row.created_at),
+		};
+	}
+
+	/**
+	 * Map session database row to CrawlSession
+	 */
+	private mapSessionRowToSession(row: SessionRow): CrawlSession {
+		return {
+			id: row.id,
+			sourceId: row.source_id,
+			sourceName: row.source_name,
+			startTime: new Date(row.start_time),
+			isActive: row.is_active === 1,
+			metadata: row.metadata,
+			createdAt: new Date(row.created_at),
+			updatedAt: new Date(row.updated_at),
 		};
 	}
 
