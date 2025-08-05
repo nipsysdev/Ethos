@@ -112,15 +112,17 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			"https://example.com/article-3",
 		);
 
-		// Should log skipping messages
-		expect(consoleSpy).toHaveBeenCalledWith(
-			"⏭️  Skipping detail extraction for existing URL: https://example.com/article-1",
-		);
-		expect(consoleSpy).toHaveBeenCalledWith(
-			"⏭️  Skipping detail extraction for existing URL: https://example.com/article-3",
-		);
+		// Should log summary message only
 		expect(consoleSpy).toHaveBeenCalledWith(
 			"📊 Skipped 2 URLs already in database, processing 1 new URLs",
+		);
+
+		// Should NOT log individual URL skipping messages
+		expect(consoleSpy).not.toHaveBeenCalledWith(
+			"⏭️  Skipping detail extraction for existing URL: https://example.com/article-1",
+		);
+		expect(consoleSpy).not.toHaveBeenCalledWith(
+			"⏭️  Skipping detail extraction for existing URL: https://example.com/article-3",
 		);
 
 		// Should only create 1 page (for the 1 remaining item)

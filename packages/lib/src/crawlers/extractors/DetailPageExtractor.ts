@@ -145,9 +145,6 @@ export class DetailPageExtractor {
 			for (const item of items) {
 				if (metadataStore.existsByUrl(item.url)) {
 					skippedCount++;
-					console.log(
-						`⏭️  Skipping detail extraction for existing URL: ${item.url}`,
-					);
 				} else {
 					filteredItems.push(item);
 				}
