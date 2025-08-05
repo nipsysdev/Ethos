@@ -32,7 +32,6 @@ describe("Data Viewer", () => {
 		vi.clearAllMocks();
 		// Reset mock implementations
 		mockGetSession.mockReset();
-		mockGetSession.mockReset();
 		mockGetSessionContents.mockReset();
 		mockClose.mockImplementation(() => {});
 	});
