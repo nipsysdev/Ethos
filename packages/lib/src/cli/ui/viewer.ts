@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
-import type { CrawlMetadata, CrawlMetadataItem } from "@/core/types.js";
 import type { ProcessingResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
@@ -35,32 +34,41 @@ export async function showExtractedData(
 		return;
 	}
 
-	// Get crawl metadata from database
+	// Get content items from junction table
 	const metadataStore = new MetadataStore();
-	let crawlMetadata: CrawlMetadata;
+
+	interface ViewerItem {
+		title: string;
+		hash: string;
+		publishedDate?: Date;
+		url: string;
+	}
+
+	let storedItems: ViewerItem[] = [];
 
 	try {
-		const session = metadataStore.getSession(result.summary.sessionId);
-		if (!session) {
-			console.log("Crawl session not found.");
+		const sessionContents = metadataStore.getSessionContents(
+			result.summary.sessionId,
+		);
+
+		if (sessionContents.length === 0) {
+			console.log("No stored files found.");
 			return;
 		}
 
-		crawlMetadata = JSON.parse(session.metadata);
+		// Transform junction table data to match expected format
+		storedItems = sessionContents.map((content) => ({
+			title: content.title,
+			hash: content.hash,
+			publishedDate: content.publishedDate,
+			url: content.url,
+		}));
 	} catch (error) {
 		console.log("Could not read crawl session data.");
-		console.error("Error:", error);
+		console.error("Error:", error instanceof Error ? error.message : error);
 		return;
 	} finally {
 		metadataStore.close();
-	}
-
-	// Use itemsForViewer from metadata to create file choices
-	const storedItems = crawlMetadata.itemsForViewer || [];
-
-	if (storedItems.length === 0) {
-		console.log("No stored files found.");
-		return;
 	}
 
 	// Create a ContentStore instance to get the storage directory
@@ -68,7 +76,7 @@ export async function showExtractedData(
 	const storageDir = contentStore.getStorageDirectory();
 
 	// Create choices with titles and file info
-	const choices = storedItems.map((item: CrawlMetadataItem, index: number) => {
+	const choices = storedItems.map((item: ViewerItem, index: number) => {
 		const publishedInfo = item.publishedDate
 			? ` (${new Date(item.publishedDate).toLocaleDateString()})`
 			: "";

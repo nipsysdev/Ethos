@@ -285,11 +285,151 @@ describe("MetadataStore", () => {
 	});
 
 	describe("Error Handling", () => {
-		it("should handle database errors gracefully", () => {
-			// Close the database to simulate error conditions
-			metadataStore.close();
+		it("should handle invalid publishedDate formats", async () => {
+			const invalidData: CrawledData = {
+				...sampleData,
+				publishedDate: "not-a-valid-date",
+			};
 
-			expect(() => metadataStore.existsByUrl("test")).toThrow();
+			await expect(
+				metadataStore.store(invalidData, "invalid-date-hash"),
+			).rejects.toThrow("Invalid date");
+		});
+
+		it("should prevent duplicate URLs", async () => {
+			const hash1 = "hash1";
+			const hash2 = "hash2";
+
+			await metadataStore.store(sampleData, hash1);
+
+			// Try to store same URL with different hash
+			await expect(metadataStore.store(sampleData, hash2)).rejects.toThrow(
+				/URL already exists/,
+			);
+		});
+
+		it("should prevent duplicate hashes", async () => {
+			const hash = "samehash";
+
+			await metadataStore.store(sampleData, hash);
+
+			// Try to store different URL with same hash
+			const differentData = { ...sampleData, url: "https://different.com" };
+			await expect(metadataStore.store(differentData, hash)).rejects.toThrow(
+				/hash already exists/,
+			);
+		});
+	});
+	describe("Session Management", () => {
+		it("should create and manage crawl sessions", () => {
+			const sessionId = "test-session-123";
+			const sourceId = "test-source";
+			const sourceName = "Test Source";
+			const startTime = new Date("2024-01-01T10:00:00Z");
+			const metadata = { testData: "value" };
+
+			const session = metadataStore.createSession(
+				sessionId,
+				sourceId,
+				sourceName,
+				startTime,
+				metadata,
+			);
+
+			expect(session.id).toBe(sessionId);
+			expect(session.sourceId).toBe(sourceId);
+			expect(session.sourceName).toBe(sourceName);
+			expect(session.startTime).toEqual(startTime);
+			expect(session.isActive).toBe(true);
+			expect(JSON.parse(session.metadata)).toEqual(metadata);
+		});
+
+		it("should update session metadata", () => {
+			const sessionId = "test-session-update";
+			const startTime = new Date();
+			const initialMetadata = { step: 1 };
+			const updatedMetadata = { step: 2, progress: "50%" };
+
+			metadataStore.createSession(
+				sessionId,
+				"test-source",
+				"Test Source",
+				startTime,
+				initialMetadata,
+			);
+
+			metadataStore.updateSession(sessionId, updatedMetadata);
+
+			const session = metadataStore.getSession(sessionId);
+			expect(session).not.toBeNull();
+			if (session) {
+				expect(JSON.parse(session.metadata)).toEqual(updatedMetadata);
+			}
+		});
+
+		it("should close sessions", () => {
+			const sessionId = "test-session-close";
+			const startTime = new Date();
+
+			metadataStore.createSession(
+				sessionId,
+				"test-source",
+				"Test Source",
+				startTime,
+				{},
+			);
+
+			expect(metadataStore.getActiveSession(sessionId)).not.toBeNull();
+
+			metadataStore.closeSession(sessionId);
+
+			expect(metadataStore.getActiveSession(sessionId)).toBeNull();
+			expect(metadataStore.getSession(sessionId)).not.toBeNull(); // Still exists but inactive
+		});
+
+		it("should link content to sessions with processing order", async () => {
+			const sessionId = "test-session-link";
+			const startTime = new Date();
+
+			// Create session
+			metadataStore.createSession(
+				sessionId,
+				"test-source",
+				"Test Source",
+				startTime,
+				{},
+			);
+
+			// Store content
+			const content1 = await metadataStore.store(sampleData, "hash1");
+			const content2 = await metadataStore.store(sampleData2, "hash2");
+
+			// Link content to session
+			expect(content1.id).toBeDefined();
+			expect(content2.id).toBeDefined();
+			metadataStore.linkContentToSession(
+				sessionId,
+				content1.id as number,
+				1,
+				false,
+			);
+			metadataStore.linkContentToSession(
+				sessionId,
+				content2.id as number,
+				2,
+				true,
+			);
+
+			// Get session contents
+			const sessionContents = metadataStore.getSessionContents(sessionId);
+
+			expect(sessionContents).toHaveLength(2);
+			expect(sessionContents[0].id).toBe(content1.id);
+			expect(sessionContents[0].processedOrder).toBe(1);
+			expect(sessionContents[0].hadDetailExtractionError).toBe(false);
+			expect(sessionContents[1].id).toBe(content2.id);
+			expect(sessionContents[1].processedOrder).toBe(2);
+			expect(sessionContents[1].hadDetailExtractionError).toBe(true);
 		});
 	});
 });

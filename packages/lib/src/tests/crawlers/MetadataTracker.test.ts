@@ -141,7 +141,7 @@ describe("MetadataTracker", () => {
 		expect(metadata.stoppedReason).toBe("max_pages");
 	});
 
-	it("should add items and generate metadata for viewer", () => {
+	it("should add items and track URLs", () => {
 		const mockItems: CrawledData[] = [
 			{
 				url: "https://example.com/article1",
@@ -170,17 +170,11 @@ describe("MetadataTracker", () => {
 			"https://example.com/article1",
 			"https://example.com/article2",
 		]);
-		expect(metadata.itemsForViewer).toHaveLength(2);
-		expect(metadata.itemsForViewer[0]).toMatchObject({
-			url: "https://example.com/article1",
-			title: "Article 1",
-			publishedDate: "2024-01-01",
-		});
-		expect(metadata.itemsForViewer[0].hash).toBeDefined();
-		expect(metadata.itemsForViewer[0].hash).toHaveLength(40); // SHA-1 hash length
+		// Note: itemsForViewer is no longer used - items are tracked via junction table
+		expect(metadata.itemsForViewer).toEqual([]);
 	});
 
-	it("should build crawl result with sorted items", () => {
+	it("should build crawl result and close session", () => {
 		// Add items with different dates
 		const mockItems: CrawledData[] = [
 			{
@@ -232,14 +226,12 @@ describe("MetadataTracker", () => {
 			metadataTracker.getSessionId(),
 		);
 
-		// Check that items are sorted by date (newest first)
+		// Note: itemsForViewer is no longer used for sorting - items are tracked via junction table
 		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemsForViewer[0].publishedDate).toBe("2024-01-03"); // Newest first
-		expect(metadata.itemsForViewer[1].publishedDate).toBe("2024-01-02");
-		expect(metadata.itemsForViewer[2].publishedDate).toBe("2024-01-01");
+		expect(metadata.itemsForViewer).toEqual([]);
 	});
 
-	it("should handle items without published dates when sorting", () => {
+	it("should handle items correctly without depending on itemsForViewer", () => {
 		const mockItems: CrawledData[] = [
 			{
 				url: "https://example.com/article1",
@@ -268,9 +260,7 @@ describe("MetadataTracker", () => {
 		expect(result.summary.itemsProcessed).toBe(2);
 
 		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemsForViewer).toHaveLength(2);
-		// Item with date should come first (newer items first, undefined dates last)
-		expect(metadata.itemsForViewer[0].publishedDate).toBe("2024-01-01");
-		expect(metadata.itemsForViewer[1].publishedDate).toBeUndefined();
+		// Note: itemsForViewer is no longer used - items are tracked via junction table
+		expect(metadata.itemsForViewer).toEqual([]);
 	});
 });

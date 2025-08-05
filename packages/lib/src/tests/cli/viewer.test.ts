@@ -13,22 +13,16 @@ vi.mock("inquirer", () => ({
 // Mock MetadataStore
 const mockGetActiveSession = vi.fn();
 const mockGetSession = vi.fn();
+const mockGetSessionContents = vi.fn();
 const mockClose = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
 	MetadataStore: vi.fn().mockImplementation(() => ({
 		getActiveSession: mockGetActiveSession,
 		getSession: mockGetSession,
+		getSessionContents: mockGetSessionContents,
 		close: mockClose,
 	})),
-}));
-
-// Mock child_process and inquirer
-vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
-vi.mock("inquirer", () => ({
-	default: {
-		prompt: vi.fn(),
-	},
 }));
 
 const mockSpawn = vi.mocked((await import("node:child_process")).spawn);
@@ -41,6 +35,7 @@ describe("Data Viewer", () => {
 		// Reset mock implementations
 		mockGetActiveSession.mockReset();
 		mockGetSession.mockReset();
+		mockGetSessionContents.mockReset();
 		mockClose.mockImplementation(() => {});
 	});
 
@@ -48,16 +43,21 @@ describe("Data Viewer", () => {
 		const sessionId = withSession ? "test-session-123" : undefined;
 
 		if (withSession) {
-			// Mock the session data in MetadataStore
-			const mockMetadata = {
-				itemsForViewer: [
-					{
-						url: "https://example.com/article1",
-						title: "Test Article",
-						hash: "abc123",
-					},
-				],
-			};
+			// Mock junction table data instead of itemsForViewer
+			const mockSessionContents = [
+				{
+					id: 1,
+					hash: "abc123",
+					source: "test-source",
+					url: "https://example.com/article1",
+					title: "Test Article",
+					publishedDate: new Date("2025-01-01"),
+					crawledAt: new Date(),
+					createdAt: new Date(),
+					processedOrder: 1,
+					hadDetailExtractionError: false,
+				},
+			];
 
 			const mockSessionData = {
 				id: sessionId,
@@ -65,13 +65,13 @@ describe("Data Viewer", () => {
 				sourceName: "Test Source",
 				startTime: new Date(),
 				isActive: true,
-				metadata: JSON.stringify(mockMetadata),
+				metadata: JSON.stringify({}), // Empty metadata since we use junction table now
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			};
 
-			mockGetActiveSession.mockReturnValue(mockSessionData);
 			mockGetSession.mockReturnValue(mockSessionData);
+			mockGetSessionContents.mockReturnValue(mockSessionContents);
 		}
 		// If withSession is false, we don't set up the mock, so sessionId will be undefined
 		// and the viewer will check for that first before calling getSession
@@ -155,17 +155,18 @@ describe("Data Viewer", () => {
 				type: "list",
 				name: "selectedFile",
 				message: "Select an item to view (1 files):",
-				choices: expect.arrayContaining([
-					expect.objectContaining({
-						name: "1. Test Article",
+				choices: [
+					{
+						name: "1. Test Article (2024-12-31)",
+						value: expect.stringContaining("abc123.json"),
 						short: "Test Article",
-					}),
-					expect.objectContaining({
+					},
+					{
 						name: "← Back to menu",
 						value: "back",
 						short: "Back",
-					}),
-				]),
+					},
+				],
 				pageSize: 15,
 			}),
 		]);

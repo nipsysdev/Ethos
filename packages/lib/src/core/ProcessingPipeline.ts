@@ -45,7 +45,12 @@ export class ProcessingPipeline {
 			{ hash: string; path: string; storedAt: Date }
 		>();
 
-		// Create streaming storage callback
+		// Add the streaming callback to options
+		const streamingOptions: CrawlOptions = {
+			...options,
+		};
+
+		// Create streaming storage callback with access to streamingOptions for metadataTracker
 		const onPageComplete = async (items: CrawledData[]) => {
 			for (const data of items) {
 				try {
@@ -55,6 +60,20 @@ export class ProcessingPipeline {
 						path: storageResult.path,
 						storedAt: storageResult.storedAt,
 					});
+
+					// Link content to session if metadata tracker is available
+					if (streamingOptions?.metadataTracker && storageResult.metadata?.id) {
+						// Check if this item had detail extraction errors
+						const hadDetailError = Boolean(
+							data.metadata?.detailFieldsFailed &&
+								Array.isArray(data.metadata.detailFieldsFailed) &&
+								data.metadata.detailFieldsFailed.length > 0,
+						);
+						streamingOptions.metadataTracker.linkContentToSession(
+							storageResult.metadata.id,
+							hadDetailError,
+						);
+					}
 
 					// Build processed data immediately with storage info
 					processedData.push({
@@ -78,11 +97,8 @@ export class ProcessingPipeline {
 			}
 		};
 
-		// Add the streaming callback to options
-		const streamingOptions: CrawlOptions = {
-			...options,
-			onPageComplete,
-		};
+		// Update the callback in streamingOptions
+		streamingOptions.onPageComplete = onPageComplete;
 
 		const result = await crawler.crawl(config, streamingOptions);
 

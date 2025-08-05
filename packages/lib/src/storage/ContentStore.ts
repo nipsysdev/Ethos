@@ -108,18 +108,29 @@ export class ContentStore {
 				}
 			} else {
 				// File exists, check if metadata also exists
-				if (this.metadataStore && !this.metadataStore.existsByHash(hash)) {
-					try {
-						const metadata = await this.metadataStore.store(data, hash);
-						metadataResult = {
-							id: metadata.id as number,
-							stored: true,
-						};
-					} catch (metadataError) {
-						// Metadata might already exist, that's ok
-						console.warn(
-							`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
-						);
+				if (this.metadataStore) {
+					if (!this.metadataStore.existsByHash(hash)) {
+						try {
+							const metadata = await this.metadataStore.store(data, hash);
+							metadataResult = {
+								id: metadata.id as number,
+								stored: true,
+							};
+						} catch (metadataError) {
+							// Metadata might already exist, that's ok
+							console.warn(
+								`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+							);
+						}
+					} else {
+						// Metadata already exists, get the existing ID
+						const existingMetadata = this.metadataStore.getByHash(hash);
+						if (existingMetadata?.id) {
+							metadataResult = {
+								id: existingMetadata.id,
+								stored: false, // Wasn't stored this time, already existed
+							};
+						}
 					}
 				}
 			}

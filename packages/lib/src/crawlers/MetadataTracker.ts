@@ -1,21 +1,23 @@
 import type {
+	ContentSessionLinker,
 	CrawledData,
 	CrawlMetadata,
 	CrawlResult,
 	CrawlSummary,
+	FieldConfig,
 	SourceConfig,
 } from "@/core/types.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
-import { generateContentHash } from "@/utils/hash.js";
 
 /**
  * Handles metadata tracking and session management for crawl operations.
  * Uses SQLite database instead of temporary files for better persistence and concurrency.
  */
-export class MetadataTracker {
+export class MetadataTracker implements ContentSessionLinker {
 	private metadata: CrawlMetadata;
 	private sessionId: string;
 	private metadataStore: MetadataStore;
+	private contentLinkedCount = 0; // Track how many items have been linked
 
 	constructor(config: SourceConfig, startTime: Date) {
 		// Create epoch timestamp-based session ID
@@ -42,7 +44,7 @@ export class MetadataTracker {
 					fieldName,
 					successCount: 0,
 					totalAttempts: 0,
-					isOptional: fieldConfig.optional || false,
+					isOptional: (fieldConfig as FieldConfig).optional || false,
 					missingItems: [],
 				}),
 			),
@@ -60,13 +62,20 @@ export class MetadataTracker {
 		};
 
 		// Create session in database
-		this.metadataStore.createSession(
-			this.sessionId,
-			config.id,
-			config.name,
-			startTime,
-			this.metadata,
-		);
+		try {
+			this.metadataStore.createSession(
+				this.sessionId,
+				config.id,
+				config.name,
+				startTime,
+				this.metadata,
+			);
+		} catch (error) {
+			console.error(
+				`Failed to create crawl session: ${error instanceof Error ? error.message : error}`,
+			);
+			throw error; // Re-throw to let the caller handle it
+		}
 	}
 
 	/**
@@ -89,18 +98,27 @@ export class MetadataTracker {
 	addItems(items: CrawledData[]): void {
 		for (const item of items) {
 			this.metadata.itemUrls.push(item.url);
-
-			// Generate hash for viewer access
-			const hash = this.generateHash(item.url);
-			this.metadata.itemsForViewer.push({
-				url: item.url,
-				title: item.title,
-				hash,
-				publishedDate: item.publishedDate,
-			});
+			// Note: We no longer store itemsForViewer here since it's now in the junction table
 		}
 
 		this.updateSessionInDatabase();
+	}
+
+	/**
+	 * Link stored content to this session
+	 */
+	linkContentToSession(
+		contentId: number,
+		hadDetailExtractionError = false,
+	): void {
+		// Increment and use the counter for proper ordering
+		this.contentLinkedCount++;
+		this.metadataStore.linkContentToSession(
+			this.sessionId,
+			contentId,
+			this.contentLinkedCount,
+			hadDetailExtractionError,
+		);
 	}
 
 	/**
@@ -150,15 +168,7 @@ export class MetadataTracker {
 	 * Build the final crawl result from tracked metadata
 	 */
 	buildCrawlResult(): CrawlResult {
-		// Sort items by published date (newest first) for viewer display
-		this.metadata.itemsForViewer.sort((a, b) => {
-			// Handle cases where publishedDate might be undefined
-			const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
-			const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
-
-			// Sort newest first (descending order)
-			return dateB - dateA;
-		});
+		// Note: We no longer sort itemsForViewer here since that's handled by the junction table
 
 		// Close the session as crawling is complete
 		this.metadataStore.closeSession(this.sessionId);
@@ -201,14 +211,13 @@ export class MetadataTracker {
 	 * Update session metadata in the database
 	 */
 	private updateSessionInDatabase(): void {
-		this.metadataStore.updateSession(this.sessionId, this.metadata);
-	}
-
-	/**
-	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
-	 * This matches the ContentStore implementation for consistent hashing
-	 */
-	private generateHash(content: string): string {
-		return generateContentHash(content);
+		try {
+			this.metadataStore.updateSession(this.sessionId, this.metadata);
+		} catch (error) {
+			console.error(
+				`Failed to update session metadata: ${error instanceof Error ? error.message : error}`,
+			);
+			// Don't throw here as this is a background operation and shouldn't break crawling
+		}
 	}
 }

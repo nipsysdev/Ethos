@@ -135,10 +135,19 @@ export interface CrawlSummary {
 	sessionId?: string; // Session ID for accessing crawl metadata from database
 }
 
+// Interface for junction table linking without circular imports
+export interface ContentSessionLinker {
+	linkContentToSession(
+		contentId: number,
+		hadDetailExtractionError?: boolean,
+	): void;
+}
+
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
+	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
 }
 
 // Shared types for crawl metadata

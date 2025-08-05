@@ -156,7 +156,14 @@ export class ArticleListingCrawler implements Crawler {
 
 					// Process items immediately through storage callback
 					if (options?.onPageComplete) {
+						// Temporarily set the metadata tracker for this call
+						const originalTracker = options.metadataTracker;
+						options.metadataTracker = metadataTracker;
+
 						await options.onPageComplete(newItems);
+
+						// Restore original tracker
+						options.metadataTracker = originalTracker;
 					}
 
 					// Add items to metadata tracking
