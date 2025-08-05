@@ -198,6 +198,7 @@ export class DetailPageExtractor {
 			}
 
 			// Process all items with controlled concurrency
+			let completedCount = 0;
 			while (itemIndex < itemsToProcess.length || runningTasks.size > 0) {
 				// Start new tasks if we have available pages and items
 				while (itemIndex < itemsToProcess.length && availablePages.size > 0) {
@@ -228,6 +229,17 @@ export class DetailPageExtractor {
 						runningTasks.delete(task);
 						if (freedPageIndex !== undefined) {
 							availablePages.add(freedPageIndex);
+						}
+
+						// Update progress
+						completedCount++;
+						if (
+							completedCount % 5 === 0 ||
+							completedCount === itemsToProcess.length
+						) {
+							console.log(
+								`   🔄 Detail extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
+							);
 						}
 					});
 				}

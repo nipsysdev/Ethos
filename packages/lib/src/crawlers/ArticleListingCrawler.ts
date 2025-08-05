@@ -170,9 +170,23 @@ export class ArticleListingCrawler implements Crawler {
 						pageResult,
 						0, // No new items after database check
 						totalDuplicatesOnPage,
+						options?.maxPages,
+						metadata, // Pass metadata for running totals
 					);
 					break;
 				}
+
+				// Log page summary for all pages
+				const totalDuplicatesOnPage =
+					pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+				this.logPageSummary(
+					metadata.pagesProcessed,
+					pageResult,
+					itemsToProcess.length,
+					totalDuplicatesOnPage,
+					options?.maxPages,
+					metadata, // Pass metadata for running totals
+				);
 
 				// Extract detail data if we have new items
 				if (itemsToProcess.length > 0) {
@@ -221,15 +235,7 @@ export class ArticleListingCrawler implements Crawler {
 
 					itemsToProcess.length = 0; // Free memory
 				} else {
-					// Log page summary even when no items to process
-					const totalDuplicatesOnPage =
-						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
-					this.logPageSummary(
-						metadata.pagesProcessed,
-						pageResult,
-						0, // No new items after database check
-						totalDuplicatesOnPage,
-					);
+					// No longer needed - we already logged the page summary above
 				}
 
 				// Try to navigate to next page
@@ -260,12 +266,23 @@ export class ArticleListingCrawler implements Crawler {
 		pageResult: { items: CrawledData[]; filteredCount: number },
 		newItemsCount: number,
 		duplicatesOnPage: number,
+		maxPages?: number,
+		runningMetadata?: {
+			itemsProcessed: number;
+			duplicatesSkipped: number;
+			totalFilteredItems: number;
+		},
 	): void {
 		const totalItemsOnPage = pageResult.items.length;
 		const filteredOnPage = pageResult.filteredCount;
 
+		// Build progress indicator
+		const progressInfo = maxPages
+			? `${pagesProcessed}/${maxPages}`
+			: `${pagesProcessed}`;
+
 		console.log(
-			`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items`,
+			`📄 Page ${progressInfo}: found ${totalItemsOnPage + filteredOnPage} items`,
 		);
 		console.log(`   ✅ Processed ${newItemsCount} new items`);
 		if (duplicatesOnPage > 0) {
@@ -273,6 +290,16 @@ export class ArticleListingCrawler implements Crawler {
 		}
 		if (filteredOnPage > 0) {
 			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
+		}
+
+		// Show running totals if metadata provided
+		if (runningMetadata) {
+			const totalProcessed = runningMetadata.itemsProcessed + newItemsCount;
+			const totalSkipped = runningMetadata.duplicatesSkipped + duplicatesOnPage;
+			const totalFiltered = runningMetadata.totalFilteredItems + filteredOnPage;
+			console.log(
+				`   📊 Running totals: ${totalProcessed} processed, ${totalSkipped} duplicates, ${totalFiltered} filtered`,
+			);
 		}
 	}
 }
