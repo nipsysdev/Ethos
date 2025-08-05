@@ -19,14 +19,18 @@ export class MetadataTracker implements ContentSessionLinker {
 	private metadataStore: MetadataStore;
 	private contentLinkedCount = 0; // Track how many items have been linked
 
-	constructor(config: SourceConfig, startTime: Date) {
+	constructor(
+		config: SourceConfig,
+		startTime: Date,
+		metadataStore?: MetadataStore,
+	) {
 		// Create epoch timestamp-based session ID
 		const epochTimestamp = Math.floor(startTime.getTime() / 1000);
 		this.sessionId = `crawl-session-${epochTimestamp}`;
 		console.log(`📝 Starting crawl session: ${this.sessionId}`);
 
-		// Initialize metadata store
-		this.metadataStore = new MetadataStore();
+		// Initialize metadata store (use provided one for testing, or create new one)
+		this.metadataStore = metadataStore ?? new MetadataStore();
 
 		// Initialize crawl metadata
 		this.metadata = {

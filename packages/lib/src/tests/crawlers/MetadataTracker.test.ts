@@ -2,23 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawledData, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 
-// Mock the MetadataStore to avoid database operations in tests
+// Create mock MetadataStore instance
 const mockCreateSession = vi.fn();
 const mockUpdateSession = vi.fn();
 const mockGetSession = vi.fn();
 const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
 
-vi.mock("@/storage/MetadataStore.js", () => ({
-	MetadataStore: vi.fn().mockImplementation(() => ({
-		createSession: mockCreateSession,
-		updateSession: mockUpdateSession,
-		getSession: mockGetSession,
-		endSession: mockEndSession,
-		checkpoint: mockCheckpoint,
-	})),
-}));
+const mockMetadataStore: Partial<MetadataStore> = {
+	createSession: mockCreateSession,
+	updateSession: mockUpdateSession,
+	getSession: mockGetSession,
+	endSession: mockEndSession,
+	checkpoint: mockCheckpoint,
+};
 
 describe("MetadataTracker", () => {
 	let metadataTracker: MetadataTracker;
@@ -62,7 +61,12 @@ describe("MetadataTracker", () => {
 			},
 		};
 
-		metadataTracker = new MetadataTracker(mockConfig, startTime);
+		// Pass the mock MetadataStore to the constructor
+		metadataTracker = new MetadataTracker(
+			mockConfig,
+			startTime,
+			mockMetadataStore as MetadataStore,
+		);
 	});
 
 	it("should initialize metadata correctly", () => {

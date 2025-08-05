@@ -1,4 +1,7 @@
-import { ContentStore } from "@/storage/ContentStore.js";
+import {
+	ContentStore,
+	type ContentStoreOptions,
+} from "@/storage/ContentStore.js";
 import type {
 	CrawledData,
 	CrawlerRegistry,
@@ -14,15 +17,29 @@ export interface ProcessingResult {
 	summary: CrawlSummary;
 }
 
+export interface ProcessingPipelineOptions {
+	storageBasePath?: string;
+	contentStoreOptions?: ContentStoreOptions;
+}
+
 export class ProcessingPipeline {
 	private contentStore: ContentStore;
 
 	constructor(
 		private crawlerRegistry: CrawlerRegistry,
-		storageBasePath: string = "./storage",
+		optionsOrPath: ProcessingPipelineOptions | string = {},
 	) {
+		// Support backward compatibility: if string is passed, treat it as storageBasePath
+		const options =
+			typeof optionsOrPath === "string"
+				? { storageBasePath: optionsOrPath }
+				: optionsOrPath;
+
+		const { storageBasePath = "./storage", contentStoreOptions = {} } = options;
+
 		this.contentStore = new ContentStore({
 			storageDir: `${storageBasePath}/content`,
+			...contentStoreOptions,
 		});
 	}
 
