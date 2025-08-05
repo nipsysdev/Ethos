@@ -92,12 +92,12 @@ export class ContentMetadataStore extends MetadataDatabase {
 	 */
 	async store(data: CrawledData, hash: string): Promise<ContentMetadata> {
 		try {
-			// Parse published date if present and validate it
+			// Convert publishedDate string to Date object if present
 			let publishedDate: Date | null = null;
 			if (data.publishedDate) {
 				publishedDate = new Date(data.publishedDate);
-				// Check if date is valid
-				if (Number.isNaN(publishedDate.getTime())) {
+				// Validate the Date object is parseable
+				if (!publishedDate || Number.isNaN(publishedDate.getTime())) {
 					throw new Error(`Invalid date format: ${data.publishedDate}`);
 				}
 			}
