@@ -2,11 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawledData, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 
-// Mock the CLI import to avoid issues in test environment
-vi.mock("@/cli/index.js", () => ({
-	registerTempFile: vi.fn(),
-}));
+// Create mock MetadataStore instance
+const mockCreateSession = vi.fn();
+const mockUpdateSession = vi.fn();
+const mockGetSession = vi.fn();
+const mockEndSession = vi.fn();
+const mockCheckpoint = vi.fn();
+
+const mockMetadataStore: Partial<MetadataStore> = {
+	createSession: mockCreateSession,
+	updateSession: mockUpdateSession,
+	getSession: mockGetSession,
+	endSession: mockEndSession,
+	checkpoint: mockCheckpoint,
+};
 
 describe("MetadataTracker", () => {
 	let metadataTracker: MetadataTracker;
@@ -14,6 +25,14 @@ describe("MetadataTracker", () => {
 	let startTime: Date;
 
 	beforeEach(() => {
+		// Clear mocks before each test
+		vi.clearAllMocks();
+		mockCreateSession.mockClear();
+		mockUpdateSession.mockClear();
+		mockGetSession.mockClear();
+		mockEndSession.mockClear();
+		mockCheckpoint.mockClear();
+
 		startTime = new Date();
 		mockConfig = {
 			id: "test-source",
@@ -42,17 +61,18 @@ describe("MetadataTracker", () => {
 			},
 		};
 
-		metadataTracker = new MetadataTracker(mockConfig, startTime);
+		// Pass the mock MetadataStore to the constructor
+		metadataTracker = new MetadataTracker(
+			mockConfig,
+			startTime,
+			mockMetadataStore as MetadataStore,
+		);
 	});
 
 	it("should initialize metadata correctly", () => {
 		const metadata = metadataTracker.getMetadata();
 
-		expect(metadata.sourceId).toBe("test-source");
-		expect(metadata.sourceName).toBe("Test Source");
-		expect(metadata.startTime).toBe(startTime);
-		expect(metadata.itemUrls).toEqual([]);
-		expect(metadata.itemsForViewer).toEqual([]);
+		expect(metadata.itemsProcessed).toBe(0);
 		expect(metadata.duplicatesSkipped).toBe(0);
 		expect(metadata.totalFilteredItems).toBe(0);
 		expect(metadata.pagesProcessed).toBe(0);
@@ -63,10 +83,25 @@ describe("MetadataTracker", () => {
 		expect(metadata.detailErrors).toEqual([]);
 	});
 
-	it("should provide a temp file path", () => {
-		const tempFilePath = metadataTracker.getTempFilePath();
-		expect(tempFilePath).toContain("ethos-crawl-");
-		expect(tempFilePath).toContain(".json");
+	it("should provide a session ID", () => {
+		const sessionId = metadataTracker.getSessionId();
+		expect(typeof sessionId).toBe("string");
+		expect(sessionId).toMatch(/^crawl-session-\d+$/); // Format: crawl-session-[epoch-timestamp]
+		expect(sessionId).toContain("crawl-session-");
+	});
+
+	it("should create a session in the database on initialization", () => {
+		expect(mockCreateSession).toHaveBeenCalledWith(
+			expect.stringMatching(/^crawl-session-\d+$/), // Epoch timestamp format
+			"test-source",
+			"Test Source",
+			startTime,
+			expect.objectContaining({
+				duplicatesSkipped: 0,
+				totalFilteredItems: 0,
+				itemsProcessed: 0,
+			}),
+		);
 	});
 
 	it("should track page processing", () => {
@@ -75,6 +110,9 @@ describe("MetadataTracker", () => {
 
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.pagesProcessed).toBe(2);
+
+		// Check that the session is updated in the database
+		expect(mockUpdateSession).toHaveBeenCalledTimes(2);
 	});
 
 	it("should track duplicates", () => {
@@ -113,7 +151,7 @@ describe("MetadataTracker", () => {
 		expect(metadata.stoppedReason).toBe("max_pages");
 	});
 
-	it("should add items and generate metadata for viewer", () => {
+	it("should add items and track URLs", () => {
 		const mockItems: CrawledData[] = [
 			{
 				url: "https://example.com/article1",
@@ -138,21 +176,22 @@ describe("MetadataTracker", () => {
 		metadataTracker.addItems(mockItems);
 
 		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemUrls).toEqual([
-			"https://example.com/article1",
-			"https://example.com/article2",
-		]);
-		expect(metadata.itemsForViewer).toHaveLength(2);
-		expect(metadata.itemsForViewer[0]).toMatchObject({
-			url: "https://example.com/article1",
-			title: "Article 1",
-			publishedDate: "2024-01-01",
-		});
-		expect(metadata.itemsForViewer[0].hash).toBeDefined();
-		expect(metadata.itemsForViewer[0].hash).toHaveLength(40); // SHA-1 hash length
+		expect(metadata.itemsProcessed).toBe(2);
 	});
 
-	it("should build crawl result with sorted items", () => {
+	it("should build crawl result and close session", () => {
+		// Mock getSession to return session data
+		mockGetSession.mockReturnValue({
+			id: metadataTracker.getSessionId(),
+			sourceId: "test-source",
+			sourceName: "Test Source",
+			startTime: startTime,
+			endTime: null,
+			metadata: "{}",
+			createdAt: startTime,
+			updatedAt: startTime,
+		});
+
 		// Add items with different dates
 		const mockItems: CrawledData[] = [
 			{
@@ -197,18 +236,25 @@ describe("MetadataTracker", () => {
 		expect(result.summary.duplicatesSkipped).toBe(1);
 		expect(result.summary.pagesProcessed).toBe(1);
 		expect(result.summary.stoppedReason).toBe("no_next_button");
-		expect(result.summary.tempMetadataFile).toBe(
-			metadataTracker.getTempFilePath(),
-		);
+		expect(result.summary.sessionId).toBe(metadataTracker.getSessionId());
 
-		// Check that items are sorted by date (newest first)
-		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemsForViewer[0].publishedDate).toBe("2024-01-03"); // Newest first
-		expect(metadata.itemsForViewer[1].publishedDate).toBe("2024-01-02");
-		expect(metadata.itemsForViewer[2].publishedDate).toBe("2024-01-01");
+		// Check that the session was ended
+		expect(mockEndSession).toHaveBeenCalledWith(metadataTracker.getSessionId());
 	});
 
-	it("should handle items without published dates when sorting", () => {
+	it("should handle items correctly without depending on itemsForViewer", () => {
+		// Mock getSession to return session data
+		mockGetSession.mockReturnValue({
+			id: metadataTracker.getSessionId(),
+			sourceId: "test-source",
+			sourceName: "Test Source",
+			startTime: startTime,
+			endTime: null,
+			metadata: "{}",
+			createdAt: startTime,
+			updatedAt: startTime,
+		});
+
 		const mockItems: CrawledData[] = [
 			{
 				url: "https://example.com/article1",
@@ -235,11 +281,22 @@ describe("MetadataTracker", () => {
 
 		// Should not throw an error and should complete successfully
 		expect(result.summary.itemsProcessed).toBe(2);
+	});
 
-		const metadata = metadataTracker.getMetadata();
-		expect(metadata.itemsForViewer).toHaveLength(2);
-		// Item with date should come first (newer items first, undefined dates last)
-		expect(metadata.itemsForViewer[0].publishedDate).toBe("2024-01-01");
-		expect(metadata.itemsForViewer[1].publishedDate).toBeUndefined();
+	describe("Checkpoint Management", () => {
+		it("should have a checkpoint method", () => {
+			expect(typeof metadataTracker.checkpoint).toBe("function");
+		});
+
+		it("should execute checkpoint without error", () => {
+			// This should not throw
+			expect(() => metadataTracker.checkpoint()).not.toThrow();
+		});
+
+		it("should call checkpoint on the metadata store", () => {
+			metadataTracker.checkpoint();
+
+			expect(mockCheckpoint).toHaveBeenCalledOnce();
+		});
 	});
 });

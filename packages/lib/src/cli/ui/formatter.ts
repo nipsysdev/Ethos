@@ -37,10 +37,6 @@ export function formatDataForViewing(
 
 		lines.push(`Content: ${item.content || "N/A"}`);
 
-		if (item.tags && item.tags.length > 0) {
-			lines.push(`Tags: ${item.tags.join(", ")}`);
-		}
-
 		// Metadata
 		lines.push("\nMetadata:");
 		Object.entries(item.metadata).forEach(([key, value]) => {

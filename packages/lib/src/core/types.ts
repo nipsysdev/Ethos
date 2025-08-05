@@ -5,16 +5,18 @@ export const CRAWLER_TYPES = {
 
 export type CrawlerType = (typeof CRAWLER_TYPES)[keyof typeof CRAWLER_TYPES];
 
-export interface CrawledData {
+export interface ContentData {
 	url: string;
-	timestamp: Date;
-	source: string;
 	title: string;
 	content: string;
 	author?: string;
 	publishedDate?: string; // ISO 8601 string, strictly validated (throws if unparseable)
 	image?: string;
-	tags?: string[];
+}
+
+export interface CrawledData extends ContentData {
+	timestamp: Date;
+	source: string;
 	metadata: Record<string, unknown>;
 }
 
@@ -127,16 +129,41 @@ export interface CrawlSummary {
 	endTime: Date;
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
-	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+	stoppedReason?:
+		| "max_pages"
+		| "no_next_button"
+		| "all_duplicates"
+		| "process_interrupted";
 	detailsCrawled?: number;
 	detailErrors?: string[];
-	tempMetadataFile?: string; // Path to temporary metadata file for viewer access
+	sessionId?: string; // Session ID for accessing crawl metadata from database
+	storageStats?: {
+		itemsStored: number;
+		itemsFailed: number;
+	};
+}
+
+// Interface for junction table linking without circular imports
+export interface ContentSessionLinker {
+	linkContentToSession(
+		contentId: number,
+		hadDetailExtractionError?: boolean,
+	): void;
 }
 
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
+	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
+	skipExistingUrls?: boolean; // Skip detail crawling for URLs already in database (default: true)
+	/**
+	 * Stop crawling when all items on a page are duplicates (default: true)
+	 *
+	 * true: Stop when a page contains only items already in database (efficient for chronological content)
+	 * false: Continue crawling even if all items on a page are duplicates (thorough for mixed content)
+	 */
+	stopOnAllDuplicates?: boolean;
 }
 
 // Shared types for crawl metadata
@@ -148,18 +175,18 @@ export interface CrawlMetadataItem {
 }
 
 export interface CrawlMetadata {
-	sourceId: string;
-	sourceName: string;
-	startTime: Date;
-	itemUrls: string[];
-	itemsForViewer: CrawlMetadataItem[];
 	duplicatesSkipped: number;
 	totalFilteredItems: number;
+	itemsProcessed: number; // Track total items processed (replaces itemUrls.length)
 	pagesProcessed: number;
 	detailsCrawled: number;
 	fieldStats: FieldExtractionStats[];
 	detailFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	detailErrors: string[];
-	stoppedReason?: "max_pages" | "no_next_button" | "all_duplicates";
+	stoppedReason?:
+		| "max_pages"
+		| "no_next_button"
+		| "all_duplicates"
+		| "process_interrupted";
 }

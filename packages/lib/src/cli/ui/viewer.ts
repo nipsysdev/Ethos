@@ -1,9 +1,8 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { CrawlMetadata, CrawlMetadataItem } from "@/core/types.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
+import { MetadataStore } from "@/storage/MetadataStore.js";
 
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
@@ -25,43 +24,59 @@ async function isLessAvailable(): Promise<boolean> {
 }
 
 export async function showExtractedData(
-	result: ProcessingResult,
+	result: ProcessingSummaryResult,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
 
-	// Check if we have temp metadata file for accessing crawl data
-	if (!result.summary.tempMetadataFile) {
-		console.log("No crawl metadata available for viewing.");
+	// Check if we have session ID for accessing crawl data
+	if (!result.summary.sessionId) {
+		console.log("No crawl session available for viewing.");
 		return;
 	}
 
-	let crawlMetadata: CrawlMetadata;
+	// Get content items from junction table
+	const metadataStore = new MetadataStore();
+
+	interface ViewerItem {
+		title: string;
+		hash: string;
+		publishedDate?: Date;
+		url: string;
+	}
+
+	let storedItems: ViewerItem[] = [];
+
 	try {
-		const metadataContent = readFileSync(
-			result.summary.tempMetadataFile,
-			"utf8",
+		const sessionContents = metadataStore.getSessionContents(
+			result.summary.sessionId,
 		);
-		crawlMetadata = JSON.parse(metadataContent);
+
+		if (sessionContents.length === 0) {
+			console.log("No stored files found.");
+			return;
+		}
+
+		// Transform junction table data to match expected format
+		storedItems = sessionContents.map((content) => ({
+			title: content.title,
+			hash: content.hash,
+			publishedDate: content.publishedDate,
+			url: content.url,
+		}));
 	} catch (error) {
-		console.log("Could not read crawl metadata file.");
-		console.error("Error:", error);
+		console.log("Could not read crawl session data.");
+		console.error("Error:", error instanceof Error ? error.message : error);
 		return;
-	}
-
-	// Use itemsForViewer from metadata to create file choices
-	const storedItems = crawlMetadata.itemsForViewer || [];
-
-	if (storedItems.length === 0) {
-		console.log("No stored files found.");
-		return;
+	} finally {
+		metadataStore.close();
 	}
 
 	// Create a ContentStore instance to get the storage directory
-	const contentStore = new ContentStore();
+	const contentStore = new ContentStore({ enableMetadata: false });
 	const storageDir = contentStore.getStorageDirectory();
 
 	// Create choices with titles and file info
-	const choices = storedItems.map((item: CrawlMetadataItem, index: number) => {
+	const choices = storedItems.map((item: ViewerItem, index: number) => {
 		const publishedInfo = item.publishedDate
 			? ` (${new Date(item.publishedDate).toLocaleDateString()})`
 			: "";

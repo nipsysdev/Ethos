@@ -52,7 +52,10 @@ describe("ProcessingPipeline", () => {
 
 	it("should throw error when no crawler found", async () => {
 		const registry = new CrawlerRegistry();
-		const pipeline = new ProcessingPipeline(registry, "./test-storage");
+		const pipeline = new ProcessingPipeline(registry, {
+			storageBasePath: "./test-storage",
+			contentStoreOptions: { enableMetadata: false },
+		});
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(CrawlerError);
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
@@ -104,7 +107,10 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry, "./test-storage");
+		const pipeline = new ProcessingPipeline(registry, {
+			storageBasePath: "./test-storage",
+			contentStoreOptions: { enableMetadata: false },
+		});
 
 		const result = await pipeline.process(testConfig);
 
@@ -129,7 +135,10 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(failingCrawler);
-		const pipeline = new ProcessingPipeline(registry, "./test-storage");
+		const pipeline = new ProcessingPipeline(registry, {
+			storageBasePath: "./test-storage",
+			contentStoreOptions: { enableMetadata: false },
+		});
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
 			"Network failure",
@@ -166,7 +175,10 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry, "./test-storage");
+		const pipeline = new ProcessingPipeline(registry, {
+			storageBasePath: "./test-storage",
+			contentStoreOptions: { enableMetadata: false },
+		});
 
 		const options: CrawlOptions = { maxPages: 5 };
 		await pipeline.process(testConfig, options);
@@ -208,7 +220,10 @@ describe("ProcessingPipeline", () => {
 
 		const registry = new CrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry, "./test-storage");
+		const pipeline = new ProcessingPipeline(registry, {
+			storageBasePath: "./test-storage",
+			contentStoreOptions: { enableMetadata: false },
+		});
 
 		const options: CrawlOptions = { maxPages: 3, detailConcurrency: 10 };
 		const result = await pipeline.process(testConfig, options);

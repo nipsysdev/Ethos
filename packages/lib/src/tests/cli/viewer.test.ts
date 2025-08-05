@@ -1,9 +1,6 @@
-import { unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { showExtractedData } from "@/cli/ui/viewer.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 
 // Mock child_process and inquirer
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
@@ -13,6 +10,19 @@ vi.mock("inquirer", () => ({
 	},
 }));
 
+// Mock MetadataStore
+const mockGetSession = vi.fn();
+const mockGetSessionContents = vi.fn();
+const mockClose = vi.fn();
+
+vi.mock("@/storage/MetadataStore.js", () => ({
+	MetadataStore: vi.fn().mockImplementation(() => ({
+		getSession: mockGetSession,
+		getSessionContents: mockGetSessionContents,
+		close: mockClose,
+	})),
+}));
+
 const mockSpawn = vi.mocked((await import("node:child_process")).spawn);
 const mockInquirer = vi.mocked((await import("inquirer")).default);
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -20,28 +30,50 @@ const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 describe("Data Viewer", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Reset mock implementations
+		mockGetSession.mockReset();
+		mockGetSessionContents.mockReset();
+		mockClose.mockImplementation(() => {});
 	});
 
-	const createMockResult = (withTempFile = true): ProcessingResult => {
-		let tempMetadataFile: string | undefined;
+	const createMockResult = (withSession = true): ProcessingSummaryResult => {
+		const sessionId = withSession ? "test-session-123" : undefined;
 
-		if (withTempFile) {
-			// Create a temp file with mock metadata
-			tempMetadataFile = join(tmpdir(), `test-crawl-${Date.now()}.json`);
-			const mockMetadata = {
-				itemsForViewer: [
-					{
-						url: "https://example.com/article1",
-						title: "Test Article",
-						hash: "abc123",
-					},
-				],
+		if (withSession) {
+			// Mock junction table data instead of itemsForViewer
+			const mockSessionContents = [
+				{
+					id: 1,
+					hash: "abc123",
+					source: "test-source",
+					url: "https://example.com/article1",
+					title: "Test Article",
+					publishedDate: new Date("2024-12-31"),
+					crawledAt: new Date(),
+					createdAt: new Date(),
+					processedOrder: 1,
+					hadDetailExtractionError: false,
+				},
+			];
+
+			const mockSessionData = {
+				id: sessionId,
+				sourceId: "test-source",
+				sourceName: "Test Source",
+				startTime: new Date(),
+				isActive: true,
+				metadata: JSON.stringify({}), // Empty metadata since we use junction table now
+				createdAt: new Date(),
+				updatedAt: new Date(),
 			};
-			writeFileSync(tempMetadataFile, JSON.stringify(mockMetadata));
+
+			mockGetSession.mockReturnValue(mockSessionData);
+			mockGetSessionContents.mockReturnValue(mockSessionContents);
 		}
+		// If withSession is false, we don't set up the mock, so sessionId will be undefined
+		// and the viewer will check for that first before calling getSession
 
 		return {
-			data: [], // Empty since items are now processed immediately
 			summary: {
 				sourceId: "test-source",
 				sourceName: "Test Source",
@@ -53,20 +85,22 @@ describe("Data Viewer", () => {
 				listingErrors: [],
 				startTime: new Date("2025-01-01T10:00:00Z"),
 				endTime: new Date("2025-01-01T10:00:05Z"),
-				tempMetadataFile,
+				sessionId,
 			},
 		};
 	};
 
-	it("should display message when no crawl metadata available", async () => {
-		const result = createMockResult(false); // Don't create temp file
+	it("should display message when no crawl session available", async () => {
+		const result = createMockResult(false); // Don't create session
 
 		await showExtractedData(result);
 
 		expect(mockLog).toHaveBeenCalledWith(
-			"No crawl metadata available for viewing.",
+			"No crawl session available for viewing.",
 		);
 		expect(mockInquirer.prompt).not.toHaveBeenCalled();
+		// mockClose should not be called because we return early before creating MetadataStore
+		expect(mockClose).not.toHaveBeenCalled();
 	});
 
 	it("should show file selection menu and open file with less", async () => {
@@ -117,17 +151,18 @@ describe("Data Viewer", () => {
 				type: "list",
 				name: "selectedFile",
 				message: "Select an item to view (1 files):",
-				choices: expect.arrayContaining([
-					expect.objectContaining({
-						name: "1. Test Article",
+				choices: [
+					{
+						name: expect.stringMatching(/1\. Test Article \(.+\)/),
+						value: expect.stringContaining("abc123.json"),
 						short: "Test Article",
-					}),
-					expect.objectContaining({
+					},
+					{
 						name: "← Back to menu",
 						value: "back",
 						short: "Back",
-					}),
-				]),
+					},
+				],
 				pageSize: 15,
 			}),
 		]);
@@ -138,10 +173,8 @@ describe("Data Viewer", () => {
 			stdio: "inherit",
 		});
 
-		// Cleanup temp file
-		if (result.summary.tempMetadataFile) {
-			unlinkSync(result.summary.tempMetadataFile);
-		}
+		// Verify MetadataStore was closed
+		expect(mockClose).toHaveBeenCalled();
 	});
 
 	it("should handle when less is not available", async () => {
@@ -182,10 +215,8 @@ describe("Data Viewer", () => {
 			`File location: ${actualSelectedFile}`,
 		);
 
-		// Cleanup temp file
-		if (result.summary.tempMetadataFile) {
-			unlinkSync(result.summary.tempMetadataFile);
-		}
+		// Verify MetadataStore was closed
+		expect(mockClose).toHaveBeenCalled();
 	});
 
 	it("should handle back option", async () => {
@@ -200,9 +231,7 @@ describe("Data Viewer", () => {
 		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();
 
-		// Cleanup temp file
-		if (result.summary.tempMetadataFile) {
-			unlinkSync(result.summary.tempMetadataFile);
-		}
+		// Verify MetadataStore was closed
+		expect(mockClose).toHaveBeenCalled();
 	});
 });

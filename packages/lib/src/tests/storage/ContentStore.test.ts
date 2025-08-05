@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { ContentStore } from "@/storage/ContentStore.js";
-import { generateContentHash } from "@/utils/hash.js";
+import { generateStringHash } from "@/utils/hash.js";
 
 describe("ContentStore", () => {
 	let testStorageDir: string;
@@ -18,7 +18,6 @@ describe("ContentStore", () => {
 		content: "This is test content",
 		author: "Test Author",
 		publishedDate: "2024-01-01T00:00:00Z",
-		tags: ["test", "article"],
 		metadata: {
 			customField: "custom value",
 		},
@@ -32,7 +31,6 @@ describe("ContentStore", () => {
 		content: "This is different test content",
 		author: "Another Author",
 		publishedDate: "2024-01-02T00:00:00Z",
-		tags: ["test", "different"],
 		metadata: {
 			customField: "different custom value",
 		},
@@ -41,7 +39,10 @@ describe("ContentStore", () => {
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
 		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-		contentStore = new ContentStore({ storageDir: testStorageDir });
+		contentStore = new ContentStore({
+			storageDir: testStorageDir,
+			enableMetadata: false,
+		});
 
 		// Ensure clean state by removing directory if it exists
 		try {
@@ -75,12 +76,15 @@ describe("ContentStore", () => {
 
 	describe("constructor", () => {
 		it("should use default options when none provided", () => {
-			const defaultStore = new ContentStore();
+			const defaultStore = new ContentStore({ enableMetadata: false });
 			expect(defaultStore).toBeInstanceOf(ContentStore);
 		});
 
 		it("should accept custom storage directory", () => {
-			const customStore = new ContentStore({ storageDir: "./custom-storage" });
+			const customStore = new ContentStore({
+				storageDir: "./custom-storage",
+				enableMetadata: false,
+			});
 			expect(customStore).toBeInstanceOf(ContentStore);
 		});
 	});
@@ -115,17 +119,16 @@ describe("ContentStore", () => {
 			const fileContent = await readFile(result.path, "utf8");
 			const parsedContent = JSON.parse(fileContent);
 
-			// Compare everything except timestamp, which gets serialized as string
+			// Check that only content data is stored (no tracking metadata)
 			expect(parsedContent.url).toBe(sampleData.url);
-			expect(parsedContent.source).toBe(sampleData.source);
 			expect(parsedContent.title).toBe(sampleData.title);
 			expect(parsedContent.content).toBe(sampleData.content);
 			expect(parsedContent.author).toBe(sampleData.author);
 			expect(parsedContent.publishedDate).toBe(sampleData.publishedDate);
-			expect(parsedContent.tags).toEqual(sampleData.tags);
-			expect(parsedContent.metadata).toEqual(sampleData.metadata);
-			// Check timestamp was serialized correctly as ISO string
-			expect(parsedContent.timestamp).toBe(sampleData.timestamp.toISOString());
+			// Check that tracking metadata is not in JSON (timestamp, source, metadata)
+			expect("timestamp" in parsedContent).toBe(false);
+			expect("source" in parsedContent).toBe(false);
+			expect("metadata" in parsedContent).toBe(false);
 		});
 
 		it("should generate consistent hashes for identical content", async () => {
@@ -163,6 +166,7 @@ describe("ContentStore", () => {
 			// Try to store in a location that would cause permission errors
 			const restrictedStore = new ContentStore({
 				storageDir: "/root/restricted",
+				enableMetadata: false,
 			});
 
 			await expect(restrictedStore.store(sampleData)).rejects.toThrow(
@@ -188,7 +192,6 @@ describe("ContentStore", () => {
 				content: "First content",
 				author: "First Author",
 				publishedDate: "2024-01-01T00:00:00Z",
-				tags: ["first"],
 				metadata: { custom: "first" },
 			};
 
@@ -200,7 +203,6 @@ describe("ContentStore", () => {
 				content: "Totally different content with more text", // Different content
 				author: "Different Author", // Different author
 				publishedDate: "2024-01-02T00:00:00Z", // Different date
-				tags: ["different", "tags"], // Different tags
 				metadata: { custom: "different", extra: "field" }, // Different metadata
 			};
 
@@ -316,7 +318,16 @@ describe("ContentStore", () => {
 
 			const retrieved = await contentStore.retrieve(sampleData.url);
 
-			expect(retrieved).toEqual(sampleData);
+			// Should only return content data, not tracking metadata
+			const expectedContentData = {
+				url: sampleData.url,
+				title: sampleData.title,
+				content: sampleData.content,
+				author: sampleData.author,
+				publishedDate: sampleData.publishedDate,
+			};
+
+			expect(retrieved).toEqual(expectedContentData);
 		});
 
 		it("should return null for non-existent URL", async () => {
@@ -333,7 +344,7 @@ describe("ContentStore", () => {
 
 			// Now corrupt the file by writing invalid JSON
 			// Generate hash the same way ContentStore does
-			const hash = generateContentHash(sampleData.url);
+			const hash = generateStringHash(sampleData.url);
 			const filePath = join(testStorageDir, `${hash}.json`);
 			await writeFile(filePath, "invalid json content", "utf8");
 

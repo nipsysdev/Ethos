@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { displayCrawlSummary } from "@/cli/ui/summary.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -9,8 +9,7 @@ describe("Summary Display", () => {
 		vi.clearAllMocks();
 	});
 
-	const createMockResult = (overrides = {}): ProcessingResult => ({
-		data: [],
+	const createMockResult = (overrides = {}): ProcessingSummaryResult => ({
 		summary: {
 			sourceId: "test-source",
 			sourceName: "Test Source",
@@ -176,6 +175,10 @@ describe("Summary Display", () => {
 				expected: "all items on page were already crawled",
 			},
 			{ reason: "max_pages" as const, expected: "reached maximum pages limit" },
+			{
+				reason: "process_interrupted" as const,
+				expected: "process was interrupted",
+			},
 		];
 
 		testCases.forEach(({ reason, expected }) => {
@@ -192,5 +195,39 @@ describe("Summary Display", () => {
 
 			expect(mockLog).toHaveBeenCalledWith(`   • Stop reason: ${expected}`);
 		});
+	});
+
+	it("should display storage stats when available", () => {
+		const result = createMockResult({
+			summary: {
+				...createMockResult().summary,
+				storageStats: {
+					itemsStored: 8,
+					itemsFailed: 2,
+				},
+			},
+		});
+
+		displayCrawlSummary(result);
+
+		expect(mockLog).toHaveBeenCalledWith("\n💾 Storage:");
+		expect(mockLog).toHaveBeenCalledWith("   • Items stored: 8");
+		expect(mockLog).toHaveBeenCalledWith("   • Items failed to store: 2");
+	});
+
+	it("should not display storage stats when no items were stored", () => {
+		const result = createMockResult({
+			summary: {
+				...createMockResult().summary,
+				storageStats: {
+					itemsStored: 0,
+					itemsFailed: 0,
+				},
+			},
+		});
+
+		displayCrawlSummary(result);
+
+		expect(mockLog).not.toHaveBeenCalledWith("\n💾 Storage:");
 	});
 });

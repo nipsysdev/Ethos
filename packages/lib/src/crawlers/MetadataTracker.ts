@@ -1,44 +1,42 @@
-import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type {
+	ContentSessionLinker,
 	CrawledData,
 	CrawlMetadata,
 	CrawlResult,
 	CrawlSummary,
+	FieldConfig,
 	SourceConfig,
 } from "@/core/types.js";
-import { generateContentHash } from "@/utils/hash.js";
+import { MetadataStore } from "@/storage/MetadataStore.js";
 
 /**
- * Handles metadata tracking and temporary file management for crawl operations.
- * Separated from the main crawler to improve separation of concerns.
+ * Handles metadata tracking and session management for crawl operations.
+ * Uses SQLite database instead of temporary files for better persistence and concurrency.
  */
-export class MetadataTracker {
+export class MetadataTracker implements ContentSessionLinker {
 	private metadata: CrawlMetadata;
-	private tempFile: string;
+	private sessionId: string;
+	private metadataStore: MetadataStore;
+	private contentLinkedCount = 0; // Track how many items have been linked
 
-	constructor(config: SourceConfig, startTime: Date) {
-		// Create temporary file for tracking crawl metadata
-		this.tempFile = join(
-			tmpdir(),
-			`ethos-crawl-${Date.now()}-${randomUUID()}.json`,
-		);
-		console.log(`📝 Using temporary metadata file: ${this.tempFile}`);
+	constructor(
+		config: SourceConfig,
+		startTime: Date,
+		metadataStore?: MetadataStore,
+	) {
+		// Create epoch timestamp-based session ID
+		const epochTimestamp = Math.floor(startTime.getTime() / 1000);
+		this.sessionId = `crawl-session-${epochTimestamp}`;
+		console.log(`📝 Starting crawl session: ${this.sessionId}`);
 
-		// Register temp file for cleanup (if running in CLI context)
-		this.registerTempFile();
+		// Initialize metadata store (use provided one for testing, or create new one)
+		this.metadataStore = metadataStore ?? new MetadataStore();
 
 		// Initialize crawl metadata
 		this.metadata = {
-			sourceId: config.id,
-			sourceName: config.name,
-			startTime,
-			itemUrls: [],
-			itemsForViewer: [],
 			duplicatesSkipped: 0,
 			totalFilteredItems: 0,
+			itemsProcessed: 0,
 			pagesProcessed: 0,
 			detailsCrawled: 0,
 			fieldStats: Object.entries(config.listing.items.fields).map(
@@ -46,7 +44,7 @@ export class MetadataTracker {
 					fieldName,
 					successCount: 0,
 					totalAttempts: 0,
-					isOptional: fieldConfig.optional || false,
+					isOptional: (fieldConfig as FieldConfig).optional || false,
 					missingItems: [],
 				}),
 			),
@@ -62,17 +60,21 @@ export class MetadataTracker {
 			listingErrors: [],
 			detailErrors: [],
 		};
-	}
 
-	/**
-	 * Register temp file for cleanup (if running in CLI context)
-	 */
-	private async registerTempFile(): Promise<void> {
+		// Create session in database
 		try {
-			const { registerTempFile } = await import("@/cli/index.js");
-			registerTempFile(this.tempFile);
-		} catch {
-			// Not in CLI context, ignore
+			this.metadataStore.createSession(
+				this.sessionId,
+				config.id,
+				config.name,
+				startTime,
+				this.metadata,
+			);
+		} catch (error) {
+			console.error(
+				`Failed to create crawl session (sessionId: ${this.sessionId}, sourceId: ${config.id}, sourceName: ${config.name}): ${error instanceof Error ? error.message : error}`,
+			);
+			throw error; // Re-throw to let the caller handle it
 		}
 	}
 
@@ -84,30 +86,51 @@ export class MetadataTracker {
 	}
 
 	/**
-	 * Get the temporary file path
+	 * Get the session ID
 	 */
-	getTempFilePath(): string {
-		return this.tempFile;
+	getSessionId(): string {
+		return this.sessionId;
 	}
 
 	/**
-	 * Add new items to tracking and update the temp file
+	 * Get the metadata store instance for URL existence checks
+	 */
+	getMetadataStore(): MetadataStore {
+		return this.metadataStore;
+	}
+
+	/**
+	 * Checkpoint WAL files to prevent them from growing too large.
+	 * Call this periodically during long crawl operations.
+	 */
+	checkpoint(): void {
+		this.metadataStore.checkpoint();
+	}
+
+	/**
+	 * Add new items to tracking and update the session in database
 	 */
 	addItems(items: CrawledData[]): void {
-		for (const item of items) {
-			this.metadata.itemUrls.push(item.url);
+		this.metadata.itemsProcessed += items.length;
 
-			// Generate hash for viewer access
-			const hash = this.generateHash(item.url);
-			this.metadata.itemsForViewer.push({
-				url: item.url,
-				title: item.title,
-				hash,
-				publishedDate: item.publishedDate,
-			});
-		}
+		this.updateSessionInDatabase();
+	}
 
-		this.writeMetadataToFile();
+	/**
+	 * Link stored content to this session
+	 */
+	linkContentToSession(
+		contentId: number,
+		hadDetailExtractionError = false,
+	): void {
+		// Increment and use the counter for proper ordering
+		this.contentLinkedCount++;
+		this.metadataStore.linkContentToSession(
+			this.sessionId,
+			contentId,
+			this.contentLinkedCount,
+			hadDetailExtractionError,
+		);
 	}
 
 	/**
@@ -115,6 +138,7 @@ export class MetadataTracker {
 	 */
 	incrementPagesProcessed(): void {
 		this.metadata.pagesProcessed++;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -122,6 +146,7 @@ export class MetadataTracker {
 	 */
 	addDuplicatesSkipped(count: number): void {
 		this.metadata.duplicatesSkipped += count;
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -130,6 +155,7 @@ export class MetadataTracker {
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
 		this.metadata.listingErrors.push(...reasons);
+		this.updateSessionInDatabase();
 	}
 
 	/**
@@ -137,48 +163,50 @@ export class MetadataTracker {
 	 */
 	addDetailsCrawled(count: number): void {
 		this.metadata.detailsCrawled += count;
+		this.updateSessionInDatabase();
 	}
 
 	/**
 	 * Set the reason why crawling stopped
 	 */
 	setStoppedReason(
-		reason: "max_pages" | "no_next_button" | "all_duplicates",
+		reason:
+			| "max_pages"
+			| "no_next_button"
+			| "all_duplicates"
+			| "process_interrupted",
 	): void {
 		this.metadata.stoppedReason = reason;
+		this.updateSessionInDatabase();
 	}
 
 	/**
 	 * Build the final crawl result from tracked metadata
 	 */
 	buildCrawlResult(): CrawlResult {
-		// Sort items by published date (newest first) for viewer display
-		this.metadata.itemsForViewer.sort((a, b) => {
-			// Handle cases where publishedDate might be undefined
-			const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
-			const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+		// Get session data from database for summary
+		const session = this.metadataStore.getSession(this.sessionId);
+		if (!session) {
+			throw new Error(`Session not found: ${this.sessionId}`);
+		}
 
-			// Sort newest first (descending order)
-			return dateB - dateA;
-		});
-
-		// Update the metadata file with sorted items
-		this.writeMetadataToFile();
+		// End the session as crawling is complete
+		this.metadataStore.endSession(this.sessionId);
 
 		const endTime = new Date();
 		const summary: CrawlSummary = {
-			sourceId: this.metadata.sourceId,
-			sourceName: this.metadata.sourceName,
+			sourceId: session.sourceId,
+			sourceName: session.sourceName,
 			itemsFound:
-				this.metadata.itemUrls.length +
+				this.metadata.itemsProcessed +
 				this.metadata.duplicatesSkipped +
 				this.metadata.totalFilteredItems,
-			itemsProcessed: this.metadata.itemUrls.length,
+			itemsProcessed: this.metadata.itemsProcessed,
 			itemsWithErrors: this.metadata.totalFilteredItems,
 			fieldStats: this.metadata.fieldStats,
 			detailFieldStats: this.metadata.detailFieldStats,
 			listingErrors: this.metadata.listingErrors,
-			startTime: this.metadata.startTime,
+			startTime: session.startTime,
 			endTime,
 			pagesProcessed: this.metadata.pagesProcessed,
 			duplicatesSkipped: this.metadata.duplicatesSkipped,
@@ -193,24 +221,24 @@ export class MetadataTracker {
 			data: [], // Empty since items were processed and stored immediately
 			summary: {
 				...summary,
-				// Include temp file path for viewer to access crawl metadata
-				tempMetadataFile: this.tempFile,
+				// Include session ID for viewer to access crawl metadata from database
+				sessionId: this.sessionId,
 			},
 		};
 	}
 
 	/**
-	 * Write current metadata to the temporary file
+	 * Update session metadata in the database
 	 */
-	private writeMetadataToFile(): void {
-		writeFileSync(this.tempFile, JSON.stringify(this.metadata, null, 2));
-	}
-
-	/**
-	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
-	 * This matches the ContentStore implementation for consistent hashing
-	 */
-	private generateHash(content: string): string {
-		return generateContentHash(content);
+	private updateSessionInDatabase(): void {
+		try {
+			this.metadataStore.updateSession(this.sessionId, this.metadata);
+		} catch (error) {
+			console.error(
+				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+			);
+			// Intentionally do not re-throw the error: this method runs as a background operation,
+			// and any failure to update session metadata should not interrupt or break the main crawling process.
+		}
 	}
 }

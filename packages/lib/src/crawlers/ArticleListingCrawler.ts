@@ -14,6 +14,7 @@ import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
 import { MetadataTracker } from "./MetadataTracker.js";
+import { InterruptionHandler } from "./utils/InterruptionHandler.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -24,12 +25,24 @@ export class ArticleListingCrawler implements Crawler {
 	private listingExtractor = new ListingPageExtractor();
 	private detailExtractor = new DetailPageExtractor();
 	private paginationHandler = new PaginationHandler();
+	private interruptionHandler = new InterruptionHandler();
+
+	private checkForInterruption(metadataTracker: MetadataTracker): boolean {
+		if (this.interruptionHandler.isProcessInterrupted()) {
+			metadataTracker.setStoppedReason("process_interrupted");
+			return true;
+		}
+		return false;
+	}
 
 	async crawl(
 		config: SourceConfig,
 		options?: CrawlOptions,
 	): Promise<CrawlResult> {
 		const startTime = new Date();
+
+		// Set up signal handlers for this crawl session
+		this.interruptionHandler.setup();
 
 		if (config.type !== CRAWLER_TYPES.LISTING) {
 			throw new CrawlerError(
@@ -62,6 +75,8 @@ export class ArticleListingCrawler implements Crawler {
 			);
 		} finally {
 			await browser.close();
+			// Clean up signal handlers
+			this.interruptionHandler.cleanup();
 		}
 	}
 
@@ -80,6 +95,9 @@ export class ArticleListingCrawler implements Crawler {
 		try {
 			// Main pagination loop
 			while (true) {
+				// Single interruption check at the start of each loop
+				if (this.checkForInterruption(metadataTracker)) break;
+
 				// Check max pages limit before processing
 				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
 					metadataTracker.setStoppedReason("max_pages");
@@ -93,7 +111,7 @@ export class ArticleListingCrawler implements Crawler {
 					page,
 					config,
 					metadata.fieldStats,
-					metadata.itemUrls.length,
+					metadata.itemsProcessed,
 				);
 
 				// Track filtered items
@@ -104,7 +122,6 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Filter out duplicates and count them
 				const newItems: CrawledData[] = [];
-				let allItemsAreDuplicates = true;
 
 				for (const item of pageResult.items) {
 					if (seenUrls.has(item.url)) {
@@ -112,61 +129,112 @@ export class ArticleListingCrawler implements Crawler {
 					} else {
 						seenUrls.add(item.url);
 						newItems.push(item);
-						allItemsAreDuplicates = false;
 					}
 				}
 
-				// Log page summary
-				const duplicatesOnPage = pageResult.items.length - newItems.length;
-				this.logPageSummary(
-					metadata.pagesProcessed,
-					pageResult,
-					newItems.length,
-					duplicatesOnPage,
-				);
+				// Early database check to filter out URLs that already exist
+				// This prevents unnecessary detail page processing
+				let itemsToProcess = newItems;
+				let dbDuplicatesSkipped = 0;
 
-				// If all items on this page were duplicates, stop
-				if (pageResult.items.length > 0 && allItemsAreDuplicates) {
+				if (newItems.length > 0 && options?.skipExistingUrls !== false) {
+					const metadataStore = metadataTracker.getMetadataStore();
+					if (metadataStore) {
+						const allUrls = newItems.map((item) => item.url);
+						const existingUrls = metadataStore.getExistingUrls(allUrls);
+
+						if (existingUrls.size > 0) {
+							itemsToProcess = newItems.filter(
+								(item) => !existingUrls.has(item.url),
+							);
+							dbDuplicatesSkipped = newItems.length - itemsToProcess.length;
+
+							// Track these as duplicates in metadata
+							metadataTracker.addDuplicatesSkipped(dbDuplicatesSkipped);
+						}
+					}
+				}
+
+				// Check if all items (after both session and database deduplication) are duplicates
+				if (
+					pageResult.items.length > 0 &&
+					itemsToProcess.length === 0 &&
+					options?.stopOnAllDuplicates !== false
+				) {
 					metadataTracker.setStoppedReason("all_duplicates");
+					// Update logging to reflect database duplicates too
+					const totalDuplicatesOnPage =
+						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+					this.logPageSummary(
+						metadata.pagesProcessed,
+						pageResult,
+						0, // No new items after database check
+						totalDuplicatesOnPage,
+						options?.maxPages,
+						metadata, // Pass metadata for running totals
+					);
 					break;
 				}
 
+				// Log page summary for all pages
+				const totalDuplicatesOnPage =
+					pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+				this.logPageSummary(
+					metadata.pagesProcessed,
+					pageResult,
+					itemsToProcess.length,
+					totalDuplicatesOnPage,
+					options?.maxPages,
+					metadata, // Pass metadata for running totals
+				);
+
 				// Extract detail data if we have new items
-				if (newItems.length > 0) {
+				if (itemsToProcess.length > 0) {
 					// Store current listing page URL so we can return to it after detail extraction
 					const currentListingUrl = page.url();
 
 					const concurrency = options?.detailConcurrency ?? 5;
+					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
-						`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
+						`🔍 Extracting detail data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
 					);
 					await this.detailExtractor.extractDetailData(
 						page,
-						newItems,
+						itemsToProcess,
 						config,
 						metadata.detailErrors,
 						metadata.detailFieldStats,
-						metadata.itemUrls.length, // Current offset
+						metadata.itemsProcessed, // Current offset
 						concurrency,
+						metadataTracker.getMetadataStore(),
+						skipExisting,
 					);
-					metadataTracker.addDetailsCrawled(newItems.length);
+					metadataTracker.addDetailsCrawled(itemsToProcess.length);
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
 
 					// Process items immediately through storage callback
 					if (options?.onPageComplete) {
-						await options.onPageComplete(newItems);
+						// Temporarily set the metadata tracker for this call
+						const originalTracker = options.metadataTracker;
+						options.metadataTracker = metadataTracker;
+
+						await options.onPageComplete(itemsToProcess);
+
+						// Restore original tracker
+						options.metadataTracker = originalTracker;
 					}
 
 					// Add items to metadata tracking
-					metadataTracker.addItems(newItems);
+					metadataTracker.addItems(itemsToProcess);
 
-					// Clear items from memory immediately after processing
-					console.log(
-						`🧹 Cleared ${newItems.length} items from memory after storage`,
-					);
-					newItems.length = 0; // Free memory
+					// Checkpoint WAL files periodically to prevent them from growing too large
+					// Do this after processing each page during long crawls
+					metadataTracker.checkpoint();
+
+					itemsToProcess.length = 0; // Free memory
+				} else {
 				}
 
 				// Try to navigate to next page
@@ -174,6 +242,10 @@ export class ArticleListingCrawler implements Crawler {
 					page,
 					config,
 				);
+
+				// Check for interruption - if interrupted, it takes precedence over no next page
+				if (this.checkForInterruption(metadataTracker)) break;
+
 				if (!hasNextPage) {
 					metadataTracker.setStoppedReason("no_next_button");
 					break;
@@ -193,12 +265,23 @@ export class ArticleListingCrawler implements Crawler {
 		pageResult: { items: CrawledData[]; filteredCount: number },
 		newItemsCount: number,
 		duplicatesOnPage: number,
+		maxPages?: number,
+		runningMetadata?: {
+			itemsProcessed: number;
+			duplicatesSkipped: number;
+			totalFilteredItems: number;
+		},
 	): void {
 		const totalItemsOnPage = pageResult.items.length;
 		const filteredOnPage = pageResult.filteredCount;
 
+		// Build progress indicator
+		const progressInfo = maxPages
+			? `${pagesProcessed}/${maxPages}`
+			: `${pagesProcessed}`;
+
 		console.log(
-			`📄 Page ${pagesProcessed}: found ${totalItemsOnPage + filteredOnPage} items`,
+			`📄 Page ${progressInfo}: found ${totalItemsOnPage + filteredOnPage} items`,
 		);
 		console.log(`   ✅ Processed ${newItemsCount} new items`);
 		if (duplicatesOnPage > 0) {
@@ -206,6 +289,16 @@ export class ArticleListingCrawler implements Crawler {
 		}
 		if (filteredOnPage > 0) {
 			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
+		}
+
+		// Show running totals if metadata provided
+		if (runningMetadata) {
+			const totalProcessed = runningMetadata.itemsProcessed + newItemsCount;
+			const totalSkipped = runningMetadata.duplicatesSkipped + duplicatesOnPage;
+			const totalFiltered = runningMetadata.totalFilteredItems + filteredOnPage;
+			console.log(
+				`   📊 Running totals: ${totalProcessed} processed, ${totalSkipped} duplicates, ${totalFiltered} filtered`,
+			);
 		}
 	}
 }

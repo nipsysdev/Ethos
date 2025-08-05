@@ -56,25 +56,42 @@ export async function handleCrawl(
 		}
 
 		// Ask for crawl options
-		const { maxPages } = await inquirer.prompt([
-			{
-				type: "input",
-				name: "maxPages",
-				message: "Max pages to crawl (leave empty for no limit):",
-				default: "",
-				validate: validatePositiveIntegerOrEmpty,
-			},
-		]);
+		const { maxPages, stopOnAllDuplicates, reCrawlExisting } =
+			await inquirer.prompt([
+				{
+					type: "input",
+					name: "maxPages",
+					message: "Max pages to crawl (leave empty for no limit):",
+					default: "",
+					validate: validatePositiveIntegerOrEmpty,
+				},
+				{
+					type: "confirm",
+					name: "stopOnAllDuplicates",
+					message:
+						"Stop crawling when all items on a page are already in database?",
+					default: true,
+				},
+				{
+					type: "confirm",
+					name: "reCrawlExisting",
+					message: "Re-crawl existing content?",
+					default: false,
+				},
+			]);
 
 		const options: CrawlOptions = {};
 		if (maxPages !== "") {
 			options.maxPages = Number.parseInt(maxPages, 10);
 		}
+		options.stopOnAllDuplicates = stopOnAllDuplicates;
+		// If user wants to re-crawl existing content, disable URL skipping
+		options.skipExistingUrls = !reCrawlExisting;
 
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
 
 		try {
-			const result = await pipeline.process(selectedSource, options);
+			const result = await pipeline.processSummary(selectedSource, options);
 			spinner.succeed("Crawl completed successfully!");
 			displayResults(result);
 

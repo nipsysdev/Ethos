@@ -1,9 +1,6 @@
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { displayResults, showPostCrawlMenuWithFlow } from "@/cli/ui/display.js";
-import type { ProcessingResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "@/index.js";
 
 // Mock inquirer and other dependencies
 vi.mock("inquirer", () => ({
@@ -20,12 +17,6 @@ vi.mock("@/cli/ui/viewer.js", () => ({
 	showExtractedData: vi.fn(),
 }));
 
-// Mock the CommonJS require for the cleanup function
-const mockUnregisterTempFile = vi.fn();
-vi.doMock("@/cli/index.js", () => ({
-	unregisterTempFile: mockUnregisterTempFile,
-}));
-
 const mockShowPostCrawlMenu = vi.mocked(
 	(await import("@/cli/ui/menus.js")).showPostCrawlMenu,
 );
@@ -34,8 +25,7 @@ const mockShowExtractedData = vi.mocked(
 );
 
 describe("display module", () => {
-	const mockResult: ProcessingResult = {
-		data: [],
+	const mockResult: ProcessingSummaryResult = {
 		summary: {
 			sourceName: "test",
 			sourceId: "test-id",
@@ -87,80 +77,21 @@ describe("display module", () => {
 			expect(mockShowExtractedData).toHaveBeenCalledWith(mockResult);
 		});
 
-		it("should cleanup temp metadata file when exiting context", async () => {
-			const tempFile = join(tmpdir(), `test-cleanup-${Date.now()}.json`);
-			writeFileSync(tempFile, "{}");
-
-			const resultWithTempFile: ProcessingResult = {
-				...mockResult,
-				summary: {
-					...mockResult.summary,
-					tempMetadataFile: tempFile,
-				},
-			};
-
+		it("should handle user selection to exit", async () => {
 			mockShowPostCrawlMenu.mockResolvedValue("exit");
-			const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-			const result = await showPostCrawlMenuWithFlow(resultWithTempFile);
+			const result = await showPostCrawlMenuWithFlow(mockResult);
 
 			expect(result).toBe("exit");
-			expect(consoleSpy).toHaveBeenCalledWith(
-				"🗑️  Cleaned up temporary metadata file",
-			);
-
-			consoleSpy.mockRestore();
+			expect(mockShowPostCrawlMenu).toHaveBeenCalledTimes(1);
 		});
 
-		it("should cleanup temp file on error", async () => {
-			const tempFile = join(tmpdir(), `test-cleanup-error-${Date.now()}.json`);
-			writeFileSync(tempFile, "{}");
-
-			const resultWithTempFile: ProcessingResult = {
-				...mockResult,
-				summary: {
-					...mockResult.summary,
-					tempMetadataFile: tempFile,
-				},
-			};
-
+		it("should handle errors in post-crawl menu flow", async () => {
 			mockShowPostCrawlMenu.mockRejectedValue(new Error("Test error"));
-			const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-			await expect(
-				showPostCrawlMenuWithFlow(resultWithTempFile),
-			).rejects.toThrow("Test error");
-
-			expect(consoleSpy).toHaveBeenCalledWith(
-				"🗑️  Cleaned up temporary metadata file",
+			await expect(showPostCrawlMenuWithFlow(mockResult)).rejects.toThrow(
+				"Test error",
 			);
-
-			consoleSpy.mockRestore();
-		});
-
-		it("should handle cleanup when temp file does not exist", async () => {
-			const nonExistentFile = join(tmpdir(), `non-existent-${Date.now()}.json`);
-
-			const resultWithTempFile: ProcessingResult = {
-				...mockResult,
-				summary: {
-					...mockResult.summary,
-					tempMetadataFile: nonExistentFile,
-				},
-			};
-
-			mockShowPostCrawlMenu.mockResolvedValue("exit");
-			const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-			const result = await showPostCrawlMenuWithFlow(resultWithTempFile);
-
-			expect(result).toBe("exit");
-			// Should not log cleanup message if file doesn't exist (unlinkSync fails)
-			expect(consoleSpy).not.toHaveBeenCalledWith(
-				"🗑️  Cleaned up temporary metadata file",
-			);
-
-			consoleSpy.mockRestore();
 		});
 	});
 });

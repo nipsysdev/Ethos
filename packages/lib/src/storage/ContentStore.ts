@@ -1,24 +1,38 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { CrawledData } from "@/core/types.js";
-import { generateContentHash } from "@/utils/hash.js";
+import type { ContentData, CrawledData } from "@/core/types.js";
+import { generateStringHash } from "@/utils/hash.js";
+import { MetadataStore, type MetadataStoreOptions } from "./MetadataStore.js";
 
 export interface StorageResult {
 	hash: string;
 	path: string;
 	existed: boolean;
 	storedAt: Date;
+	metadata?: {
+		id: number;
+		stored: boolean;
+	};
 }
 
 export interface ContentStoreOptions {
 	storageDir?: string;
+	enableMetadata?: boolean;
+	metadataOptions?: MetadataStoreOptions;
 }
 
 export class ContentStore {
 	private readonly storageDir: string;
+	private readonly metadataStore?: MetadataStore;
+	private readonly enableMetadata: boolean;
 
 	constructor(options: ContentStoreOptions = {}) {
 		this.storageDir = resolve(options.storageDir ?? "./storage/content");
+		this.enableMetadata = options.enableMetadata ?? true;
+
+		if (this.enableMetadata) {
+			this.metadataStore = new MetadataStore(options.metadataOptions);
+		}
 	}
 
 	/**
@@ -36,16 +50,32 @@ export class ContentStore {
 	}
 
 	/**
+	 * Extract pure content data from crawled data (removing tracking metadata)
+	 */
+	private extractContentData(data: CrawledData): ContentData {
+		const { url, title, content, author, publishedDate, image } = data;
+		return {
+			url,
+			title,
+			content,
+			...(author && { author }),
+			...(publishedDate && { publishedDate }),
+			...(image && { image }),
+		};
+	}
+
+	/**
 	 * Store crawled data using content-addressed storage
 	 * @param data The crawled data to store
 	 * @returns Storage result with hash, path, and whether file already existed
 	 */
 	async store(data: CrawledData): Promise<StorageResult> {
-		// Create content hash based only on URL (natural unique identifier)
+		// Hash URL for content addressing (deduplication)
 		const hash = this.generateHash(data.url);
 
-		// Serialize the full data for storage
-		const serialized = JSON.stringify(data, null, 2);
+		// Extract only the content data for JSON storage (no tracking metadata)
+		const contentData = this.extractContentData(data);
+		const serialized = JSON.stringify(contentData, null, 2);
 		const filename = `${hash}.json`;
 		const filePath = join(this.storageDir, filename);
 
@@ -53,12 +83,56 @@ export class ContentStore {
 			// Check if file already exists (deduplication)
 			const existed = await this.fileExists(filePath);
 
+			let metadataResult: { id: number; stored: boolean } | undefined;
 			if (!existed) {
 				// Ensure storage directory exists
 				await this.ensureDirectoryExists(this.storageDir);
 
 				// Write the file
 				await writeFile(filePath, serialized, "utf8");
+
+				// Store metadata if enabled
+				if (this.metadataStore) {
+					try {
+						const metadata = await this.metadataStore.store(data, hash);
+						metadataResult = {
+							id: metadata.id as number,
+							stored: true,
+						};
+					} catch (metadataError) {
+						// Log but don't fail the whole operation
+						console.warn(
+							`Failed to store metadata: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+						);
+					}
+				}
+			} else {
+				// File exists, check if metadata also exists
+				if (this.metadataStore) {
+					if (!this.metadataStore.existsByHash(hash)) {
+						try {
+							const metadata = await this.metadataStore.store(data, hash);
+							metadataResult = {
+								id: metadata.id as number,
+								stored: true,
+							};
+						} catch (metadataError) {
+							// Metadata might already exist, that's ok
+							console.warn(
+								`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+							);
+						}
+					} else {
+						// Metadata already exists, get the existing ID
+						const existingMetadata = this.metadataStore.getByHash(hash);
+						if (existingMetadata?.id) {
+							metadataResult = {
+								id: existingMetadata.id,
+								stored: false, // Wasn't stored this time, already existed
+							};
+						}
+					}
+				}
 			}
 
 			return {
@@ -66,6 +140,7 @@ export class ContentStore {
 				path: filePath,
 				existed,
 				storedAt: new Date(),
+				metadata: metadataResult,
 			};
 		} catch (error) {
 			throw new Error(
@@ -77,9 +152,9 @@ export class ContentStore {
 	/**
 	 * Retrieve stored data by URL
 	 * @param url The URL to look up
-	 * @returns The stored data if found, null otherwise
+	 * @returns The stored content data if found, null otherwise
 	 */
-	async retrieve(url: string): Promise<CrawledData | null> {
+	async retrieve(url: string): Promise<ContentData | null> {
 		const hash = this.generateHash(url);
 		const filePath = join(this.storageDir, `${hash}.json`);
 
@@ -89,12 +164,7 @@ export class ContentStore {
 				const content = await readFile(filePath, "utf8");
 				const parsed = JSON.parse(content);
 
-				// Convert timestamp back to Date object
-				if (parsed.timestamp) {
-					parsed.timestamp = new Date(parsed.timestamp);
-				}
-
-				return parsed as CrawledData;
+				return parsed as ContentData;
 			}
 			return null;
 		} catch (error) {
@@ -110,6 +180,12 @@ export class ContentStore {
 	 * @returns True if content exists, false otherwise
 	 */
 	async exists(url: string): Promise<boolean> {
+		// Use metadata store for fast lookup if available
+		if (this.metadataStore) {
+			return this.metadataStore.existsByUrl(url);
+		}
+
+		// Fallback to filesystem check
 		const hash = this.generateHash(url);
 		const filePath = join(this.storageDir, `${hash}.json`);
 		return this.fileExists(filePath);
@@ -119,7 +195,7 @@ export class ContentStore {
 	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
 	 */
 	protected generateHash(content: string): string {
-		return generateContentHash(content);
+		return generateStringHash(content);
 	}
 
 	/**
@@ -180,5 +256,21 @@ export class ContentStore {
 	 */
 	getStorageDirectory(): string {
 		return this.storageDir;
+	}
+
+	/**
+	 * Get the metadata store instance
+	 */
+	getMetadataStore(): MetadataStore | undefined {
+		return this.metadataStore;
+	}
+
+	/**
+	 * Close any open connections
+	 */
+	close(): void {
+		if (this.metadataStore) {
+			this.metadataStore.close();
+		}
 	}
 }

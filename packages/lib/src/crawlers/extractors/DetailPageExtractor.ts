@@ -4,8 +4,14 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
-import { parsePublishedDate } from "@/utils/date.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
+import { createBrowserExtractionFunction } from "./BrowserFieldExtractor.js";
+import {
+	mergeDetailData,
+	updateFieldStats,
+	updateItemMetadata,
+} from "./DetailDataMapper.js";
 
 export interface DetailExtractionResult {
 	detailData: Record<string, string | null>;
@@ -31,84 +37,13 @@ export class DetailPageExtractor {
 
 			// Navigate to the detail page
 			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
-			// Extract fields from detail page
-			const extractionResult = await page.evaluate((detailConfig) => {
-				// NOTE: These helper functions are duplicated in ListingPageExtractor
-				// This is intentional - page.evaluate() needs self-contained code
-				// and sharing across the browser boundary adds unnecessary complexity
 
-				// Inline helper for text extraction with exclusions
-				function extractTextWithExclusions(
-					element: Element,
-					excludeSelectors?: string[],
-				) {
-					if (excludeSelectors && excludeSelectors.length > 0) {
-						const cloned = element.cloneNode(true) as Element;
-						for (const selector of excludeSelectors) {
-							const excludedElements = cloned.querySelectorAll(selector);
-							for (const excludedElement of excludedElements) {
-								excludedElement.remove();
-							}
-						}
-						return cloned.textContent?.trim().replace(/\s+/g, " ") || null;
-					} else {
-						return element.textContent?.trim().replace(/\s+/g, " ") || null;
-					}
-				}
-
-				// Inline helper for field extraction
-				function extractFieldValue(
-					element: Element | null,
-					fieldConfig: { attribute: string; exclude_selectors?: string[] },
-				) {
-					if (!element) return null;
-
-					if (fieldConfig.attribute === "text") {
-						return extractTextWithExclusions(
-							element,
-							fieldConfig.exclude_selectors,
-						);
-					} else {
-						return element.getAttribute(fieldConfig.attribute);
-					}
-				}
-
-				const results: Record<string, string | null> = {};
-				const extractionErrors: string[] = [];
-
-				// Determine the container to search within
-				const containerElement = document.querySelector(
-					detailConfig.container_selector,
-				);
-				if (!containerElement) {
-					extractionErrors.push(
-						`Container selector "${detailConfig.container_selector}" not found`,
-					);
-					return { results, extractionErrors };
-				}
-
-				for (const [fieldName, fieldConfig] of Object.entries(
-					detailConfig.fields,
-				)) {
-					try {
-						const typedFieldConfig = fieldConfig as {
-							selector: string;
-							attribute: string;
-							exclude_selectors?: string[];
-						};
-						const element = containerElement.querySelector(
-							typedFieldConfig.selector,
-						);
-						const value = extractFieldValue(element, typedFieldConfig);
-						results[fieldName] = value && value !== "" ? value : null;
-					} catch (error) {
-						extractionErrors.push(`Failed to extract ${fieldName}: ${error}`);
-						results[fieldName] = null;
-					}
-				}
-
-				return { results, extractionErrors };
-			}, config.detail);
+			// Extract fields from detail page using the browser extraction function
+			const extractionFunction = createBrowserExtractionFunction();
+			const extractionResult = await page.evaluate(
+				extractionFunction,
+				config.detail,
+			);
 
 			Object.assign(detailData, extractionResult.results);
 			errors.push(...extractionResult.extractionErrors);
@@ -120,24 +55,80 @@ export class DetailPageExtractor {
 		return { detailData, errors };
 	}
 
-	async extractDetailData(
+	private filterExistingUrls(
+		items: CrawledData[],
+		metadataStore: MetadataStore,
+	): { filteredItems: CrawledData[]; skippedCount: number } {
+		// Use batch URL checking for much better performance
+		const allUrls = items.map((item) => item.url);
+		const existingUrls = metadataStore.getExistingUrls(allUrls);
+
+		const filteredItems: CrawledData[] = [];
+		let skippedCount = 0;
+
+		for (const item of items) {
+			if (existingUrls.has(item.url)) {
+				skippedCount++;
+			} else {
+				filteredItems.push(item);
+			}
+		}
+
+		return { filteredItems, skippedCount };
+	}
+
+	async extractDetailPagesConcurrently(
 		page: Page,
 		items: CrawledData[],
 		config: SourceConfig,
-		detailErrors: string[],
-		detailFieldStats: FieldExtractionStats[],
 		itemOffset: number,
 		concurrencyLimit: number = 5,
+		metadataStore?: MetadataStore,
+		skipExistingUrls: boolean = true,
+		externalDetailErrors?: string[],
+		externalDetailFieldStats?: FieldExtractionStats[],
 	): Promise<void> {
 		// Get browser instance to create additional pages for concurrency
 		const browser = page.browser();
+
+		// Filter out URLs that already exist in the database if enabled
+		let itemsToProcess = items;
+		let skippedCount = 0;
+
+		if (skipExistingUrls && metadataStore) {
+			const result = this.filterExistingUrls(items, metadataStore);
+			itemsToProcess = result.filteredItems;
+			skippedCount = result.skippedCount;
+
+			if (skippedCount > 0) {
+				console.log(
+					`📊 Skipped ${skippedCount} URLs already in database, processing ${itemsToProcess.length} new URLs`,
+				);
+			}
+		}
+
+		// If no items to process after filtering, return early
+		if (itemsToProcess.length === 0) {
+			console.log(
+				"🎯 All URLs already exist in database, skipping detail extraction",
+			);
+			return;
+		}
+
+		// Initialize tracking arrays - use external ones if provided (for legacy test compatibility)
+		const detailErrors: string[] = externalDetailErrors || [];
+		const detailFieldStats: FieldExtractionStats[] =
+			externalDetailFieldStats || [];
 
 		// Create a pool of pages for concurrent processing
 		const pagePool: Page[] = [];
 		try {
 			// Calculate how many pages we need for concurrent processing
 			// Never use the main page - it's needed for listing navigation
-			const totalPagesNeeded = Math.min(concurrencyLimit, items.length);
+			const totalPagesNeeded = Math.min(
+				concurrencyLimit,
+				itemsToProcess.length,
+			);
 
 			// Create dedicated pages for detail extraction only
 			for (let i = 0; i < totalPagesNeeded; i++) {
@@ -156,11 +147,12 @@ export class DetailPageExtractor {
 			}
 
 			// Process all items with controlled concurrency
-			while (itemIndex < items.length || runningTasks.size > 0) {
+			let completedCount = 0;
+			while (itemIndex < itemsToProcess.length || runningTasks.size > 0) {
 				// Start new tasks if we have available pages and items
-				while (itemIndex < items.length && availablePages.size > 0) {
+				while (itemIndex < itemsToProcess.length && availablePages.size > 0) {
 					const currentIndex = itemIndex++;
-					const item = items[currentIndex];
+					const item = itemsToProcess[currentIndex];
 					const pageIndex = Array.from(availablePages)[0];
 					// Defensive check - should never happen given availablePages.size > 0 above
 					if (pageIndex === undefined) {
@@ -186,6 +178,17 @@ export class DetailPageExtractor {
 						runningTasks.delete(task);
 						if (freedPageIndex !== undefined) {
 							availablePages.add(freedPageIndex);
+						}
+
+						// Update progress
+						completedCount++;
+						if (
+							completedCount % 5 === 0 ||
+							completedCount === itemsToProcess.length
+						) {
+							console.log(
+								`   🔄 Detail extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
+							);
 						}
 					});
 				}
@@ -227,47 +230,18 @@ export class DetailPageExtractor {
 				config,
 			);
 
-			// Merge detail data, overwriting listing data where detail data exists
-			if (detailData.title) item.title = detailData.title;
-			if (detailData.content) item.content = detailData.content;
-			if (detailData.author) item.author = detailData.author;
-			if (detailData.date) {
-				try {
-					const parsedDate = parsePublishedDate(detailData.date);
-					item.publishedDate = parsedDate;
-				} catch (error) {
-					throw new Error(
-						`Date parsing failed for detail page "${item.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
-					);
-				}
-			}
-			if (detailData.image) item.image = detailData.image;
+			// Merge detail data into the item
+			mergeDetailData(item, detailData);
 
-			// Track what we got from detail vs listing
-			const detailFields = Object.keys(detailData).filter(
-				(key) => detailData[key] !== null,
-			);
-			const failedDetailFields = Object.keys(detailData).filter(
-				(key) => detailData[key] === null,
+			// Update field statistics and get field lists
+			const { detailFields, failedDetailFields } = updateFieldStats(
+				detailData,
+				detailFieldStats,
+				itemIndex,
 			);
 
-			// Update detail field stats
-			detailFieldStats.forEach((stat) => {
-				stat.totalAttempts++;
-				if (detailFields.includes(stat.fieldName)) {
-					stat.successCount++;
-				} else {
-					stat.missingItems.push(itemIndex + 1);
-				}
-			});
-
-			// Update metadata
-			item.metadata = {
-				...item.metadata,
-				detailFieldsExtracted: detailFields,
-				detailFieldsFailed: failedDetailFields,
-				detailExtractionErrors: errors,
-			};
+			// Update item metadata
+			updateItemMetadata(item, detailFields, failedDetailFields, errors);
 
 			// Add errors to main error list
 			if (errors.length > 0) {
@@ -280,10 +254,33 @@ export class DetailPageExtractor {
 			detailErrors.push(errorMessage);
 
 			// Add error info to metadata
-			item.metadata = {
-				...item.metadata,
-				detailExtractionErrors: [errorMessage],
-			};
+			updateItemMetadata(item, [], [], [errorMessage]);
 		}
+	}
+
+	// Alias for backward compatibility with tests
+	async extractDetailData(
+		page: Page,
+		items: CrawledData[],
+		config: SourceConfig,
+		detailErrors: string[],
+		detailFieldStats: FieldExtractionStats[],
+		itemOffset: number,
+		concurrencyLimit: number = 5,
+		metadataStore?: MetadataStore,
+		skipExistingUrls: boolean = true,
+	): Promise<void> {
+		// Legacy test method that passes detailErrors and detailFieldStats to be mutated
+		return this.extractDetailPagesConcurrently(
+			page,
+			items,
+			config,
+			itemOffset,
+			concurrencyLimit,
+			metadataStore,
+			skipExistingUrls,
+			detailErrors,
+			detailFieldStats,
+		);
 	}
 }
