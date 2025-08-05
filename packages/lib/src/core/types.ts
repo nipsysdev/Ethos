@@ -148,6 +148,7 @@ export interface CrawlOptions {
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
 	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
 	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
+	skipExistingUrls?: boolean; // Skip detail crawling for URLs already in database (default: true)
 }
 
 // Shared types for crawl metadata

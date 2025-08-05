@@ -4,6 +4,7 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { parsePublishedDate } from "@/utils/date.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
 
@@ -128,16 +129,56 @@ export class DetailPageExtractor {
 		detailFieldStats: FieldExtractionStats[],
 		itemOffset: number,
 		concurrencyLimit: number = 5,
+		metadataStore?: MetadataStore,
+		skipExistingUrls: boolean = true,
 	): Promise<void> {
 		// Get browser instance to create additional pages for concurrency
 		const browser = page.browser();
+
+		// Filter out URLs that already exist in the database if enabled
+		let itemsToProcess = items;
+		let skippedCount = 0;
+
+		if (skipExistingUrls && metadataStore) {
+			const filteredItems: CrawledData[] = [];
+
+			for (const item of items) {
+				if (metadataStore.existsByUrl(item.url)) {
+					skippedCount++;
+					console.log(
+						`⏭️  Skipping detail extraction for existing URL: ${item.url}`,
+					);
+				} else {
+					filteredItems.push(item);
+				}
+			}
+
+			itemsToProcess = filteredItems;
+
+			if (skippedCount > 0) {
+				console.log(
+					`📊 Skipped ${skippedCount} URLs already in database, processing ${itemsToProcess.length} new URLs`,
+				);
+			}
+		}
+
+		// If no items to process after filtering, return early
+		if (itemsToProcess.length === 0) {
+			console.log(
+				"🎯 All URLs already exist in database, skipping detail extraction",
+			);
+			return;
+		}
 
 		// Create a pool of pages for concurrent processing
 		const pagePool: Page[] = [];
 		try {
 			// Calculate how many pages we need for concurrent processing
 			// Never use the main page - it's needed for listing navigation
-			const totalPagesNeeded = Math.min(concurrencyLimit, items.length);
+			const totalPagesNeeded = Math.min(
+				concurrencyLimit,
+				itemsToProcess.length,
+			);
 
 			// Create dedicated pages for detail extraction only
 			for (let i = 0; i < totalPagesNeeded; i++) {
@@ -156,11 +197,11 @@ export class DetailPageExtractor {
 			}
 
 			// Process all items with controlled concurrency
-			while (itemIndex < items.length || runningTasks.size > 0) {
+			while (itemIndex < itemsToProcess.length || runningTasks.size > 0) {
 				// Start new tasks if we have available pages and items
-				while (itemIndex < items.length && availablePages.size > 0) {
+				while (itemIndex < itemsToProcess.length && availablePages.size > 0) {
 					const currentIndex = itemIndex++;
-					const item = items[currentIndex];
+					const item = itemsToProcess[currentIndex];
 					const pageIndex = Array.from(availablePages)[0];
 					// Defensive check - should never happen given availablePages.size > 0 above
 					if (pageIndex === undefined) {

@@ -137,6 +137,7 @@ export class ArticleListingCrawler implements Crawler {
 					const currentListingUrl = page.url();
 
 					const concurrency = options?.detailConcurrency ?? 5;
+					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
 						`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
 					);
@@ -148,6 +149,8 @@ export class ArticleListingCrawler implements Crawler {
 						metadata.detailFieldStats,
 						metadata.itemUrls.length, // Current offset
 						concurrency,
+						metadataTracker.getMetadataStore(),
+						skipExisting,
 					);
 					metadataTracker.addDetailsCrawled(newItems.length);
 

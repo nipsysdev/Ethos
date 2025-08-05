@@ -93,6 +93,13 @@ export class MetadataTracker implements ContentSessionLinker {
 	}
 
 	/**
+	 * Get the metadata store instance for URL existence checks
+	 */
+	getMetadataStore(): MetadataStore {
+		return this.metadataStore;
+	}
+
+	/**
 	 * Checkpoint WAL files to prevent them from growing too large.
 	 * Call this periodically during long crawl operations.
 	 */
