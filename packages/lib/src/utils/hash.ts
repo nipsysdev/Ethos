@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 
 /**
- * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
- * Used consistently across ContentStore and ArticleListingCrawler for content addressing
+ * Generate a SHA-1 hash for the given string (40-character hex output)
+ * Generic utility function for consistent string hashing across the application
  */
-export function generateContentHash(content: string): string {
+export function generateStringHash(content: string): string {
 	return createHash("sha1").update(content, "utf8").digest("hex");
 }

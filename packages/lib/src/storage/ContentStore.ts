@@ -1,7 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ContentData, CrawledData } from "@/core/types.js";
-import { generateContentHash } from "@/utils/hash.js";
+import { generateStringHash } from "@/utils/hash.js";
 import { MetadataStore, type MetadataStoreOptions } from "./MetadataStore.js";
 
 export interface StorageResult {
@@ -70,7 +70,7 @@ export class ContentStore {
 	 * @returns Storage result with hash, path, and whether file already existed
 	 */
 	async store(data: CrawledData): Promise<StorageResult> {
-		// Create content hash based only on URL (natural unique identifier)
+		// Hash URL for content addressing (deduplication)
 		const hash = this.generateHash(data.url);
 
 		// Extract only the content data for JSON storage (no tracking metadata)
@@ -195,7 +195,7 @@ export class ContentStore {
 	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
 	 */
 	protected generateHash(content: string): string {
-		return generateContentHash(content);
+		return generateStringHash(content);
 	}
 
 	/**

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { ContentStore } from "@/storage/ContentStore.js";
-import { generateContentHash } from "@/utils/hash.js";
+import { generateStringHash } from "@/utils/hash.js";
 
 describe("ContentStore", () => {
 	let testStorageDir: string;
@@ -344,7 +344,7 @@ describe("ContentStore", () => {
 
 			// Now corrupt the file by writing invalid JSON
 			// Generate hash the same way ContentStore does
-			const hash = generateContentHash(sampleData.url);
+			const hash = generateStringHash(sampleData.url);
 			const filePath = join(testStorageDir, `${hash}.json`);
 			await writeFile(filePath, "invalid json content", "utf8");
 
