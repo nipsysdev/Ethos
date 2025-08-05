@@ -407,6 +407,15 @@ describe("MetadataStore", () => {
 			expect(metadataStore.getSession(sessionId)).not.toBeNull(); // Still exists but inactive
 		});
 
+		it("should throw error when updating non-existent session", () => {
+			const nonExistentSessionId = "non-existent-session";
+			const updatedMetadata = { status: "updated" };
+
+			expect(() =>
+				metadataStore.updateSession(nonExistentSessionId, updatedMetadata),
+			).toThrow(`Session not found: ${nonExistentSessionId}`);
+		});
+
 		it("should link content to sessions with processing order", async () => {
 			const sessionId = "test-session-link";
 			const startTime = new Date();

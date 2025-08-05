@@ -153,13 +153,13 @@ export class SessionMetadataStore extends MetadataDatabase {
 	 */
 	updateSession(sessionId: string, metadata: object): void {
 		try {
-			// Validate that session exists before updating
-			const session = this.getSession(sessionId);
-			if (!session) {
+			const result = this.updateSessionStmt.run(
+				JSON.stringify(metadata),
+				sessionId,
+			);
+			if (result.changes === 0) {
 				throw new Error(`Session not found: ${sessionId}`);
 			}
-
-			this.updateSessionStmt.run(JSON.stringify(metadata), sessionId);
 		} catch (error) {
 			throw new Error(
 				`Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
