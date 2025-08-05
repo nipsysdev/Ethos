@@ -150,6 +150,35 @@ export class ContentMetadataStore extends MetadataDatabase {
 	}
 
 	/**
+	 * Check if multiple URLs exist in the database. Returns a Set of existing URLs.
+	 * This is much more efficient than calling existsByUrl() in a loop.
+	 */
+	getExistingUrls(urls: string[]): Set<string> {
+		if (urls.length === 0) return new Set();
+
+		// SQLite has a limit on the number of parameters in a query (usually 999)
+		// So we'll batch the queries if needed
+		const BATCH_SIZE = 900;
+		const existingUrls = new Set<string>();
+
+		for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+			const batch = urls.slice(i, i + BATCH_SIZE);
+			const placeholders = batch.map(() => "?").join(",");
+
+			const stmt = this.db.prepare(`
+				SELECT url FROM crawled_content WHERE url IN (${placeholders})
+			`);
+
+			const rows = stmt.all(...batch) as Array<{ url: string }>;
+			for (const row of rows) {
+				existingUrls.add(row.url);
+			}
+		}
+
+		return existingUrls;
+	}
+
+	/**
 	 * Check if content exists by hash
 	 */
 	existsByHash(hash: string): boolean {

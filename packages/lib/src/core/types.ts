@@ -157,6 +157,13 @@ export interface CrawlOptions {
 	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
 	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
 	skipExistingUrls?: boolean; // Skip detail crawling for URLs already in database (default: true)
+	/**
+	 * Stop crawling when all items on a page are duplicates (default: true)
+	 *
+	 * true: Stop when a page contains only items already in database (efficient for chronological content)
+	 * false: Continue crawling even if all items on a page are duplicates (thorough for mixed content)
+	 */
+	stopOnAllDuplicates?: boolean;
 }
 
 // Shared types for crawl metadata

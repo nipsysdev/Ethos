@@ -140,10 +140,14 @@ export class DetailPageExtractor {
 		let skippedCount = 0;
 
 		if (skipExistingUrls && metadataStore) {
+			// Use batch URL checking for much better performance
+			const allUrls = items.map((item) => item.url);
+			const existingUrls = metadataStore.getExistingUrls(allUrls);
+
 			const filteredItems: CrawledData[] = [];
 
 			for (const item of items) {
-				if (metadataStore.existsByUrl(item.url)) {
+				if (existingUrls.has(item.url)) {
 					skippedCount++;
 				} else {
 					filteredItems.push(item);

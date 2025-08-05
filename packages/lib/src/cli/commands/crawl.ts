@@ -56,7 +56,7 @@ export async function handleCrawl(
 		}
 
 		// Ask for crawl options
-		const { maxPages } = await inquirer.prompt([
+		const { maxPages, stopOnAllDuplicates } = await inquirer.prompt([
 			{
 				type: "input",
 				name: "maxPages",
@@ -64,12 +64,20 @@ export async function handleCrawl(
 				default: "",
 				validate: validatePositiveIntegerOrEmpty,
 			},
+			{
+				type: "confirm",
+				name: "stopOnAllDuplicates",
+				message:
+					"Stop crawling when all items on a page are already in database?",
+				default: true,
+			},
 		]);
 
 		const options: CrawlOptions = {};
 		if (maxPages !== "") {
 			options.maxPages = Number.parseInt(maxPages, 10);
 		}
+		options.stopOnAllDuplicates = stopOnAllDuplicates;
 
 		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
 

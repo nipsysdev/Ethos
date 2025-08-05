@@ -35,6 +35,10 @@ export class MetadataStore {
 		return this.contentStore.existsByUrl(url);
 	}
 
+	getExistingUrls(urls: string[]): Set<string> {
+		return this.contentStore.getExistingUrls(urls);
+	}
+
 	existsByHash(hash: string): boolean {
 		return this.contentStore.existsByHash(hash);
 	}

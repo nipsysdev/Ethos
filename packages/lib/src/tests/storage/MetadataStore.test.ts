@@ -147,6 +147,26 @@ describe("MetadataStore", () => {
 			expect(metadataStore.existsByHash("testhash123")).toBe(true);
 			expect(metadataStore.existsByHash("nonexistenthash")).toBe(false);
 		});
+
+		it("should batch check existing URLs", () => {
+			const urlsToCheck = [
+				sampleData.url,
+				"https://nonexistent1.com",
+				"https://nonexistent2.com",
+			];
+
+			const existingUrls = metadataStore.getExistingUrls(urlsToCheck);
+
+			expect(existingUrls.size).toBe(1);
+			expect(existingUrls.has(sampleData.url)).toBe(true);
+			expect(existingUrls.has("https://nonexistent1.com")).toBe(false);
+			expect(existingUrls.has("https://nonexistent2.com")).toBe(false);
+		});
+
+		it("should handle empty URL array in batch check", () => {
+			const existingUrls = metadataStore.getExistingUrls([]);
+			expect(existingUrls.size).toBe(0);
+		});
 	});
 
 	describe("Data Retrieval", () => {

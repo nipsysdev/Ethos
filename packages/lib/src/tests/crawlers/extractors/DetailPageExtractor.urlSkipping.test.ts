@@ -14,6 +14,7 @@ describe("DetailPageExtractor - URL Skipping", () => {
 	let mockPage: Page;
 	let mockMetadataStore: Partial<MetadataStore>;
 	let mockExistsByUrl: ReturnType<typeof vi.fn>;
+	let mockGetExistingUrls: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		extractor = new DetailPageExtractor();
@@ -33,8 +34,10 @@ describe("DetailPageExtractor - URL Skipping", () => {
 
 		// Mock metadata store
 		mockExistsByUrl = vi.fn().mockReturnValue(false);
+		mockGetExistingUrls = vi.fn().mockReturnValue(new Set<string>());
 		mockMetadataStore = {
 			existsByUrl: mockExistsByUrl,
+			getExistingUrls: mockGetExistingUrls,
 		};
 	});
 
@@ -78,10 +81,13 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			"https://example.com/article-3", // Will be marked as existing
 		]);
 
-		// Mock metadata store to return true for articles 1 and 3
-		mockExistsByUrl.mockImplementation((url: string) => {
-			return url.includes("article-1") || url.includes("article-3");
-		});
+		// Mock metadata store to return existing URLs for articles 1 and 3
+		mockGetExistingUrls.mockReturnValue(
+			new Set([
+				"https://example.com/article-1",
+				"https://example.com/article-3",
+			]),
+		);
 
 		const detailErrors: string[] = [];
 		const detailFieldStats: FieldExtractionStats[] = [];
@@ -100,17 +106,16 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			true, // skipExistingUrls enabled
 		);
 
-		// Should have checked existence for all URLs
-		expect(mockExistsByUrl).toHaveBeenCalledTimes(3);
-		expect(mockExistsByUrl).toHaveBeenCalledWith(
+		// Should have called the batch method once with all URLs
+		expect(mockGetExistingUrls).toHaveBeenCalledTimes(1);
+		expect(mockGetExistingUrls).toHaveBeenCalledWith([
 			"https://example.com/article-1",
-		);
-		expect(mockExistsByUrl).toHaveBeenCalledWith(
 			"https://example.com/article-2",
-		);
-		expect(mockExistsByUrl).toHaveBeenCalledWith(
 			"https://example.com/article-3",
-		);
+		]);
+
+		// Should not have called individual existsByUrl anymore
+		expect(mockExistsByUrl).not.toHaveBeenCalled();
 
 		// Should log summary message only
 		expect(consoleSpy).toHaveBeenCalledWith(
@@ -138,8 +143,13 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			"https://example.com/article-2",
 		]);
 
-		// Mock metadata store to return true for all URLs
-		mockExistsByUrl.mockReturnValue(true);
+		// Mock metadata store to return existing URLs for all
+		mockGetExistingUrls.mockReturnValue(
+			new Set([
+				"https://example.com/article-1",
+				"https://example.com/article-2",
+			]),
+		);
 
 		const detailErrors: string[] = [];
 		const detailFieldStats: FieldExtractionStats[] = [];
@@ -157,6 +167,7 @@ describe("DetailPageExtractor - URL Skipping", () => {
 		);
 
 		// Should not check existence when skipping is disabled
+		expect(mockGetExistingUrls).not.toHaveBeenCalled();
 		expect(mockExistsByUrl).not.toHaveBeenCalled();
 
 		// Should create 2 pages (for both items)
@@ -196,8 +207,13 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			"https://example.com/article-2",
 		]);
 
-		// Mock metadata store to return true for all URLs
-		mockExistsByUrl.mockReturnValue(true);
+		// Mock metadata store to return all URLs as existing
+		mockGetExistingUrls.mockReturnValue(
+			new Set([
+				"https://example.com/article-1",
+				"https://example.com/article-2",
+			]),
+		);
 
 		const detailErrors: string[] = [];
 		const detailFieldStats: FieldExtractionStats[] = [];
@@ -216,8 +232,15 @@ describe("DetailPageExtractor - URL Skipping", () => {
 			true, // skipExistingUrls enabled
 		);
 
-		// Should have checked existence for all URLs
-		expect(mockExistsByUrl).toHaveBeenCalledTimes(2);
+		// Should have called the batch method once
+		expect(mockGetExistingUrls).toHaveBeenCalledTimes(1);
+		expect(mockGetExistingUrls).toHaveBeenCalledWith([
+			"https://example.com/article-1",
+			"https://example.com/article-2",
+		]);
+
+		// Should not have called individual existsByUrl
+		expect(mockExistsByUrl).not.toHaveBeenCalled();
 
 		// Should log that all URLs are being skipped
 		expect(consoleSpy).toHaveBeenCalledWith(

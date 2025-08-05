@@ -122,7 +122,6 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Filter out duplicates and count them
 				const newItems: CrawledData[] = [];
-				let allItemsAreDuplicates = true;
 
 				for (const item of pageResult.items) {
 					if (seenUrls.has(item.url)) {
@@ -130,38 +129,64 @@ export class ArticleListingCrawler implements Crawler {
 					} else {
 						seenUrls.add(item.url);
 						newItems.push(item);
-						allItemsAreDuplicates = false;
 					}
 				}
 
-				// Log page summary
-				const duplicatesOnPage = pageResult.items.length - newItems.length;
-				this.logPageSummary(
-					metadata.pagesProcessed,
-					pageResult,
-					newItems.length,
-					duplicatesOnPage,
-				);
+				// Early database check to filter out URLs that already exist
+				// This prevents unnecessary detail page processing
+				let itemsToProcess = newItems;
+				let dbDuplicatesSkipped = 0;
 
-				// If all items on this page were duplicates, stop
-				if (pageResult.items.length > 0 && allItemsAreDuplicates) {
+				if (newItems.length > 0 && options?.skipExistingUrls !== false) {
+					const metadataStore = metadataTracker.getMetadataStore();
+					if (metadataStore) {
+						const allUrls = newItems.map((item) => item.url);
+						const existingUrls = metadataStore.getExistingUrls(allUrls);
+
+						if (existingUrls.size > 0) {
+							itemsToProcess = newItems.filter(
+								(item) => !existingUrls.has(item.url),
+							);
+							dbDuplicatesSkipped = newItems.length - itemsToProcess.length;
+
+							// Track these as duplicates in metadata
+							metadataTracker.addDuplicatesSkipped(dbDuplicatesSkipped);
+						}
+					}
+				}
+
+				// Check if all items (after both session and database deduplication) are duplicates
+				if (
+					pageResult.items.length > 0 &&
+					itemsToProcess.length === 0 &&
+					options?.stopOnAllDuplicates !== false
+				) {
 					metadataTracker.setStoppedReason("all_duplicates");
+					// Update logging to reflect database duplicates too
+					const totalDuplicatesOnPage =
+						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+					this.logPageSummary(
+						metadata.pagesProcessed,
+						pageResult,
+						0, // No new items after database check
+						totalDuplicatesOnPage,
+					);
 					break;
 				}
 
 				// Extract detail data if we have new items
-				if (newItems.length > 0) {
+				if (itemsToProcess.length > 0) {
 					// Store current listing page URL so we can return to it after detail extraction
 					const currentListingUrl = page.url();
 
 					const concurrency = options?.detailConcurrency ?? 5;
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
-						`🔍 Extracting detail data for ${newItems.length} items (concurrency: ${concurrency})...`,
+						`🔍 Extracting detail data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
 					);
 					await this.detailExtractor.extractDetailData(
 						page,
-						newItems,
+						itemsToProcess,
 						config,
 						metadata.detailErrors,
 						metadata.detailFieldStats,
@@ -170,7 +195,7 @@ export class ArticleListingCrawler implements Crawler {
 						metadataTracker.getMetadataStore(),
 						skipExisting,
 					);
-					metadataTracker.addDetailsCrawled(newItems.length);
+					metadataTracker.addDetailsCrawled(itemsToProcess.length);
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
@@ -181,20 +206,30 @@ export class ArticleListingCrawler implements Crawler {
 						const originalTracker = options.metadataTracker;
 						options.metadataTracker = metadataTracker;
 
-						await options.onPageComplete(newItems);
+						await options.onPageComplete(itemsToProcess);
 
 						// Restore original tracker
 						options.metadataTracker = originalTracker;
 					}
 
 					// Add items to metadata tracking
-					metadataTracker.addItems(newItems);
+					metadataTracker.addItems(itemsToProcess);
 
 					// Checkpoint WAL files periodically to prevent them from growing too large
 					// Do this after processing each page during long crawls
 					metadataTracker.checkpoint();
 
-					newItems.length = 0; // Free memory
+					itemsToProcess.length = 0; // Free memory
+				} else {
+					// Log page summary even when no items to process
+					const totalDuplicatesOnPage =
+						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+					this.logPageSummary(
+						metadata.pagesProcessed,
+						pageResult,
+						0, // No new items after database check
+						totalDuplicatesOnPage,
+					);
 				}
 
 				// Try to navigate to next page
