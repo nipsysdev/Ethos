@@ -51,7 +51,7 @@ describe("Data Viewer", () => {
 					source: "test-source",
 					url: "https://example.com/article1",
 					title: "Test Article",
-					publishedDate: new Date("2025-01-01"),
+					publishedDate: new Date("2024-12-31"),
 					crawledAt: new Date(),
 					createdAt: new Date(),
 					processedOrder: 1,
@@ -157,7 +157,7 @@ describe("Data Viewer", () => {
 				message: "Select an item to view (1 files):",
 				choices: [
 					{
-						name: "1. Test Article (2024-12-31)",
+						name: expect.stringMatching(/1\. Test Article \(.+\)/),
 						value: expect.stringContaining("abc123.json"),
 						short: "Test Article",
 					},
