@@ -117,8 +117,8 @@ export async function showCrawlErrors(
 		console.log("\nFalling back to console output:\n");
 		console.log(errorContent);
 		console.log("Press Enter to continue...");
-		await new Promise((resolve) => {
-			process.stdin.once("data", () => resolve(void 0));
+		await new Promise<void>((resolve) => {
+			process.stdin.once("data", () => resolve());
 		});
 	} finally {
 		// Clean up temporary file
