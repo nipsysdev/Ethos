@@ -26,8 +26,8 @@ export async function showCrawlErrors(
 	if (!hasListingErrors && !hasContentErrors && !hasFieldIssues) {
 		console.log("✅ No errors found during crawling!");
 		console.log("Press Enter to continue...");
-		await new Promise((resolve) => {
-			process.stdin.once("data", () => resolve(void 0));
+		await new Promise<void>((resolve) => {
+			process.stdin.once("data", () => resolve());
 		});
 		return;
 	}
