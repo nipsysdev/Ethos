@@ -270,7 +270,9 @@ export class SessionMetadataStore extends MetadataDatabase {
 		} catch (error) {
 			throw new Error(`Failed to get session contents: ${error}`);
 		}
-	} /**
+	}
+
+	/**
 	 * Map database row to ContentMetadata (reused from ContentMetadataStore)
 	 */
 	private mapRowToMetadata(row: DatabaseRow): ContentMetadata {
