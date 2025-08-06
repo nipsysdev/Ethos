@@ -88,6 +88,10 @@ export class MetadataStore {
 		return this.sessionStore.getSession(sessionId);
 	}
 
+	getAllSessions(): CrawlSession[] {
+		return this.sessionStore.getAllSessions();
+	}
+
 	isSessionActive(sessionId: string): boolean {
 		return this.sessionStore.isSessionActive(sessionId);
 	}

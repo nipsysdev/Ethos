@@ -44,17 +44,13 @@ describe("Summary Display", () => {
 		const result = createMockResult();
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("📊 Summary:");
-		expect(mockLog).toHaveBeenCalledWith(
-			"   • Source: Test Source (test-source)",
-		);
-		expect(mockLog).toHaveBeenCalledWith("   • Items found: 10");
-		expect(mockLog).toHaveBeenCalledWith(
-			"   • Items successfully processed: 8",
-		);
-		expect(mockLog).toHaveBeenCalledWith("   • Items with errors: 2");
-		expect(mockLog).toHaveBeenCalledWith("   • title: 8/8 (100%)");
-		expect(mockLog).toHaveBeenCalledWith("   • author: 6/8 (75%)");
+		expect(mockLog).toHaveBeenCalledWith("Summary:");
+		expect(mockLog).toHaveBeenCalledWith("  Source: Test Source (test-source)");
+		expect(mockLog).toHaveBeenCalledWith("  Items found: 10");
+		expect(mockLog).toHaveBeenCalledWith("  Items successfully retrieved: 8");
+		expect(mockLog).toHaveBeenCalledWith("  Items with errors: 2");
+		expect(mockLog).toHaveBeenCalledWith("  title: 8/8 (100%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/8 (75%)");
 	});
 
 	it("should handle zero attempts and show missing field issues", () => {
@@ -75,7 +71,7 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("   • empty: 0/0 (0%) (optional)");
+		expect(mockLog).toHaveBeenCalledWith("  empty: 0/0 (0%) (optional)");
 		// Issues section has been moved to the error viewer, so no longer displayed in summary
 	});
 
@@ -90,7 +86,7 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("\n⏱️  Crawl took: 1.5 seconds");
+		expect(mockLog).toHaveBeenCalledWith("\nCrawl took: 1.5 seconds");
 	});
 
 	it("should display content crawling stats when available", () => {
@@ -122,16 +118,14 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("   • Listing pages processed: 3");
-		expect(mockLog).toHaveBeenCalledWith("   • Duplicates skipped: 2");
+		expect(mockLog).toHaveBeenCalledWith("  Listing pages processed: 3");
+		expect(mockLog).toHaveBeenCalledWith("  Duplicates skipped: 2");
 		expect(mockLog).toHaveBeenCalledWith(
-			"   • Stop reason: reached maximum pages limit",
+			"  Stop reason: reached maximum pages limit",
 		);
-		expect(mockLog).toHaveBeenCalledWith(
-			"\n🔍 Content field extraction stats:",
-		);
-		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%)");
-		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%)");
+		expect(mockLog).toHaveBeenCalledWith("\nContent field extraction stats:");
+		expect(mockLog).toHaveBeenCalledWith("  content: 5/6 (83%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/6 (100%)");
 	});
 
 	it("should show content extraction errors when present", () => {
@@ -150,10 +144,8 @@ describe("Summary Display", () => {
 		displayCrawlSummary(result);
 
 		// Content extraction errors are no longer displayed in summary, moved to error viewer
-		expect(mockLog).not.toHaveBeenCalledWith("\n⚠️  Issues found:");
-		expect(mockLog).not.toHaveBeenCalledWith(
-			"   🔍 Content extraction issues:",
-		);
+		expect(mockLog).not.toHaveBeenCalledWith("\nIssues found:");
+		expect(mockLog).not.toHaveBeenCalledWith("   Content extraction issues:");
 	});
 
 	it("should handle all stop reasons correctly", () => {
@@ -185,41 +177,7 @@ describe("Summary Display", () => {
 
 			displayCrawlSummary(result);
 
-			expect(mockLog).toHaveBeenCalledWith(`   • Stop reason: ${expected}`);
+			expect(mockLog).toHaveBeenCalledWith(`  Stop reason: ${expected}`);
 		});
-	});
-
-	it("should display storage stats when available", () => {
-		const result = createMockResult({
-			summary: {
-				...createMockResult().summary,
-				storageStats: {
-					itemsStored: 8,
-					itemsFailed: 2,
-				},
-			},
-		});
-
-		displayCrawlSummary(result);
-
-		expect(mockLog).toHaveBeenCalledWith("\n💾 Storage:");
-		expect(mockLog).toHaveBeenCalledWith("   • Items stored: 8");
-		expect(mockLog).toHaveBeenCalledWith("   • Items failed to store: 2");
-	});
-
-	it("should not display storage stats when no items were stored", () => {
-		const result = createMockResult({
-			summary: {
-				...createMockResult().summary,
-				storageStats: {
-					itemsStored: 0,
-					itemsFailed: 0,
-				},
-			},
-		});
-
-		displayCrawlSummary(result);
-
-		expect(mockLog).not.toHaveBeenCalledWith("\n💾 Storage:");
 	});
 });

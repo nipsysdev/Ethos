@@ -165,4 +165,11 @@ export class ProcessingPipeline {
 		const fullResult = await this.process(config, options);
 		return ProcessingPipeline.createSummaryResult(fullResult);
 	}
+
+	/**
+	 * Get the metadata store instance for accessing session and content metadata
+	 */
+	getMetadataStore() {
+		return this.contentStore.getMetadataStore();
+	}
 }

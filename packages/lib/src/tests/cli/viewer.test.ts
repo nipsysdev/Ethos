@@ -150,7 +150,7 @@ describe("Data Viewer", () => {
 			expect.objectContaining({
 				type: "list",
 				name: "selectedFile",
-				message: "Select an item to view (1 files):",
+				message: "Select an item to view - 1 total items:",
 				choices: [
 					{
 						name: expect.stringMatching(/1\. Test Article \(.+\)/),
@@ -158,12 +158,12 @@ describe("Data Viewer", () => {
 						short: "Test Article",
 					},
 					{
-						name: "← Back to menu",
+						name: "< Back to menu",
 						value: "back",
 						short: "Back",
 					},
 				],
-				pageSize: 15,
+				pageSize: 2,
 			}),
 		]);
 

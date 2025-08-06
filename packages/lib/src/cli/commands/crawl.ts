@@ -1,4 +1,3 @@
-import ora from "ora";
 import type {
 	CrawlOptions,
 	ProcessingPipeline,
@@ -88,17 +87,17 @@ export async function handleCrawl(
 		// If user wants to re-crawl existing content, disable URL skipping
 		options.skipExistingUrls = !reCrawlExisting;
 
-		const spinner = ora(`Crawling ${selectedSource.name}...`).start();
+		console.log(`Crawling ${selectedSource.name}...`);
 
 		try {
 			const result = await pipeline.processSummary(selectedSource, options);
-			spinner.succeed("Crawl completed successfully!");
+			console.log("Crawl completed successfully!");
 			displayResults(result);
 
 			// Show post-crawl menu and return the action
-			return await showPostCrawlMenuWithFlow(result);
+			return await showPostCrawlMenuWithFlow(result, pipeline);
 		} catch (error) {
-			spinner.fail("Crawl failed");
+			console.log("Crawl failed");
 			console.error("Error:", error);
 			return "main";
 		}

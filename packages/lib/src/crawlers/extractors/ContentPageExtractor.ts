@@ -102,7 +102,7 @@ export class ContentPageExtractor {
 
 			if (skippedCount > 0) {
 				console.log(
-					`📊 Skipped ${skippedCount} URLs already in database, processing ${itemsToProcess.length} new URLs`,
+					`Skipped ${skippedCount} URLs already in database, processing ${itemsToProcess.length} new URLs`,
 				);
 			}
 		}
@@ -110,7 +110,7 @@ export class ContentPageExtractor {
 		// If no items to process after filtering, return early
 		if (itemsToProcess.length === 0) {
 			console.log(
-				"🎯 All URLs already exist in database, skipping content extraction",
+				"All URLs already exist in database, skipping content extraction",
 			);
 			return;
 		}
@@ -187,7 +187,7 @@ export class ContentPageExtractor {
 							completedCount === itemsToProcess.length
 						) {
 							console.log(
-								`   🔄 Content extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
+								`  Content extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
 							);
 						}
 					});

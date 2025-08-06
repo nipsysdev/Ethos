@@ -27,7 +27,7 @@ export class MetadataTracker implements ContentSessionLinker {
 		// Create epoch timestamp-based session ID
 		const epochTimestamp = Math.floor(startTime.getTime() / 1000);
 		this.sessionId = `crawl-session-${epochTimestamp}`;
-		console.log(`📝 Starting crawl session: ${this.sessionId}`);
+		console.log(`Starting crawl session: ${this.sessionId}`);
 
 		// Initialize metadata store (use provided one for testing, or create new one)
 		this.metadataStore = metadataStore ?? new MetadataStore();

@@ -4,6 +4,22 @@ import type { ProcessingSummaryResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
 
+// Pagination constants
+const ITEMS_PER_PAGE = 50; // Number of data items to show per page
+const MAX_VISIBLE_MENU_OPTIONS = 20; // Maximum menu options visible in terminal at once
+
+// Navigation constants
+const NAV_PREVIOUS = "prev";
+const NAV_NEXT = "next";
+const NAV_BACK = "back";
+const NAV_SEPARATOR = "separator";
+
+// Navigation display strings
+const DISPLAY_PREVIOUS_PREFIX = "<< Previous page";
+const DISPLAY_NEXT_SUFFIX = ">>";
+const DISPLAY_BACK = "< Back to menu";
+const SEPARATOR_LINE = "-".repeat(50);
+
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
 		// Use appropriate command based on platform
@@ -26,8 +42,6 @@ async function isLessAvailable(): Promise<boolean> {
 export async function showExtractedData(
 	result: ProcessingSummaryResult,
 ): Promise<void> {
-	const inquirer = (await import("inquirer")).default;
-
 	// Check if we have session ID for accessing crawl data
 	if (!result.summary.sessionId) {
 		console.log("No crawl session available for viewing.");
@@ -71,42 +85,106 @@ export async function showExtractedData(
 		metadataStore.close();
 	}
 
+	// Use pagination for large datasets
+	await showPaginatedViewer(storedItems, result);
+}
+
+async function showPaginatedViewer(
+	items: Array<{
+		title: string;
+		hash: string;
+		publishedDate?: Date;
+		url: string;
+	}>,
+	result: ProcessingSummaryResult,
+	currentPage = 0,
+): Promise<void> {
+	const inquirer = (await import("inquirer")).default;
+	const pageSize = ITEMS_PER_PAGE; // Show items per page
+	const totalPages = Math.ceil(items.length / pageSize);
+	const startIndex = currentPage * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, items.length);
+	const currentItems = items.slice(startIndex, endIndex);
+
 	// Create a ContentStore instance to get the storage directory
 	const contentStore = new ContentStore({ enableMetadata: false });
 	const storageDir = contentStore.getStorageDirectory();
 
-	// Create choices with titles and file info
-	const choices = storedItems.map((item: ViewerItem, index: number) => {
+	// Create choices for current page items
+	const choices = currentItems.map((item, index) => {
+		const globalIndex = startIndex + index + 1;
 		const publishedInfo = item.publishedDate
 			? ` (${new Date(item.publishedDate).toLocaleDateString()})`
 			: "";
 		return {
-			name: `${index + 1}. ${item.title}${publishedInfo}`,
+			name: `${globalIndex}. ${item.title}${publishedInfo}`,
 			value: join(storageDir, `${item.hash}.json`),
 			short: item.title,
 		};
 	});
 
+	// Add navigation options
+	const navigationChoices = [];
+
+	if (currentPage > 0) {
+		navigationChoices.push({
+			name: `${DISPLAY_PREVIOUS_PREFIX} (${currentPage}/${totalPages})`,
+			value: NAV_PREVIOUS,
+			short: "Previous",
+		});
+	}
+
+	if (currentPage < totalPages - 1) {
+		navigationChoices.push({
+			name: `Next page (${currentPage + 2}/${totalPages}) ${DISPLAY_NEXT_SUFFIX}`,
+			value: NAV_NEXT,
+			short: "Next",
+		});
+	}
+
+	// Add separator and navigation if there are multiple pages
+	if (totalPages > 1) {
+		choices.push({
+			name: SEPARATOR_LINE,
+			value: NAV_SEPARATOR,
+			disabled: true,
+		} as never);
+		choices.push(...navigationChoices);
+	}
+
 	choices.push({
-		name: "← Back to menu",
-		value: "back",
+		name: DISPLAY_BACK,
+		value: NAV_BACK,
 		short: "Back",
 	});
 
+	const pageInfo =
+		totalPages > 1 ? ` (Page ${currentPage + 1}/${totalPages})` : "";
 	const { selectedFile } = await inquirer.prompt([
 		{
 			type: "list",
 			name: "selectedFile",
-			message: `Select an item to view (${storedItems.length} files):`,
+			message: `Select an item to view${pageInfo} - ${items.length} total items:`,
 			choices,
-			pageSize: 15,
+			pageSize: Math.min(MAX_VISIBLE_MENU_OPTIONS, choices.length), // Limit visible options
 		},
 	]);
 
-	if (selectedFile === "back") {
+	if (selectedFile === NAV_BACK) {
 		return;
 	}
 
+	if (selectedFile === NAV_PREVIOUS) {
+		await showPaginatedViewer(items, result, currentPage - 1);
+		return;
+	}
+
+	if (selectedFile === NAV_NEXT) {
+		await showPaginatedViewer(items, result, currentPage + 1);
+		return;
+	}
+
+	// View the selected file
 	try {
 		if (await isLessAvailable()) {
 			const less = spawn("less", ["-R", selectedFile], {
@@ -140,6 +218,6 @@ export async function showExtractedData(
 		);
 	}
 
-	// Loop back to file selection
-	await showExtractedData(result);
+	// Return to the same page after viewing
+	await showPaginatedViewer(items, result, currentPage);
 }
