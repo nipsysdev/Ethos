@@ -32,7 +32,7 @@ describe("Summary Display", () => {
 					missingItems: [3, 7],
 				},
 			],
-			detailFieldStats: [],
+			contentFieldStats: [],
 			listingErrors: ["Failed to parse item 3"],
 			startTime: new Date("2025-01-01T10:00:00Z"),
 			endTime: new Date("2025-01-01T10:00:05Z"),
@@ -93,15 +93,15 @@ describe("Summary Display", () => {
 		expect(mockLog).toHaveBeenCalledWith("\n⏱️  Crawl took: 1.5 seconds");
 	});
 
-	it("should display detail crawling stats when available", () => {
+	it("should display content crawling stats when available", () => {
 		const result = createMockResult({
 			summary: {
 				...createMockResult().summary,
 				pagesProcessed: 3,
 				duplicatesSkipped: 2,
 				stoppedReason: "max_pages" as const,
-				detailsCrawled: 6,
-				detailFieldStats: [
+				contentsCrawled: 6,
+				contentFieldStats: [
 					{
 						fieldName: "content",
 						successCount: 5,
@@ -127,20 +127,22 @@ describe("Summary Display", () => {
 		expect(mockLog).toHaveBeenCalledWith(
 			"   • Stop reason: reached maximum pages limit",
 		);
-		expect(mockLog).toHaveBeenCalledWith("\n🔍 Detail field extraction stats:");
+		expect(mockLog).toHaveBeenCalledWith(
+			"\n🔍 Content field extraction stats:",
+		);
 		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%)");
 		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%)");
 	});
 
-	it("should show detail extraction errors when present", () => {
+	it("should show content extraction errors when present", () => {
 		const result = createMockResult({
 			summary: {
 				...createMockResult().summary,
-				detailErrors: [
-					"Detail extraction for https://example.com/1: Failed to extract content",
-					"Failed to load detail page https://example.com/2: Navigation timeout",
-					"Detail extraction for https://example.com/3: Parser error",
-					"Detail extraction for https://example.com/4: Network error",
+				contentErrors: [
+					"Content extraction for https://example.com/1: Failed to extract content",
+					"Failed to load content page https://example.com/2: Navigation timeout",
+					"Content extraction for https://example.com/3: Parser error",
+					"Content extraction for https://example.com/4: Network error",
 				],
 			},
 		});
@@ -148,18 +150,18 @@ describe("Summary Display", () => {
 		displayCrawlSummary(result);
 
 		expect(mockLog).toHaveBeenCalledWith("\n⚠️  Issues found:");
-		expect(mockLog).toHaveBeenCalledWith("   🔍 Detail extraction issues:");
+		expect(mockLog).toHaveBeenCalledWith("   🔍 Content extraction issues:");
 		expect(mockLog).toHaveBeenCalledWith(
-			"      • 4 detail page(s) had extraction errors",
+			"      • 4 content page(s) had extraction errors",
 		);
 		expect(mockLog).toHaveBeenCalledWith(
-			"        - Detail extraction for https://example.com/1: Failed to extract content",
+			"        - Content extraction for https://example.com/1: Failed to extract content",
 		);
 		expect(mockLog).toHaveBeenCalledWith(
-			"        - Failed to load detail page https://example.com/2: Navigation timeout",
+			"        - Failed to load content page https://example.com/2: Navigation timeout",
 		);
 		expect(mockLog).toHaveBeenCalledWith(
-			"        - Detail extraction for https://example.com/3: Parser error",
+			"        - Content extraction for https://example.com/3: Parser error",
 		);
 		expect(mockLog).toHaveBeenCalledWith("        ... and 1 more");
 	});

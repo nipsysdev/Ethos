@@ -19,7 +19,7 @@ Ethos: decentralized digital rights data collection. Pipeline: crawl â†’ store â
 
 ## Phase 1 Complete
 
-- ArticleListingCrawler with pagination + optional detail pages
+- ArticleListingCrawler with pagination + optional content pages
 - Interactive CLI (`pnpm cli`)
 - YAML-driven configs, error handling, deduplication
 - EFF reference implementation working

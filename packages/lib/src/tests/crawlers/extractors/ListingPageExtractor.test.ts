@@ -20,7 +20,7 @@ describe("ListingPageExtractor", () => {
 				},
 			},
 		},
-		detail: {
+		content: {
 			container_selector: ".article-content",
 			fields: {
 				content: { selector: ".content", attribute: "text" },

@@ -85,15 +85,15 @@ export class ProcessingPipeline {
 
 					// Link content to session if metadata tracker is available
 					if (streamingOptions?.metadataTracker && storageResult.metadata?.id) {
-						// Check if this item had detail extraction errors
-						const hadDetailError = Boolean(
-							data.metadata?.detailFieldsFailed &&
-								Array.isArray(data.metadata.detailFieldsFailed) &&
-								data.metadata.detailFieldsFailed.length > 0,
+						// Check if this item had content extraction errors
+						const hadContentError = Boolean(
+							data.metadata?.contentFieldsFailed &&
+								Array.isArray(data.metadata.contentFieldsFailed) &&
+								data.metadata.contentFieldsFailed.length > 0,
 						);
 						streamingOptions.metadataTracker.linkContentToSession(
 							storageResult.metadata.id,
-							hadDetailError,
+							hadContentError,
 						);
 					}
 

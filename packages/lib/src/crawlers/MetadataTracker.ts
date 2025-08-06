@@ -38,7 +38,7 @@ export class MetadataTracker implements ContentSessionLinker {
 			totalFilteredItems: 0,
 			itemsProcessed: 0,
 			pagesProcessed: 0,
-			detailsCrawled: 0,
+			contentsCrawled: 0,
 			fieldStats: Object.entries(config.listing.items.fields).map(
 				([fieldName, fieldConfig]) => ({
 					fieldName,
@@ -48,7 +48,7 @@ export class MetadataTracker implements ContentSessionLinker {
 					missingItems: [],
 				}),
 			),
-			detailFieldStats: Object.entries(config.detail.fields).map(
+			contentFieldStats: Object.entries(config.content.fields).map(
 				([fieldName]) => ({
 					fieldName,
 					successCount: 0,
@@ -58,7 +58,7 @@ export class MetadataTracker implements ContentSessionLinker {
 				}),
 			),
 			listingErrors: [],
-			detailErrors: [],
+			contentErrors: [],
 		};
 
 		// Create session in database
@@ -121,7 +121,7 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	linkContentToSession(
 		contentId: number,
-		hadDetailExtractionError = false,
+		hadContentExtractionError = false,
 	): void {
 		// Increment and use the counter for proper ordering
 		this.contentLinkedCount++;
@@ -129,7 +129,7 @@ export class MetadataTracker implements ContentSessionLinker {
 			this.sessionId,
 			contentId,
 			this.contentLinkedCount,
-			hadDetailExtractionError,
+			hadContentExtractionError,
 		);
 	}
 
@@ -159,10 +159,10 @@ export class MetadataTracker implements ContentSessionLinker {
 	}
 
 	/**
-	 * Track that detail data was crawled
+	 * Track that content data was crawled
 	 */
-	addDetailsCrawled(count: number): void {
-		this.metadata.detailsCrawled += count;
+	addContentsCrawled(count: number): void {
+		this.metadata.contentsCrawled += count;
 		this.updateSessionInDatabase();
 	}
 
@@ -204,15 +204,15 @@ export class MetadataTracker implements ContentSessionLinker {
 			itemsProcessed: this.metadata.itemsProcessed,
 			itemsWithErrors: this.metadata.totalFilteredItems,
 			fieldStats: this.metadata.fieldStats,
-			detailFieldStats: this.metadata.detailFieldStats,
+			contentFieldStats: this.metadata.contentFieldStats,
 			listingErrors: this.metadata.listingErrors,
 			startTime: session.startTime,
 			endTime,
 			pagesProcessed: this.metadata.pagesProcessed,
 			duplicatesSkipped: this.metadata.duplicatesSkipped,
 			stoppedReason: this.metadata.stoppedReason,
-			detailsCrawled: this.metadata.detailsCrawled,
-			detailErrors: this.metadata.detailErrors,
+			contentsCrawled: this.metadata.contentsCrawled,
+			contentErrors: this.metadata.contentErrors,
 		};
 
 		// Return empty data array since all items were processed immediately

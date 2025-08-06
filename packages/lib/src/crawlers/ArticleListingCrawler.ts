@@ -10,7 +10,7 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
-import { DetailPageExtractor } from "./extractors/DetailPageExtractor.js";
+import { ContentPageExtractor } from "./extractors/ContentPageExtractor.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
 import { MetadataTracker } from "./MetadataTracker.js";
@@ -23,7 +23,7 @@ export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
 
 	private listingExtractor = new ListingPageExtractor();
-	private detailExtractor = new DetailPageExtractor();
+	private contentExtractor = new ContentPageExtractor();
 	private paginationHandler = new PaginationHandler();
 	private interruptionHandler = new InterruptionHandler();
 
@@ -133,7 +133,7 @@ export class ArticleListingCrawler implements Crawler {
 				}
 
 				// Early database check to filter out URLs that already exist
-				// This prevents unnecessary detail page processing
+				// This prevents unnecessary content page processing
 				let itemsToProcess = newItems;
 				let dbDuplicatesSkipped = 0;
 
@@ -188,28 +188,28 @@ export class ArticleListingCrawler implements Crawler {
 					metadata, // Pass metadata for running totals
 				);
 
-				// Extract detail data if we have new items
+				// Extract content data if we have new items
 				if (itemsToProcess.length > 0) {
-					// Store current listing page URL so we can return to it after detail extraction
+					// Store current listing page URL so we can return to it after content extraction
 					const currentListingUrl = page.url();
 
-					const concurrency = options?.detailConcurrency ?? 5;
+					const concurrency = options?.contentConcurrency ?? 5;
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
-						`🔍 Extracting detail data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
+						`🔍 Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
 					);
-					await this.detailExtractor.extractDetailData(
+					await this.contentExtractor.extractContentPagesConcurrently(
 						page,
 						itemsToProcess,
 						config,
-						metadata.detailErrors,
-						metadata.detailFieldStats,
 						metadata.itemsProcessed, // Current offset
 						concurrency,
 						metadataTracker.getMetadataStore(),
 						skipExisting,
+						metadata.contentErrors,
+						metadata.contentFieldStats,
 					);
-					metadataTracker.addDetailsCrawled(itemsToProcess.length);
+					metadataTracker.addContentsCrawled(itemsToProcess.length);
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });

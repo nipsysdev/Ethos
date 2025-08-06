@@ -62,7 +62,7 @@ export interface ListingConfig {
 	items: ItemsConfig;
 }
 
-export interface DetailConfig {
+export interface ContentConfig {
 	container_selector: string;
 	fields: Record<string, FieldConfig>;
 }
@@ -72,7 +72,7 @@ export interface SourceConfig {
 	name: string;
 	type: CrawlerType;
 	listing: ListingConfig;
-	detail: DetailConfig;
+	content: ContentConfig;
 }
 
 export interface CrawlResult {
@@ -123,7 +123,7 @@ export interface CrawlSummary {
 	itemsProcessed: number;
 	itemsWithErrors: number;
 	fieldStats: FieldExtractionStats[];
-	detailFieldStats: FieldExtractionStats[];
+	contentFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	startTime: Date;
 	endTime: Date;
@@ -134,8 +134,8 @@ export interface CrawlSummary {
 		| "no_next_button"
 		| "all_duplicates"
 		| "process_interrupted";
-	detailsCrawled?: number;
-	detailErrors?: string[];
+	contentsCrawled?: number;
+	contentErrors?: string[];
 	sessionId?: string; // Session ID for accessing crawl metadata from database
 	storageStats?: {
 		itemsStored: number;
@@ -147,16 +147,16 @@ export interface CrawlSummary {
 export interface ContentSessionLinker {
 	linkContentToSession(
 		contentId: number,
-		hadDetailExtractionError?: boolean,
+		hadContentExtractionError?: boolean,
 	): void;
 }
 
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
-	detailConcurrency?: number; // Number of detail pages to crawl concurrently (default: 5)
+	contentConcurrency?: number; // Number of content pages to crawl concurrently (default: 5)
 	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
-	skipExistingUrls?: boolean; // Skip detail crawling for URLs already in database (default: true)
+	skipExistingUrls?: boolean; // Skip content crawling for URLs already in database (default: true)
 	/**
 	 * Stop crawling when all items on a page are duplicates (default: true)
 	 *
@@ -179,11 +179,11 @@ export interface CrawlMetadata {
 	totalFilteredItems: number;
 	itemsProcessed: number; // Track total items processed (replaces itemUrls.length)
 	pagesProcessed: number;
-	detailsCrawled: number;
+	contentsCrawled: number;
 	fieldStats: FieldExtractionStats[];
-	detailFieldStats: FieldExtractionStats[];
+	contentFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
-	detailErrors: string[];
+	contentErrors: string[];
 	stoppedReason?:
 		| "max_pages"
 		| "no_next_button"

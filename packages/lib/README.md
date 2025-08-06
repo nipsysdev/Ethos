@@ -69,7 +69,7 @@ sources:
             attribute: "src"
             optional: true
 
-    detail:
+    content:
       container_selector: ".node-type-blog"
       fields:
         content:
