@@ -76,7 +76,7 @@ describe("Summary Display", () => {
 		displayCrawlSummary(result);
 
 		expect(mockLog).toHaveBeenCalledWith("   • empty: 0/0 (0%) (optional)");
-		expect(mockLog).toHaveBeenCalledWith("\n⚠️  Issues found:");
+		// Issues section has been moved to the error viewer, so no longer displayed in summary
 	});
 
 	it("should calculate and display duration correctly", () => {
@@ -149,21 +149,11 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("\n⚠️  Issues found:");
-		expect(mockLog).toHaveBeenCalledWith("   🔍 Content extraction issues:");
-		expect(mockLog).toHaveBeenCalledWith(
-			"      • 4 content page(s) had extraction errors",
+		// Content extraction errors are no longer displayed in summary, moved to error viewer
+		expect(mockLog).not.toHaveBeenCalledWith("\n⚠️  Issues found:");
+		expect(mockLog).not.toHaveBeenCalledWith(
+			"   🔍 Content extraction issues:",
 		);
-		expect(mockLog).toHaveBeenCalledWith(
-			"        - Content extraction for https://example.com/1: Failed to extract content",
-		);
-		expect(mockLog).toHaveBeenCalledWith(
-			"        - Failed to load content page https://example.com/2: Navigation timeout",
-		);
-		expect(mockLog).toHaveBeenCalledWith(
-			"        - Content extraction for https://example.com/3: Parser error",
-		);
-		expect(mockLog).toHaveBeenCalledWith("        ... and 1 more");
 	});
 
 	it("should handle all stop reasons correctly", () => {

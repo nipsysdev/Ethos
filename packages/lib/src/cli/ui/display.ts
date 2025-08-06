@@ -12,7 +12,7 @@ export async function showPostCrawlMenuWithFlow(
 ): Promise<"main" | "crawl" | "exit"> {
 	// Keep looping until user chooses to leave this crawl result context
 	while (true) {
-		const action = await showPostCrawlMenu();
+		const action = await showPostCrawlMenu(result);
 
 		if (action === "view") {
 			await showExtractedData(result);
@@ -20,7 +20,14 @@ export async function showPostCrawlMenuWithFlow(
 			continue;
 		}
 
-		// Any non-"view" action means we're leaving this crawl result context
+		if (action === "errors") {
+			const { showCrawlErrors } = await import("../commands/errors.js");
+			await showCrawlErrors(result);
+			// Continue the loop - stay in this crawl result context
+			continue;
+		}
+
+		// Any non-"view" or non-"errors" action means we're leaving this crawl result context
 		return action;
 	}
 }
