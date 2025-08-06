@@ -20,7 +20,7 @@ export interface SessionContent {
 	sessionId: string;
 	contentId: number;
 	processedOrder: number; // Track the order items were processed
-	hadDetailExtractionError?: boolean;
+	hadContentExtractionError?: boolean;
 }
 
 interface SessionRow {
@@ -95,7 +95,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 
 		// Session-content junction statements
 		this.linkContentToSessionStmt = this.db.prepare(`
-			INSERT INTO session_content (session_id, content_id, processed_order, had_detail_extraction_error)
+			INSERT INTO session_content (session_id, content_id, processed_order, had_content_extraction_error)
 			VALUES (?, ?, ?, ?)
 		`);
 
@@ -103,7 +103,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 			SELECT 
 				cc.*,
 				sc.processed_order,
-				sc.had_detail_extraction_error
+				sc.had_content_extraction_error
 			FROM session_content sc
 			JOIN crawled_content cc ON sc.content_id = cc.id
 			WHERE sc.session_id = ?
@@ -202,7 +202,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 		sessionId: string,
 		contentId: number,
 		processedOrder: number,
-		hadDetailExtractionError = false,
+		hadContentExtractionError = false,
 	): void {
 		try {
 			// Validate that session exists
@@ -215,7 +215,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 				sessionId,
 				contentId,
 				processedOrder,
-				hadDetailExtractionError ? 1 : 0,
+				hadContentExtractionError ? 1 : 0,
 			);
 		} catch (error) {
 			throw new Error(
@@ -225,29 +225,52 @@ export class SessionMetadataStore extends MetadataDatabase {
 	}
 
 	/**
-	 * Get all content for a session in processed order
+	 * Get content for a session
+	 */
+	getSessionContent(sessionId: string): SessionContent[] {
+		try {
+			const rows = this.getSessionContentsStmt.all(sessionId) as Array<{
+				session_id: string;
+				content_id: number;
+				processed_order: number;
+				had_content_extraction_error: number;
+			}>;
+			return rows.map((row) => ({
+				sessionId: row.session_id,
+				contentId: row.content_id,
+				processedOrder: row.processed_order,
+				hadContentExtractionError: row.had_content_extraction_error === 1,
+			}));
+		} catch (error) {
+			throw new Error(`Failed to get session content: ${error}`);
+		}
+	}
+
+	/**
+	 * Get full content metadata for a session (including session-specific data)
 	 */
 	getSessionContents(sessionId: string): Array<
 		ContentMetadata & {
 			processedOrder: number;
-			hadDetailExtractionError: boolean;
+			hadContentExtractionError: boolean;
 		}
 	> {
-		const rows = this.getSessionContentsStmt.all(sessionId) as Array<
-			DatabaseRow & {
-				processed_order: number;
-				had_detail_extraction_error: number | null;
-			}
-		>;
-
-		return rows.map((row) => ({
-			...this.mapRowToMetadata(row),
-			processedOrder: row.processed_order,
-			hadDetailExtractionError: row.had_detail_extraction_error === 1,
-		}));
-	}
-
-	/**
+		try {
+			const rows = this.getSessionContentsStmt.all(sessionId) as Array<
+				DatabaseRow & {
+					processed_order: number;
+					had_content_extraction_error: number;
+				}
+			>;
+			return rows.map((row) => ({
+				...this.mapRowToMetadata(row),
+				processedOrder: row.processed_order,
+				hadContentExtractionError: row.had_content_extraction_error === 1,
+			}));
+		} catch (error) {
+			throw new Error(`Failed to get session contents: ${error}`);
+		}
+	} /**
 	 * Map database row to ContentMetadata (reused from ContentMetadataStore)
 	 */
 	private mapRowToMetadata(row: DatabaseRow): ContentMetadata {

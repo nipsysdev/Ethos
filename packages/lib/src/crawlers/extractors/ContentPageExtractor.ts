@@ -8,51 +8,51 @@ import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
 import { createBrowserExtractionFunction } from "./BrowserFieldExtractor.js";
 import {
-	mergeDetailData,
+	mergeContentData,
 	updateFieldStats,
 	updateItemMetadata,
-} from "./DetailDataMapper.js";
+} from "./ContentDataMapper.js";
 
-export interface DetailExtractionResult {
-	detailData: Record<string, string | null>;
+export interface ContentExtractionResult {
+	contentData: Record<string, string | null>;
 	errors: string[];
 }
 
-export class DetailPageExtractor {
-	async extractFromDetailPage(
+export class ContentPageExtractor {
+	async extractFromContentPage(
 		page: Page,
 		url: string,
 		config: SourceConfig,
-	): Promise<DetailExtractionResult> {
-		const detailData: Record<string, string | null> = {};
+	): Promise<ContentExtractionResult> {
+		const contentData: Record<string, string | null> = {};
 		const errors: string[] = [];
 
-		if (!config.detail?.fields) {
-			return { detailData, errors };
+		if (!config.content?.fields) {
+			return { contentData, errors };
 		}
 
 		try {
 			// Make sure we have an absolute URL
 			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
 
-			// Navigate to the detail page
+			// Navigate to the content page
 			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
 
-			// Extract fields from detail page using the browser extraction function
+			// Extract fields from content page using the browser extraction function
 			const extractionFunction = createBrowserExtractionFunction();
 			const extractionResult = await page.evaluate(
 				extractionFunction,
-				config.detail,
+				config.content,
 			);
 
-			Object.assign(detailData, extractionResult.results);
+			Object.assign(contentData, extractionResult.results);
 			errors.push(...extractionResult.extractionErrors);
 		} catch (error) {
 			const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
-			errors.push(`Failed to load detail page ${absoluteUrl}: ${error}`);
+			errors.push(`Failed to load content page ${absoluteUrl}: ${error}`);
 		}
 
-		return { detailData, errors };
+		return { contentData, errors };
 	}
 
 	private filterExistingUrls(
@@ -77,7 +77,7 @@ export class DetailPageExtractor {
 		return { filteredItems, skippedCount };
 	}
 
-	async extractDetailPagesConcurrently(
+	async extractContentPagesConcurrently(
 		page: Page,
 		items: CrawledData[],
 		config: SourceConfig,
@@ -85,8 +85,8 @@ export class DetailPageExtractor {
 		concurrencyLimit: number = 5,
 		metadataStore?: MetadataStore,
 		skipExistingUrls: boolean = true,
-		externalDetailErrors?: string[],
-		externalDetailFieldStats?: FieldExtractionStats[],
+		externalContentErrors?: string[],
+		externalContentFieldStats?: FieldExtractionStats[],
 	): Promise<void> {
 		// Get browser instance to create additional pages for concurrency
 		const browser = page.browser();
@@ -110,15 +110,15 @@ export class DetailPageExtractor {
 		// If no items to process after filtering, return early
 		if (itemsToProcess.length === 0) {
 			console.log(
-				"🎯 All URLs already exist in database, skipping detail extraction",
+				"🎯 All URLs already exist in database, skipping content extraction",
 			);
 			return;
 		}
 
 		// Initialize tracking arrays - use external ones if provided (for legacy test compatibility)
-		const detailErrors: string[] = externalDetailErrors || [];
-		const detailFieldStats: FieldExtractionStats[] =
-			externalDetailFieldStats || [];
+		const contentErrors: string[] = externalContentErrors || [];
+		const contentFieldStats: FieldExtractionStats[] =
+			externalContentFieldStats || [];
 
 		// Create a pool of pages for concurrent processing
 		const pagePool: Page[] = [];
@@ -130,7 +130,7 @@ export class DetailPageExtractor {
 				itemsToProcess.length,
 			);
 
-			// Create dedicated pages for detail extraction only
+			// Create dedicated pages for content extraction only
 			for (let i = 0; i < totalPagesNeeded; i++) {
 				const newPage = await browser.newPage();
 				pagePool.push(newPage);
@@ -157,17 +157,17 @@ export class DetailPageExtractor {
 					// Defensive check - should never happen given availablePages.size > 0 above
 					if (pageIndex === undefined) {
 						throw new Error(
-							"No available page index found for detail extraction.",
+							"No available page index found for content extraction.",
 						);
 					}
 					availablePages.delete(pageIndex);
 
-					const task = this.extractDetailForSingleItem(
+					const task = this.extractContentForSingleItem(
 						pagePool[pageIndex],
 						item,
 						config,
-						detailErrors,
-						detailFieldStats,
+						contentErrors,
+						contentFieldStats,
 						itemOffset + currentIndex,
 					);
 					runningTasks.set(task, pageIndex);
@@ -187,7 +187,7 @@ export class DetailPageExtractor {
 							completedCount === itemsToProcess.length
 						) {
 							console.log(
-								`   🔄 Detail extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
+								`   🔄 Content extraction progress: ${completedCount}/${itemsToProcess.length} completed`,
 							);
 						}
 					});
@@ -203,7 +203,7 @@ export class DetailPageExtractor {
 			runningTasks.clear();
 			availablePages.clear();
 		} finally {
-			// Clean up all created pages (all were created for detail extraction)
+			// Clean up all created pages (all were created for content extraction)
 			for (let i = 0; i < pagePool.length; i++) {
 				await pagePool[i].close();
 			}
@@ -213,74 +213,48 @@ export class DetailPageExtractor {
 		}
 	}
 
-	private async extractDetailForSingleItem(
+	private async extractContentForSingleItem(
 		page: Page,
 		item: CrawledData,
 		config: SourceConfig,
-		detailErrors: string[],
-		detailFieldStats: FieldExtractionStats[],
+		contentErrors: string[],
+		contentFieldStats: FieldExtractionStats[],
 		itemIndex: number,
 	): Promise<void> {
 		if (!item.url) return;
 
 		try {
-			const { detailData, errors } = await this.extractFromDetailPage(
+			const { contentData, errors } = await this.extractFromContentPage(
 				page,
 				item.url,
 				config,
 			);
 
-			// Merge detail data into the item
-			mergeDetailData(item, detailData);
+			// Merge content data into the item
+			mergeContentData(item, contentData);
 
 			// Update field statistics and get field lists
-			const { detailFields, failedDetailFields } = updateFieldStats(
-				detailData,
-				detailFieldStats,
+			const { contentFields, failedContentFields } = updateFieldStats(
+				contentData,
+				contentFieldStats,
 				itemIndex,
 			);
 
 			// Update item metadata
-			updateItemMetadata(item, detailFields, failedDetailFields, errors);
+			updateItemMetadata(item, contentFields, failedContentFields, errors);
 
 			// Add errors to main error list
 			if (errors.length > 0) {
-				detailErrors.push(
-					...errors.map((err) => `Detail extraction for ${item.url}: ${err}`),
+				contentErrors.push(
+					...errors.map((err) => `Content extraction for ${item.url}: ${err}`),
 				);
 			}
 		} catch (error) {
-			const errorMessage = `Failed to extract detail data for ${item.url}: ${error}`;
-			detailErrors.push(errorMessage);
+			const errorMessage = `Failed to extract content data for ${item.url}: ${error}`;
+			contentErrors.push(errorMessage);
 
 			// Add error info to metadata
 			updateItemMetadata(item, [], [], [errorMessage]);
 		}
-	}
-
-	// Alias for backward compatibility with tests
-	async extractDetailData(
-		page: Page,
-		items: CrawledData[],
-		config: SourceConfig,
-		detailErrors: string[],
-		detailFieldStats: FieldExtractionStats[],
-		itemOffset: number,
-		concurrencyLimit: number = 5,
-		metadataStore?: MetadataStore,
-		skipExistingUrls: boolean = true,
-	): Promise<void> {
-		// Legacy test method that passes detailErrors and detailFieldStats to be mutated
-		return this.extractDetailPagesConcurrently(
-			page,
-			items,
-			config,
-			itemOffset,
-			concurrencyLimit,
-			metadataStore,
-			skipExistingUrls,
-			detailErrors,
-			detailFieldStats,
-		);
 	}
 }

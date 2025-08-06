@@ -43,7 +43,7 @@ describe("SourceRegistry", () => {
             selector: ".teaser-thumbnail img"
             attribute: "src"
             optional: true
-    detail:
+    content:
       container_selector: ".node-type-blog"
       fields:
         title:
@@ -131,7 +131,7 @@ describe("SourceRegistry", () => {
           title:
             selector: ".title"
             attribute: "text"
-    detail:
+    content:
       container_selector: ".article"
       fields:
         content:
@@ -148,7 +148,7 @@ describe("SourceRegistry", () => {
           title:
             selector: ".title"
             attribute: "text"
-    detail:
+    content:
       container_selector: ".article"
       fields:
         content:

@@ -7,9 +7,9 @@ export {
 	extractTextWithExclusions,
 } from "./BrowserFieldExtractor.js";
 export {
-	mergeDetailData,
+	mergeContentData,
 	updateFieldStats,
 	updateItemMetadata,
-} from "./DetailDataMapper.js";
-export type { DetailExtractionResult } from "./DetailPageExtractor.js";
-export { DetailPageExtractor } from "./DetailPageExtractor.js";
+} from "./ContentDataMapper.js";
+export type { ContentExtractionResult } from "./ContentPageExtractor.js";
+export { ContentPageExtractor } from "./ContentPageExtractor.js";

@@ -100,20 +100,20 @@ export class MetadataStore {
 		sessionId: string,
 		contentId: number,
 		processedOrder: number,
-		hadDetailExtractionError = false,
+		hadContentExtractionError = false,
 	): void {
 		this.sessionStore.linkContentToSession(
 			sessionId,
 			contentId,
 			processedOrder,
-			hadDetailExtractionError,
+			hadContentExtractionError,
 		);
 	}
 
 	getSessionContents(sessionId: string): Array<
 		ContentMetadata & {
 			processedOrder: number;
-			hadDetailExtractionError: boolean;
+			hadContentExtractionError: boolean;
 		}
 	> {
 		return this.sessionStore.getSessionContents(sessionId);

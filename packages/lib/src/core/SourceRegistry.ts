@@ -108,23 +108,23 @@ export class SourceRegistry implements ISourceRegistry {
 			);
 		}
 
-		// Validate detail configuration is required
-		if (!s.detail || typeof s.detail !== "object") {
-			throw new Error(`Source '${s.id}' must have a 'detail' configuration`);
+		// Validate content configuration is required
+		if (!s.content || typeof s.content !== "object") {
+			throw new Error(`Source '${s.id}' must have a 'content' configuration`);
 		}
 
-		const detail = s.detail as Record<string, unknown>;
+		const content = s.content as Record<string, unknown>;
 		if (
-			!detail.container_selector ||
-			typeof detail.container_selector !== "string"
+			!content.container_selector ||
+			typeof content.container_selector !== "string"
 		) {
 			throw new Error(
-				`Source '${s.id}' detail must have a 'container_selector' field`,
+				`Source '${s.id}' content must have a 'container_selector' field`,
 			);
 		}
-		if (!detail.fields || typeof detail.fields !== "object") {
+		if (!content.fields || typeof content.fields !== "object") {
 			throw new Error(
-				`Source '${s.id}' detail must have a 'fields' configuration`,
+				`Source '${s.id}' content must have a 'fields' configuration`,
 			);
 		}
 	}

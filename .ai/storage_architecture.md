@@ -16,10 +16,10 @@ const contentStore = new ContentStore();
 const result = await contentStore.store(crawledData);
 // Returns: { hash: 'abc123...', path: './storage/content/abc123....json', existed: false }
 
-// Configure concurrent detail crawling
+// Configure concurrent content crawling
 const options = {
   maxPages: 5,
-  detailConcurrency: 5, // Process 5 detail pages concurrently
+  contentConcurrency: 5, // Process 5 content pages concurrently
 };
 const crawlResult = await crawler.crawl(config, options);
 ```
@@ -30,7 +30,7 @@ const crawlResult = await crawler.crawl(config, options);
 - **Directory management**: Auto-creates `./storage/content/` directory
 - **Error handling**: Graceful filesystem error handling
 - **Flexible configuration**: Custom storage directory and hash algorithms
-- **Concurrent detail crawling**: Configurable concurrency for detail page extraction (default: 5)
+- **Concurrent content crawling**: Configurable concurrency for content page extraction (default: 5, backward compatible with `contentConcurrency`)
 
 ### File Structure
 

@@ -29,7 +29,7 @@ export class ListingPageExtractor {
 	): Promise<ListingExtractionResult> {
 		// Extract all items using the container selector
 		const extractionResult = await page.evaluate((itemsConfig) => {
-			// NOTE: These helper functions are duplicated in DetailPageExtractor
+			// NOTE: These helper functions are duplicated in ContentPageExtractor
 			// This is intentional - page.evaluate() needs self-contained code
 			// and sharing across the browser boundary adds unnecessary complexity
 

@@ -51,10 +51,11 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		);
 	});
 
-	// Detail field extraction stats (always available now)
-	if (summary.detailFieldStats && summary.detailFieldStats.length > 0) {
-		console.log("\n🔍 Detail field extraction stats:");
-		summary.detailFieldStats.forEach((stat: FieldExtractionStats) => {
+	// Content field extraction stats
+	const contentStats = summary.contentFieldStats;
+	if (contentStats && contentStats.length > 0) {
+		console.log("\n🔍 Content field extraction stats:");
+		contentStats.forEach((stat: FieldExtractionStats) => {
 			const percentage =
 				stat.totalAttempts > 0
 					? Math.round((stat.successCount / stat.totalAttempts) * 100)
@@ -72,13 +73,15 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 			!stat.isOptional && stat.successCount < stat.totalAttempts,
 	);
 
-	const hasDetailErrors =
-		summary.detailErrors && summary.detailErrors.length > 0;
+	// Check for content extraction errors (support both new and legacy)
+	const contentErrorsForCheck = summary.contentErrors;
+	const hasContentErrors =
+		contentErrorsForCheck && contentErrorsForCheck.length > 0;
 
 	if (
 		requiredFieldIssues.length > 0 ||
 		summary.listingErrors.length > 0 ||
-		hasDetailErrors
+		hasContentErrors
 	) {
 		console.log("\n⚠️  Issues found:");
 
@@ -98,18 +101,20 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 			});
 		}
 
-		// Detail issues
-		if (hasDetailErrors) {
-			console.log("   🔍 Detail extraction issues:");
+		// Content extraction issues
+		const contentErrors = summary.contentErrors; // Support both new and legacy
+		const hasContentErrors = contentErrors && contentErrors.length > 0;
+		if (hasContentErrors) {
+			console.log("   🔍 Content extraction issues:");
 			console.log(
-				`      • ${summary.detailErrors?.length} detail page(s) had extraction errors`,
+				`      • ${contentErrors?.length} content page(s) had extraction errors`,
 			);
-			// Show first few detail errors as examples
-			summary.detailErrors?.slice(0, 3).forEach((error: string) => {
+			// Show first few content errors as examples
+			contentErrors?.slice(0, 3).forEach((error: string) => {
 				console.log(`        - ${error}`);
 			});
-			if (summary.detailErrors && summary.detailErrors.length > 3) {
-				console.log(`        ... and ${summary.detailErrors.length - 3} more`);
+			if (contentErrors && contentErrors.length > 3) {
+				console.log(`        ... and ${contentErrors.length - 3} more`);
 			}
 		}
 	}

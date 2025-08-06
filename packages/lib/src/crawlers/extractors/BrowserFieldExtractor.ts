@@ -45,7 +45,7 @@ export function extractFieldValue(
  * This function will be serialized and executed via page.evaluate()
  */
 export function createBrowserExtractionFunction() {
-	return (detailConfig: {
+	return (contentConfig: {
 		container_selector: string;
 		fields: Record<string, unknown>;
 	}) => {
@@ -89,17 +89,17 @@ export function createBrowserExtractionFunction() {
 
 		// Determine the container to search within
 		const containerElement = document.querySelector(
-			detailConfig.container_selector,
+			contentConfig.container_selector,
 		);
 		if (!containerElement) {
 			extractionErrors.push(
-				`Container selector "${detailConfig.container_selector}" not found`,
+				`Container selector "${contentConfig.container_selector}" not found`,
 			);
 			return { results, extractionErrors };
 		}
 
 		for (const [fieldName, fieldConfig] of Object.entries(
-			detailConfig.fields,
+			contentConfig.fields,
 		)) {
 			try {
 				const typedFieldConfig = fieldConfig as {

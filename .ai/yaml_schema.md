@@ -21,7 +21,7 @@ sources:
           author:
             { selector: ".node-author", attribute: "text", optional: true }
 
-    detail: # Required section
+    content: # Required section
       container_selector: ".main-content"
       fields:
         content: { selector: ".field-name-body", attribute: "text" }
@@ -33,7 +33,7 @@ sources:
 - **Optional fields** (`optional: true`): Set undefined if missing
 - **Container selectors**: Scope field searches
 - **Runtime options**: `maxPages` (CLI prompts)
-- **Detail section**: Required for all sources
+- **Content section**: Required for all sources
   fields:
   title:
   selector: "h1" # searches within .article-main for h1
@@ -48,7 +48,7 @@ sources:
 - Must have `listing.url`
 - Must have `listing.items.container_selector`
 - Must have at least one item field
-- Must have `detail` section with `detail.container_selector` and at least one field
+- Must have `content` section with `content.container_selector` and at least one field
 
 ## Selector Format
 

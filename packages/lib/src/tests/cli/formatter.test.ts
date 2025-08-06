@@ -10,7 +10,7 @@ describe("Data Formatter", () => {
 		itemsProcessed: 2,
 		itemsWithErrors: 0,
 		fieldStats: [],
-		detailFieldStats: [],
+		contentFieldStats: [],
 		listingErrors: [],
 		startTime: new Date("2025-01-01T10:00:00Z"),
 		endTime: new Date("2025-01-01T10:00:05Z"),

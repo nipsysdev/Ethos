@@ -4,7 +4,7 @@
 
 - **SourceRegistry**: Load/validate YAML configs
 - **CrawlerRegistry**: Manage crawler implementations
-- **ArticleListingCrawler**: Pagination + item + detail extraction
+- **ArticleListingCrawler**: Pagination + item + content extraction
 - **ProcessingPipeline**: Orchestrate operations
 
 ## Storage Classes (Phase 2 ✅)
@@ -15,7 +15,7 @@
 
 1. Load YAML → Validate config
 2. Get crawler → Process pages
-3. Extract items → Optional details
+3. Extract items → Optional content pages
 4. **Store data** → Content-addressed files
 5. Return structured data + stats
 

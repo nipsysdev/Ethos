@@ -65,7 +65,7 @@ export class MetadataDatabase {
 				session_id TEXT NOT NULL,
 				content_id INTEGER NOT NULL,
 				processed_order INTEGER NOT NULL,
-				had_detail_extraction_error INTEGER,
+				had_content_extraction_error INTEGER,
 				PRIMARY KEY (session_id, content_id),
 				FOREIGN KEY (session_id) REFERENCES crawl_sessions(id) ON DELETE CASCADE,
 				FOREIGN KEY (content_id) REFERENCES crawled_content(id) ON DELETE CASCADE
