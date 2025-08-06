@@ -8,6 +8,18 @@ import { MetadataStore } from "@/storage/MetadataStore.js";
 const ITEMS_PER_PAGE = 50; // Number of data items to show per page
 const MAX_VISIBLE_MENU_OPTIONS = 20; // Maximum menu options visible in terminal at once
 
+// Navigation constants
+const NAV_PREVIOUS = "prev";
+const NAV_NEXT = "next";
+const NAV_BACK = "back";
+const NAV_SEPARATOR = "separator";
+
+// Navigation display strings
+const DISPLAY_PREVIOUS_PREFIX = "<< Previous page";
+const DISPLAY_NEXT_SUFFIX = ">>";
+const DISPLAY_BACK = "< Back to menu";
+const SEPARATOR_LINE = "-".repeat(50);
+
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
 		// Use appropriate command based on platform
@@ -116,16 +128,16 @@ async function showPaginatedViewer(
 
 	if (currentPage > 0) {
 		navigationChoices.push({
-			name: `<< Previous page (${currentPage}/${totalPages})`,
-			value: "prev",
+			name: `${DISPLAY_PREVIOUS_PREFIX} (${currentPage}/${totalPages})`,
+			value: NAV_PREVIOUS,
 			short: "Previous",
 		});
 	}
 
 	if (currentPage < totalPages - 1) {
 		navigationChoices.push({
-			name: `Next page (${currentPage + 2}/${totalPages}) >>`,
-			value: "next",
+			name: `Next page (${currentPage + 2}/${totalPages}) ${DISPLAY_NEXT_SUFFIX}`,
+			value: NAV_NEXT,
 			short: "Next",
 		});
 	}
@@ -133,16 +145,16 @@ async function showPaginatedViewer(
 	// Add separator and navigation if there are multiple pages
 	if (totalPages > 1) {
 		choices.push({
-			name: "-".repeat(50),
-			value: "separator",
+			name: SEPARATOR_LINE,
+			value: NAV_SEPARATOR,
 			disabled: true,
 		} as never);
 		choices.push(...navigationChoices);
 	}
 
 	choices.push({
-		name: "< Back to menu",
-		value: "back",
+		name: DISPLAY_BACK,
+		value: NAV_BACK,
 		short: "Back",
 	});
 
@@ -158,16 +170,16 @@ async function showPaginatedViewer(
 		},
 	]);
 
-	if (selectedFile === "back") {
+	if (selectedFile === NAV_BACK) {
 		return;
 	}
 
-	if (selectedFile === "prev") {
+	if (selectedFile === NAV_PREVIOUS) {
 		await showPaginatedViewer(items, result, currentPage - 1);
 		return;
 	}
 
-	if (selectedFile === "next") {
+	if (selectedFile === NAV_NEXT) {
 		await showPaginatedViewer(items, result, currentPage + 1);
 		return;
 	}
