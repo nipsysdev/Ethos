@@ -112,7 +112,7 @@ async function showPaginatedViewer(
 
 	if (currentPage > 0) {
 		navigationChoices.push({
-			name: `← Previous page (${currentPage}/${totalPages})`,
+			name: `<< Previous page (${currentPage}/${totalPages})`,
 			value: "prev",
 			short: "Previous",
 		});
@@ -120,7 +120,7 @@ async function showPaginatedViewer(
 
 	if (currentPage < totalPages - 1) {
 		navigationChoices.push({
-			name: `Next page (${currentPage + 2}/${totalPages}) →`,
+			name: `Next page (${currentPage + 2}/${totalPages}) >>`,
 			value: "next",
 			short: "Next",
 		});
@@ -129,7 +129,7 @@ async function showPaginatedViewer(
 	// Add separator and navigation if there are multiple pages
 	if (totalPages > 1) {
 		choices.push({
-			name: "─".repeat(50),
+			name: "-".repeat(50),
 			value: "separator",
 			disabled: true,
 		} as never);
@@ -137,7 +137,7 @@ async function showPaginatedViewer(
 	}
 
 	choices.push({
-		name: "← Back to menu",
+		name: "< Back to menu",
 		value: "back",
 		short: "Back",
 	});

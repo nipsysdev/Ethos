@@ -45,16 +45,12 @@ describe("Summary Display", () => {
 		displayCrawlSummary(result);
 
 		expect(mockLog).toHaveBeenCalledWith("Summary:");
-		expect(mockLog).toHaveBeenCalledWith(
-			"   • Source: Test Source (test-source)",
-		);
-		expect(mockLog).toHaveBeenCalledWith("   • Items found: 10");
-		expect(mockLog).toHaveBeenCalledWith(
-			"   • Items successfully retrieved: 8",
-		);
-		expect(mockLog).toHaveBeenCalledWith("   • Items with errors: 2");
-		expect(mockLog).toHaveBeenCalledWith("   • title: 8/8 (100%)");
-		expect(mockLog).toHaveBeenCalledWith("   • author: 6/8 (75%)");
+		expect(mockLog).toHaveBeenCalledWith("  Source: Test Source (test-source)");
+		expect(mockLog).toHaveBeenCalledWith("  Items found: 10");
+		expect(mockLog).toHaveBeenCalledWith("  Items successfully retrieved: 8");
+		expect(mockLog).toHaveBeenCalledWith("  Items with errors: 2");
+		expect(mockLog).toHaveBeenCalledWith("  title: 8/8 (100%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/8 (75%)");
 	});
 
 	it("should handle zero attempts and show missing field issues", () => {
@@ -75,7 +71,7 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("   • empty: 0/0 (0%) (optional)");
+		expect(mockLog).toHaveBeenCalledWith("  empty: 0/0 (0%) (optional)");
 		// Issues section has been moved to the error viewer, so no longer displayed in summary
 	});
 
@@ -122,14 +118,14 @@ describe("Summary Display", () => {
 
 		displayCrawlSummary(result);
 
-		expect(mockLog).toHaveBeenCalledWith("   • Listing pages processed: 3");
-		expect(mockLog).toHaveBeenCalledWith("   • Duplicates skipped: 2");
+		expect(mockLog).toHaveBeenCalledWith("  Listing pages processed: 3");
+		expect(mockLog).toHaveBeenCalledWith("  Duplicates skipped: 2");
 		expect(mockLog).toHaveBeenCalledWith(
-			"   • Stop reason: reached maximum pages limit",
+			"  Stop reason: reached maximum pages limit",
 		);
 		expect(mockLog).toHaveBeenCalledWith("\nContent field extraction stats:");
-		expect(mockLog).toHaveBeenCalledWith("   • content: 5/6 (83%)");
-		expect(mockLog).toHaveBeenCalledWith("   • author: 6/6 (100%)");
+		expect(mockLog).toHaveBeenCalledWith("  content: 5/6 (83%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/6 (100%)");
 	});
 
 	it("should show content extraction errors when present", () => {
@@ -181,7 +177,7 @@ describe("Summary Display", () => {
 
 			displayCrawlSummary(result);
 
-			expect(mockLog).toHaveBeenCalledWith(`   • Stop reason: ${expected}`);
+			expect(mockLog).toHaveBeenCalledWith(`  Stop reason: ${expected}`);
 		});
 	});
 });

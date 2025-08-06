@@ -25,7 +25,7 @@ export class InterruptionHandler {
 				this.isInterrupted = true;
 				this.abortController?.abort();
 				console.log(
-					`\n🛑 Process interrupted (${signal}), stopping gracefully...`,
+					`\nProcess interrupted (${signal}), stopping gracefully...`,
 				);
 			};
 

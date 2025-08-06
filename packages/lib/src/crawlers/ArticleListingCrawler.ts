@@ -196,7 +196,7 @@ export class ArticleListingCrawler implements Crawler {
 					const concurrency = options?.contentConcurrency ?? 5;
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
-						`🔍 Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
+						`Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
 					);
 					await this.contentExtractor.extractContentPagesConcurrently(
 						page,
@@ -281,14 +281,14 @@ export class ArticleListingCrawler implements Crawler {
 			: `${pagesProcessed}`;
 
 		console.log(
-			`📄 Page ${progressInfo}: found ${totalItemsOnPage + filteredOnPage} items`,
+			`Page ${progressInfo}: found ${totalItemsOnPage + filteredOnPage} items`,
 		);
-		console.log(`   ✅ Processed ${newItemsCount} new items`);
+		console.log(`  Processed ${newItemsCount} new items`);
 		if (duplicatesOnPage > 0) {
-			console.log(`   ⏭️  Skipped ${duplicatesOnPage} duplicates`);
+			console.log(`  Skipped ${duplicatesOnPage} duplicates`);
 		}
 		if (filteredOnPage > 0) {
-			console.log(`   🚫 Filtered out ${filteredOnPage} items`);
+			console.log(`  Filtered out ${filteredOnPage} items`);
 		}
 
 		// Show running totals if metadata provided
@@ -297,7 +297,7 @@ export class ArticleListingCrawler implements Crawler {
 			const totalSkipped = runningMetadata.duplicatesSkipped + duplicatesOnPage;
 			const totalFiltered = runningMetadata.totalFilteredItems + filteredOnPage;
 			console.log(
-				`   📊 Running totals: ${totalProcessed} processed, ${totalSkipped} duplicates, ${totalFiltered} filtered`,
+				`  Running totals: ${totalProcessed} processed, ${totalSkipped} duplicates, ${totalFiltered} filtered`,
 			);
 		}
 	}

@@ -39,10 +39,10 @@ export async function showCrawlErrors(
 
 	if (hasListingErrors || hasFieldIssues) {
 		errorContent +=
-			"═══════════════════════════════════════════════════════════════\n";
+			"===============================================================\n";
 		errorContent += "LISTING EXTRACTION ERRORS\n";
 		errorContent +=
-			"═══════════════════════════════════════════════════════════════\n\n";
+			"===============================================================\n\n";
 
 		// Add required field issues
 		if (hasFieldIssues) {
@@ -67,10 +67,10 @@ export async function showCrawlErrors(
 
 	if (hasContentErrors) {
 		errorContent +=
-			"═══════════════════════════════════════════════════════════════\n";
+			"===============================================================\n";
 		errorContent += "CONTENT EXTRACTION ERRORS\n";
 		errorContent +=
-			"═══════════════════════════════════════════════════════════════\n\n";
+			"===============================================================\n\n";
 
 		contentErrors.forEach((error, index) => {
 			errorContent += `${index + 1}. ${error}\n\n`;
@@ -78,10 +78,10 @@ export async function showCrawlErrors(
 	}
 
 	errorContent +=
-		"═══════════════════════════════════════════════════════════════\n";
+		"===============================================================\n";
 	errorContent += "SUMMARY\n";
 	errorContent +=
-		"═══════════════════════════════════════════════════════════════\n\n";
+		"===============================================================\n\n";
 	errorContent += `Total field extraction issues: ${requiredFieldIssues.length}\n`;
 	errorContent += `Total listing errors: ${listingErrors?.length || 0}\n`;
 	errorContent += `Total content errors: ${contentErrors?.length || 0}\n`;
