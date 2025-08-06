@@ -56,6 +56,7 @@ export class SessionMetadataStore extends MetadataDatabase {
 	private createSessionStmt!: Database.Statement;
 	private updateSessionStmt!: Database.Statement;
 	private getSessionStmt!: Database.Statement;
+	private getAllSessionsStmt!: Database.Statement;
 	private endSessionStmt!: Database.Statement;
 
 	// Session-content junction statements
@@ -85,6 +86,10 @@ export class SessionMetadataStore extends MetadataDatabase {
 
 		this.getSessionStmt = this.db.prepare(`
 			SELECT * FROM crawl_sessions WHERE id = ? LIMIT 1
+		`);
+
+		this.getAllSessionsStmt = this.db.prepare(`
+			SELECT * FROM crawl_sessions ORDER BY start_time DESC
 		`);
 
 		this.endSessionStmt = this.db.prepare(`
@@ -172,6 +177,14 @@ export class SessionMetadataStore extends MetadataDatabase {
 	getSession(sessionId: string): CrawlSession | null {
 		const row = this.getSessionStmt.get(sessionId) as SessionRow | undefined;
 		return row ? this.mapSessionRowToSession(row) : null;
+	}
+
+	/**
+	 * Get all sessions ordered by start time (newest first)
+	 */
+	getAllSessions(): CrawlSession[] {
+		const rows = this.getAllSessionsStmt.all() as SessionRow[];
+		return rows.map((row) => this.mapSessionRowToSession(row));
 	}
 
 	/**

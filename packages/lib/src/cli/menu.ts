@@ -1,5 +1,6 @@
 import type { ProcessingPipeline, SourceRegistry } from "@/index.js";
 import { handleCrawl } from "./commands/crawl.js";
+import { handleSessions } from "./commands/sessions.js";
 
 interface Command {
 	name: string;
@@ -8,6 +9,7 @@ interface Command {
 
 const COMMANDS: Command[] = [
 	{ name: "crawl", description: "Start crawling a source" },
+	{ name: "sessions", description: "Browse previous crawl sessions" },
 	{ name: "exit", description: "Exit the program" },
 ];
 
@@ -59,6 +61,8 @@ async function handleCommand(
 	switch (command) {
 		case "crawl":
 			return await handleCrawl(sourceRegistry, pipeline);
+		case "sessions":
+			return await handleSessions(pipeline);
 		default:
 			console.log("Unknown command");
 			return "main";

@@ -26,8 +26,6 @@ async function isLessAvailable(): Promise<boolean> {
 export async function showExtractedData(
 	result: ProcessingSummaryResult,
 ): Promise<void> {
-	const inquirer = (await import("inquirer")).default;
-
 	// Check if we have session ID for accessing crawl data
 	if (!result.summary.sessionId) {
 		console.log("No crawl session available for viewing.");
@@ -71,21 +69,72 @@ export async function showExtractedData(
 		metadataStore.close();
 	}
 
+	// Use pagination for large datasets
+	await showPaginatedViewer(storedItems, result);
+}
+
+async function showPaginatedViewer(
+	items: Array<{
+		title: string;
+		hash: string;
+		publishedDate?: Date;
+		url: string;
+	}>,
+	result: ProcessingSummaryResult,
+	currentPage = 0,
+): Promise<void> {
+	const inquirer = (await import("inquirer")).default;
+	const pageSize = 50; // Show 50 items per page
+	const totalPages = Math.ceil(items.length / pageSize);
+	const startIndex = currentPage * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, items.length);
+	const currentItems = items.slice(startIndex, endIndex);
+
 	// Create a ContentStore instance to get the storage directory
 	const contentStore = new ContentStore({ enableMetadata: false });
 	const storageDir = contentStore.getStorageDirectory();
 
-	// Create choices with titles and file info
-	const choices = storedItems.map((item: ViewerItem, index: number) => {
+	// Create choices for current page items
+	const choices = currentItems.map((item, index) => {
+		const globalIndex = startIndex + index + 1;
 		const publishedInfo = item.publishedDate
 			? ` (${new Date(item.publishedDate).toLocaleDateString()})`
 			: "";
 		return {
-			name: `${index + 1}. ${item.title}${publishedInfo}`,
+			name: `${globalIndex}. ${item.title}${publishedInfo}`,
 			value: join(storageDir, `${item.hash}.json`),
 			short: item.title,
 		};
 	});
+
+	// Add navigation options
+	const navigationChoices = [];
+
+	if (currentPage > 0) {
+		navigationChoices.push({
+			name: `← Previous page (${currentPage}/${totalPages})`,
+			value: "prev",
+			short: "Previous",
+		});
+	}
+
+	if (currentPage < totalPages - 1) {
+		navigationChoices.push({
+			name: `Next page (${currentPage + 2}/${totalPages}) →`,
+			value: "next",
+			short: "Next",
+		});
+	}
+
+	// Add separator and navigation if there are multiple pages
+	if (totalPages > 1) {
+		choices.push({
+			name: "─".repeat(50),
+			value: "separator",
+			disabled: true,
+		} as never);
+		choices.push(...navigationChoices);
+	}
 
 	choices.push({
 		name: "← Back to menu",
@@ -93,13 +142,15 @@ export async function showExtractedData(
 		short: "Back",
 	});
 
+	const pageInfo =
+		totalPages > 1 ? ` (Page ${currentPage + 1}/${totalPages})` : "";
 	const { selectedFile } = await inquirer.prompt([
 		{
 			type: "list",
 			name: "selectedFile",
-			message: `Select an item to view (${storedItems.length} files):`,
+			message: `Select an item to view${pageInfo} - ${items.length} total items:`,
 			choices,
-			pageSize: 15,
+			pageSize: Math.min(20, choices.length), // Limit visible options
 		},
 	]);
 
@@ -107,6 +158,17 @@ export async function showExtractedData(
 		return;
 	}
 
+	if (selectedFile === "prev") {
+		await showPaginatedViewer(items, result, currentPage - 1);
+		return;
+	}
+
+	if (selectedFile === "next") {
+		await showPaginatedViewer(items, result, currentPage + 1);
+		return;
+	}
+
+	// View the selected file
 	try {
 		if (await isLessAvailable()) {
 			const less = spawn("less", ["-R", selectedFile], {
@@ -140,6 +202,6 @@ export async function showExtractedData(
 		);
 	}
 
-	// Loop back to file selection
-	await showExtractedData(result);
+	// Return to the same page after viewing
+	await showPaginatedViewer(items, result, currentPage);
 }

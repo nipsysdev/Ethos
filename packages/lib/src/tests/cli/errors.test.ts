@@ -74,7 +74,7 @@ describe("Error Display", () => {
 
 		await showCrawlErrors(result);
 
-		expect(mockLog).toHaveBeenCalledWith("✅ No errors found during crawling!");
+		expect(mockLog).toHaveBeenCalledWith("No errors found during crawling!");
 		expect(mockLog).toHaveBeenCalledWith("Press Enter to continue...");
 	});
 
@@ -113,8 +113,8 @@ describe("Error Display", () => {
 		const writeFileCall = vi.mocked(writeFileSync).mock.calls[0];
 		const content = writeFileCall[1] as string;
 
-		expect(content).toContain("📋 LISTING EXTRACTION ERRORS");
-		expect(content).toContain("🔍 CONTENT EXTRACTION ERRORS");
+		expect(content).toContain("LISTING EXTRACTION ERRORS");
+		expect(content).toContain("CONTENT EXTRACTION ERRORS");
 		expect(content).toContain("Listing error 1");
 		expect(content).toContain("Listing error 2");
 		expect(content).toContain("Content error 1");
@@ -150,7 +150,7 @@ describe("Error Display", () => {
 		const writeFileCall = vi.mocked(writeFileSync).mock.calls[0];
 		const content = writeFileCall[1] as string;
 
-		expect(content).toContain("📋 LISTING EXTRACTION ERRORS");
+		expect(content).toContain("LISTING EXTRACTION ERRORS");
 		expect(content).toContain("Required Field Extraction Issues:");
 		expect(content).toContain("2 item(s) missing required field: title");
 		expect(content).toContain("4 item(s) missing required field: date");

@@ -6,10 +6,10 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		(summary.endTime.getTime() - summary.startTime.getTime()) / 1000;
 
 	// Summary stats
-	console.log("📊 Summary:");
+	console.log("Summary:");
 	console.log(`   • Source: ${summary.sourceName} (${summary.sourceId})`);
 	console.log(`   • Items found: ${summary.itemsFound}`);
-	console.log(`   • Items successfully processed: ${summary.itemsProcessed}`);
+	console.log(`   • Items successfully retrieved: ${summary.itemsProcessed}`);
 
 	if (summary.itemsWithErrors > 0) {
 		console.log(`   • Items with errors: ${summary.itemsWithErrors}`);
@@ -38,7 +38,7 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	}
 
 	// Field extraction stats
-	console.log("\n📋 Listing field extraction stats:");
+	console.log("\nListing field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
 		const percentage =
 			stat.totalAttempts > 0
@@ -54,7 +54,7 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	// Content field extraction stats
 	const contentStats = summary.contentFieldStats;
 	if (contentStats && contentStats.length > 0) {
-		console.log("\n🔍 Content field extraction stats:");
+		console.log("\nContent field extraction stats:");
 		contentStats.forEach((stat: FieldExtractionStats) => {
 			const percentage =
 				stat.totalAttempts > 0
@@ -67,17 +67,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		});
 	}
 
-	// Storage stats
-	if (summary.storageStats && summary.storageStats.itemsStored > 0) {
-		console.log(`\n💾 Storage:`);
-		console.log(`   • Items stored: ${summary.storageStats.itemsStored}`);
-		if (summary.storageStats.itemsFailed > 0) {
-			console.log(
-				`   • Items failed to store: ${summary.storageStats.itemsFailed}`,
-			);
-		}
-	}
-
 	// Timing
-	console.log(`\n⏱️  Crawl took: ${duration} seconds`);
+	console.log(`\nCrawl took: ${duration} seconds`);
 }

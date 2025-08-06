@@ -24,7 +24,7 @@ export async function showCrawlErrors(
 	const hasFieldIssues = requiredFieldIssues.length > 0;
 
 	if (!hasListingErrors && !hasContentErrors && !hasFieldIssues) {
-		console.log("✅ No errors found during crawling!");
+		console.log("No errors found during crawling!");
 		console.log("Press Enter to continue...");
 		await new Promise<void>((resolve) => {
 			process.stdin.once("data", () => resolve());
@@ -40,7 +40,7 @@ export async function showCrawlErrors(
 	if (hasListingErrors || hasFieldIssues) {
 		errorContent +=
 			"═══════════════════════════════════════════════════════════════\n";
-		errorContent += "📋 LISTING EXTRACTION ERRORS\n";
+		errorContent += "LISTING EXTRACTION ERRORS\n";
 		errorContent +=
 			"═══════════════════════════════════════════════════════════════\n\n";
 
@@ -68,7 +68,7 @@ export async function showCrawlErrors(
 	if (hasContentErrors) {
 		errorContent +=
 			"═══════════════════════════════════════════════════════════════\n";
-		errorContent += "🔍 CONTENT EXTRACTION ERRORS\n";
+		errorContent += "CONTENT EXTRACTION ERRORS\n";
 		errorContent +=
 			"═══════════════════════════════════════════════════════════════\n\n";
 
@@ -79,7 +79,7 @@ export async function showCrawlErrors(
 
 	errorContent +=
 		"═══════════════════════════════════════════════════════════════\n";
-	errorContent += "📊 SUMMARY\n";
+	errorContent += "SUMMARY\n";
 	errorContent +=
 		"═══════════════════════════════════════════════════════════════\n\n";
 	errorContent += `Total field extraction issues: ${requiredFieldIssues.length}\n`;

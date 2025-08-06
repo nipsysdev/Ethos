@@ -96,7 +96,7 @@ export async function handleCrawl(
 			displayResults(result);
 
 			// Show post-crawl menu and return the action
-			return await showPostCrawlMenuWithFlow(result);
+			return await showPostCrawlMenuWithFlow(result, pipeline);
 		} catch (error) {
 			spinner.fail("Crawl failed");
 			console.error("Error:", error);
