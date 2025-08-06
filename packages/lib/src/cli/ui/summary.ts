@@ -67,58 +67,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		});
 	}
 
-	// Only show issues for required fields or actual errors
-	const requiredFieldIssues = summary.fieldStats.filter(
-		(stat: FieldExtractionStats) =>
-			!stat.isOptional && stat.successCount < stat.totalAttempts,
-	);
-
-	// Check for content extraction errors (support both new and legacy)
-	const contentErrorsForCheck = summary.contentErrors;
-	const hasContentErrors =
-		contentErrorsForCheck && contentErrorsForCheck.length > 0;
-
-	if (
-		requiredFieldIssues.length > 0 ||
-		summary.listingErrors.length > 0 ||
-		hasContentErrors
-	) {
-		console.log("\n⚠️  Issues found:");
-
-		// Listing issues
-		if (requiredFieldIssues.length > 0 || summary.listingErrors.length > 0) {
-			console.log("   📋 Listing extraction issues:");
-
-			requiredFieldIssues.forEach((stat: FieldExtractionStats) => {
-				const missingCount = stat.totalAttempts - stat.successCount;
-				console.log(
-					`      • ${missingCount} item(s) missing required field: ${stat.fieldName}`,
-				);
-			});
-
-			summary.listingErrors.forEach((error: string) => {
-				console.log(`      • ${error}`);
-			});
-		}
-
-		// Content extraction issues
-		const contentErrors = summary.contentErrors; // Support both new and legacy
-		const hasContentErrors = contentErrors && contentErrors.length > 0;
-		if (hasContentErrors) {
-			console.log("   🔍 Content extraction issues:");
-			console.log(
-				`      • ${contentErrors?.length} content page(s) had extraction errors`,
-			);
-			// Show first few content errors as examples
-			contentErrors?.slice(0, 3).forEach((error: string) => {
-				console.log(`        - ${error}`);
-			});
-			if (contentErrors && contentErrors.length > 3) {
-				console.log(`        ... and ${contentErrors.length - 3} more`);
-			}
-		}
-	}
-
 	// Storage stats
 	if (summary.storageStats && summary.storageStats.itemsStored > 0) {
 		console.log(`\n💾 Storage:`);
