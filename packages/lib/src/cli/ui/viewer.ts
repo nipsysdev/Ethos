@@ -4,6 +4,10 @@ import type { ProcessingSummaryResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
 
+// Pagination constants
+const ITEMS_PER_PAGE = 50; // Number of data items to show per page
+const MAX_VISIBLE_MENU_OPTIONS = 20; // Maximum menu options visible in terminal at once
+
 async function isLessAvailable(): Promise<boolean> {
 	return new Promise((resolve) => {
 		// Use appropriate command based on platform
@@ -84,7 +88,7 @@ async function showPaginatedViewer(
 	currentPage = 0,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
-	const pageSize = 50; // Show 50 items per page
+	const pageSize = ITEMS_PER_PAGE; // Show items per page
 	const totalPages = Math.ceil(items.length / pageSize);
 	const startIndex = currentPage * pageSize;
 	const endIndex = Math.min(startIndex + pageSize, items.length);
@@ -150,7 +154,7 @@ async function showPaginatedViewer(
 			name: "selectedFile",
 			message: `Select an item to view${pageInfo} - ${items.length} total items:`,
 			choices,
-			pageSize: Math.min(20, choices.length), // Limit visible options
+			pageSize: Math.min(MAX_VISIBLE_MENU_OPTIONS, choices.length), // Limit visible options
 		},
 	]);
 
