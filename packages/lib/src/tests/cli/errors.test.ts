@@ -47,12 +47,6 @@ const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 describe("Error Display", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Reset the stdin mock
-		mockStdin.once.mockImplementation((event, callback) => {
-			if (event === "data") {
-				setTimeout(callback, 10);
-			}
-		});
 	});
 
 	const createMockResultWithErrors = (
