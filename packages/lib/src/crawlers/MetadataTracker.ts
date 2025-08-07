@@ -8,6 +8,7 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
+import { CrawlErrorManager } from "./CrawlErrorManager.js";
 
 /**
  * Handles metadata tracking and session management for crawl operations.
@@ -17,6 +18,7 @@ export class MetadataTracker implements ContentSessionLinker {
 	private metadata: CrawlMetadata;
 	private sessionId: string;
 	private metadataStore: MetadataStore;
+	private errorManager: CrawlErrorManager;
 	private contentLinkedCount = 0; // Track how many items have been linked
 
 	constructor(
@@ -31,6 +33,12 @@ export class MetadataTracker implements ContentSessionLinker {
 
 		// Initialize metadata store (use provided one for testing, or create new one)
 		this.metadataStore = metadataStore ?? new MetadataStore();
+
+		// Initialize error manager
+		this.errorManager = new CrawlErrorManager(
+			this.metadataStore,
+			this.sessionId,
+		);
 
 		// Initialize crawl metadata
 		this.metadata = {
@@ -189,10 +197,9 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
-		// Store errors directly in database, don't accumulate in memory
-		this.metadataStore.addSessionErrors(this.sessionId, "listing", reasons);
+		// Use error manager for consistent error handling
+		this.errorManager.addListingErrors(reasons);
 		// Update the session to reflect the new totalFilteredItems count
-		// We need to get the current session metadata and update it to avoid overwriting errors
 		this.updateSessionMetadataField(
 			"totalFilteredItems",
 			this.metadata.totalFilteredItems,
@@ -203,38 +210,16 @@ export class MetadataTracker implements ContentSessionLinker {
 	 * Track content extraction errors
 	 */
 	addContentErrors(errors: string[]): void {
-		// Store errors directly in database, don't accumulate in memory
-		this.metadataStore.addSessionErrors(this.sessionId, "content", errors);
-		// Don't call updateSessionInDatabase() here as addSessionErrors already updates the session
+		// Use error manager for consistent error handling
+		this.errorManager.addContentErrors(errors);
 	}
 
 	/**
 	 * Track field extraction warnings (for optional fields and non-fatal issues)
 	 */
 	addFieldExtractionWarnings(warnings: string[]): void {
-		// Separate and store warnings directly in database
-		const listingWarnings = warnings.filter(
-			(w) => w.includes("Optional field") || w.includes("Required field"),
-		);
-		const contentWarnings = warnings.filter(
-			(w) => w.includes("content") || w.includes("extraction"),
-		);
-
-		if (listingWarnings.length > 0) {
-			this.metadataStore.addSessionErrors(
-				this.sessionId,
-				"listing",
-				listingWarnings,
-			);
-		}
-		if (contentWarnings.length > 0) {
-			this.metadataStore.addSessionErrors(
-				this.sessionId,
-				"content",
-				contentWarnings,
-			);
-		}
-		// Don't call updateSessionInDatabase() here as addSessionErrors already updates the session
+		// Use error manager with automatic categorization
+		this.errorManager.addFieldExtractionWarnings(warnings);
 	}
 
 	/**
@@ -275,14 +260,15 @@ export class MetadataTracker implements ContentSessionLinker {
 			throw new Error(`Session not found: ${this.sessionId}`);
 		}
 
-		// Parse session metadata to get errors stored in database
-		const sessionMetadata = JSON.parse(session.metadata);
+		// Get errors from the error manager (which retrieves from database)
+		const { listingErrors, contentErrors } =
+			this.errorManager.getSessionErrors();
 
 		// Merge database errors with current metadata for summary generation
 		const metadataWithErrors = {
 			...this.metadata,
-			listingErrors: sessionMetadata.listingErrors || [],
-			contentErrors: sessionMetadata.contentErrors || [],
+			listingErrors,
+			contentErrors,
 		};
 
 		// Calculate actual items with content extraction errors (not just error message count)
@@ -329,14 +315,13 @@ export class MetadataTracker implements ContentSessionLinker {
 				return;
 			}
 
-			// Parse current metadata to preserve errors
-			const currentMetadata = JSON.parse(session.metadata);
-
-			// Merge in-memory metadata with existing errors
+			// Get errors from error manager and merge with current metadata
+			const { listingErrors, contentErrors } =
+				this.errorManager.getSessionErrors();
 			const mergedMetadata = {
 				...this.metadata,
-				listingErrors: currentMetadata.listingErrors || [],
-				contentErrors: currentMetadata.contentErrors || [],
+				listingErrors,
+				contentErrors,
 			};
 
 			this.metadataStore.updateSession(this.sessionId, mergedMetadata);
