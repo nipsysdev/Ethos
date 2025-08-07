@@ -4,6 +4,26 @@
  */
 
 /**
+ * Resolves a URL attribute value to an absolute URL using browser's URL resolution
+ * @param urlValue - The URL value from the attribute
+ * @param baseUrl - The base URL to resolve against (typically window.location.href in browser context)
+ * @returns The absolute URL or original value if resolution fails
+ */
+export function resolveUrlAttribute(
+	urlValue: string | null,
+	baseUrl: string,
+): string | null {
+	if (!urlValue) return null;
+
+	try {
+		return new URL(urlValue, baseUrl).href;
+	} catch {
+		// If URL construction fails, return the original value
+		return urlValue;
+	}
+}
+
+/**
  * Extracts text content from an element, optionally excluding child elements
  */
 export function extractTextWithExclusions(
@@ -41,15 +61,7 @@ export function extractFieldValue(
 	) {
 		// For href and src attributes, get the absolute URL using the browser's URL resolution
 		const urlValue = element.getAttribute(fieldConfig.attribute);
-		if (!urlValue) return null;
-
-		// Use the browser's built-in URL resolution to get absolute URLs
-		try {
-			return new URL(urlValue, window.location.href).href;
-		} catch {
-			// If URL construction fails, return the original value
-			return urlValue;
-		}
+		return resolveUrlAttribute(urlValue, window.location.href);
 	} else {
 		return element.getAttribute(fieldConfig.attribute);
 	}
@@ -65,6 +77,20 @@ export function createBrowserExtractionFunction() {
 		fields: Record<string, unknown>;
 	}) => {
 		// Inline helper functions (duplicated for browser context)
+		function resolveUrlAttribute(
+			urlValue: string | null,
+			baseUrl: string,
+		): string | null {
+			if (!urlValue) return null;
+
+			try {
+				return new URL(urlValue, baseUrl).href;
+			} catch {
+				// If URL construction fails, return the original value
+				return urlValue;
+			}
+		}
+
 		function extractTextWithExclusions(
 			element: Element,
 			excludeSelectors?: string[],
@@ -100,15 +126,7 @@ export function createBrowserExtractionFunction() {
 			) {
 				// For href and src attributes, get the absolute URL using the browser's URL resolution
 				const urlValue = element.getAttribute(fieldConfig.attribute);
-				if (!urlValue) return null;
-
-				// Use the browser's built-in URL resolution to get absolute URLs
-				try {
-					return new URL(urlValue, window.location.href).href;
-				} catch {
-					// If URL construction fails, return the original value
-					return urlValue;
-				}
+				return resolveUrlAttribute(urlValue, window.location.href);
 			} else {
 				return element.getAttribute(fieldConfig.attribute);
 			}
