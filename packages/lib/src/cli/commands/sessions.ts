@@ -9,8 +9,16 @@ import type {
 	CrawlSession,
 	MetadataStore,
 } from "@/storage/index.js";
+import {
+	ERROR_MESSAGES,
+	FIELD_NAMES,
+	MENU_LABELS,
+	NAV_VALUES,
+	PROMPT_MESSAGES,
+} from "../constants.js";
 import { createDataViewChoices } from "../ui/menus.js";
 import { displayCrawlSummary } from "../ui/summary.js";
+import { checkMetadataStore } from "../utils.js";
 
 /**
  * Handle the sessions browsing command
@@ -21,20 +29,18 @@ export async function handleSessions(
 	const inquirer = (await import("inquirer")).default;
 
 	try {
-		const metadataStore = pipeline.getMetadataStore();
-		if (!metadataStore) {
-			console.log("Error: Metadata store not available");
-			return "main";
+		const storeCheck = checkMetadataStore(pipeline);
+		if (storeCheck.error) {
+			return NAV_VALUES.MAIN;
 		}
+		const { metadataStore } = storeCheck;
 
 		// Get all sessions with basic info only
 		const allSessions = await getAllSessions(metadataStore);
 
 		if (allSessions.length === 0) {
-			console.log(
-				"No crawl sessions found. Start a crawl to create your first session!",
-			);
-			return "main";
+			console.log(ERROR_MESSAGES.NO_SESSIONS_FOUND);
+			return NAV_VALUES.MAIN;
 		}
 
 		// Directly show the sessions list for selection
@@ -42,27 +48,29 @@ export async function handleSessions(
 			const { selectedSessionId } = await inquirer.prompt([
 				{
 					type: "list",
-					name: "selectedSessionId",
-					message: `Select a crawl session to view (${allSessions.length} available):`,
+					name: FIELD_NAMES.SELECTED_SESSION_ID,
+					message: `${PROMPT_MESSAGES.SELECT_CRAWL_SESSION} (${allSessions.length} available):`,
 					choices: [
 						...allSessions.map((session) => {
 							const duration = session.endTime
 								? `${Math.round((session.endTime.getTime() - session.startTime.getTime()) / 1000)}s`
 								: "Active";
-							const status = session.endTime ? "Complete" : "Running";
 
 							return {
-								name: `[${status}] ${session.sourceName} - ${session.startTime.toLocaleDateString()} ${session.startTime.toLocaleTimeString()} (${duration})`,
+								name: `${session.sourceName} - ${session.startTime.toLocaleDateString()} ${session.startTime.toLocaleTimeString()} (${duration})`,
 								value: session.id,
 							};
 						}),
-						{ name: "Back to main menu", value: "back" },
+						{
+							name: MENU_LABELS.BACK_TO_MAIN,
+							value: NAV_VALUES.BACK,
+						},
 					],
 				},
 			]);
 
-			if (selectedSessionId === "back") {
-				return "main";
+			if (selectedSessionId === NAV_VALUES.BACK) {
+				return NAV_VALUES.MAIN;
 			}
 
 			// Create a ProcessingSummaryResult from the session and show the post-crawl menu

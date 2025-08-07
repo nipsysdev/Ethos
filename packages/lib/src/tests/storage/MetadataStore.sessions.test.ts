@@ -101,7 +101,7 @@ describe("MetadataStore - Sessions", () => {
 		const session = store.getSession(sessionId);
 
 		expect(session).toBeDefined();
-		expect(JSON.parse(session!.metadata)).toEqual(updatedMetadata);
+		expect(JSON.parse(session?.metadata || "{}")).toEqual(updatedMetadata);
 	});
 
 	it("should end session", async () => {

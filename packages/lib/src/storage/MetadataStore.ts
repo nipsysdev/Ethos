@@ -63,6 +63,15 @@ export class MetadataStore {
 		return this.contentStore.getSources();
 	}
 
+	// Content deletion operations
+	deleteContentBySource(source: string): number {
+		return this.contentStore.deleteBySource(source);
+	}
+
+	getContentHashesBySource(source: string): string[] {
+		return this.contentStore.getHashesBySource(source);
+	}
+
 	// Session operations - delegate to SessionMetadataStore
 	createSession(
 		sessionId: string,
@@ -121,6 +130,15 @@ export class MetadataStore {
 		}
 	> {
 		return this.sessionStore.getSessionContents(sessionId);
+	}
+
+	// Session deletion operations
+	deleteSessionsBySource(sourceId: string): number {
+		return this.sessionStore.deleteSessionsBySource(sourceId);
+	}
+
+	countSessionsBySource(sourceId: string): number {
+		return this.sessionStore.countSessionsBySource(sourceId);
 	}
 
 	// Database management

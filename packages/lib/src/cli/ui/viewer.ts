@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/index.js";
 import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
+import { MENU_LABELS, NAV_VALUES } from "../constants.js";
 
 // Pagination constants
 const ITEMS_PER_PAGE = 50; // Number of data items to show per page
@@ -11,13 +12,11 @@ const MAX_VISIBLE_MENU_OPTIONS = 20; // Maximum menu options visible in terminal
 // Navigation constants
 const NAV_PREVIOUS = "prev";
 const NAV_NEXT = "next";
-const NAV_BACK = "back";
 const NAV_SEPARATOR = "separator";
 
 // Navigation display strings
 const DISPLAY_PREVIOUS_PREFIX = "<< Previous page";
 const DISPLAY_NEXT_SUFFIX = ">>";
-const DISPLAY_BACK = "< Back to menu";
 const SEPARATOR_LINE = "-".repeat(50);
 
 async function isLessAvailable(): Promise<boolean> {
@@ -153,8 +152,8 @@ async function showPaginatedViewer(
 	}
 
 	choices.push({
-		name: DISPLAY_BACK,
-		value: NAV_BACK,
+		name: MENU_LABELS.BACK_TO_MENU,
+		value: NAV_VALUES.BACK,
 		short: "Back",
 	});
 
@@ -170,7 +169,7 @@ async function showPaginatedViewer(
 		},
 	]);
 
-	if (selectedFile === NAV_BACK) {
+	if (selectedFile === NAV_VALUES.BACK) {
 		return;
 	}
 
