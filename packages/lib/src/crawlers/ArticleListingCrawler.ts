@@ -248,7 +248,7 @@ export class ArticleListingCrawler implements Crawler {
 					// Store current listing page URL so we can return to it after content extraction
 					const currentListingUrl = page.url();
 
-					const concurrency = options?.contentConcurrency ?? 5;
+					const concurrency = options?.contentConcurrency ?? 8; // Increased from 5 for faster processing
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
 						`Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,

@@ -155,7 +155,7 @@ export interface ContentSessionLinker {
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
-	contentConcurrency?: number; // Number of content pages to crawl concurrently (default: 5)
+	contentConcurrency?: number; // Number of content pages to crawl concurrently (default: 8)
 	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
 	skipExistingUrls?: boolean; // Skip content crawling for URLs already in database (default: true)
 	/**

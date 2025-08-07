@@ -1,12 +1,12 @@
 import type { Page } from "puppeteer";
 import type { SourceConfig } from "@/core/types.js";
 
-// Timeout constants for pagination handling
-const NAVIGATION_TIMEOUT_MS = 8000; // Increased from 3000
-const CONTAINER_WAIT_TIMEOUT_MS = 10000; // Increased from 5000
-const CONTENT_LOAD_DELAY_MS = 3000; // Additional wait for content loading
-const RETRY_ATTEMPTS = 3; // New: retry failed clicks
-const RETRY_DELAY_MS = 2000; // New: delay between retries
+// Timeout constants for pagination handling - optimized for faster crawling
+const NAVIGATION_TIMEOUT_MS = 5000; // Reduced from 8000 - most sites load faster
+const CONTAINER_WAIT_TIMEOUT_MS = 6000; // Reduced from 10000 - faster timeout
+const CONTENT_LOAD_DELAY_MS = 1000; // Reduced from 3000 - minimal delay for content loading
+const RETRY_ATTEMPTS = 2; // Reduced from 3 - fewer retries for faster failure detection
+const RETRY_DELAY_MS = 1000; // Reduced from 2000 - faster retry cycles
 
 export class PaginationHandler {
 	async navigateToNextPage(page: Page, config: SourceConfig): Promise<boolean> {
