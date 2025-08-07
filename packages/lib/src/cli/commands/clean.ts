@@ -53,7 +53,9 @@ export async function handleClean(
 
 			if (selectedSource === NAV_VALUES.BACK) {
 				return NAV_VALUES.MAIN;
-			} // Find the selected source with its name
+			}
+
+			// Find the selected source with its name
 			const selectedSourceData = sourcesWithNames.find(
 				(source) => source.id === selectedSource,
 			);
