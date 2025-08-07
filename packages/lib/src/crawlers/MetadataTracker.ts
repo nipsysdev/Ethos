@@ -352,7 +352,10 @@ export class MetadataTracker implements ContentSessionLinker {
 	/**
 	 * Update a specific field in session metadata without overwriting errors
 	 */
-	private updateSessionMetadataField(fieldName: string, value: unknown): void {
+	private updateSessionMetadataField<K extends keyof CrawlMetadata>(
+		fieldName: K,
+		value: CrawlMetadata[K],
+	): void {
 		try {
 			// Get current session to preserve existing data including errors
 			const session = this.metadataStore.getSession(this.sessionId);
@@ -370,7 +373,7 @@ export class MetadataTracker implements ContentSessionLinker {
 			this.metadataStore.updateSession(this.sessionId, currentMetadata);
 		} catch (error) {
 			console.error(
-				`Failed to update session metadata field ${fieldName} (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+				`Failed to update session metadata field ${String(fieldName)} (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
 		}
 	}
