@@ -293,11 +293,10 @@ export class ArticleListingCrawler implements Crawler {
 
 		// Show running totals if metadata provided
 		if (runningMetadata) {
-			const totalProcessed = runningMetadata.itemsProcessed + newItemsCount;
-			const totalSkipped = runningMetadata.duplicatesSkipped + duplicatesOnPage;
-			const totalFiltered = runningMetadata.totalFilteredItems + filteredOnPage;
+			// The metadata already contains the cumulative totals including this page
+			// So we just display the current totals directly
 			console.log(
-				`  Running totals: ${totalProcessed} processed, ${totalSkipped} duplicates, ${totalFiltered} filtered`,
+				`  Running totals: ${runningMetadata.itemsProcessed} processed, ${runningMetadata.duplicatesSkipped} duplicates, ${runningMetadata.totalFilteredItems} filtered`,
 			);
 		}
 	}

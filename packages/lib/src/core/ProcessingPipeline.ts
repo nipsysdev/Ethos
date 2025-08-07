@@ -172,4 +172,11 @@ export class ProcessingPipeline {
 	getMetadataStore() {
 		return this.contentStore.getMetadataStore();
 	}
+
+	/**
+	 * Get the content store instance for file operations
+	 */
+	getContentStore() {
+		return this.contentStore;
+	}
 }

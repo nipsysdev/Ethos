@@ -48,6 +48,8 @@ export class ContentMetadataStore extends MetadataDatabase {
 	private getByHashStmt!: Database.Statement;
 	private getBySourceStmt!: Database.Statement;
 	private countBySourceStmt!: Database.Statement;
+	private deleteBySourceStmt!: Database.Statement;
+	private getHashesBySourceStmt!: Database.Statement;
 
 	constructor(options: MetadataStoreOptions = {}) {
 		super(options);
@@ -84,6 +86,14 @@ export class ContentMetadataStore extends MetadataDatabase {
 
 		this.countBySourceStmt = this.db.prepare(`
 			SELECT COUNT(*) as count FROM crawled_content WHERE source = ?
+		`);
+
+		this.deleteBySourceStmt = this.db.prepare(`
+			DELETE FROM crawled_content WHERE source = ?
+		`);
+
+		this.getHashesBySourceStmt = this.db.prepare(`
+			SELECT hash FROM crawled_content WHERE source = ?
 		`);
 	}
 
@@ -265,6 +275,26 @@ export class ContentMetadataStore extends MetadataDatabase {
 		`);
 
 		return stmt.all() as Array<{ source: string; count: number }>;
+	}
+
+	/**
+	 * Delete all content for a specific source
+	 * Returns the number of rows deleted
+	 */
+	deleteBySource(source: string): number {
+		const result = this.deleteBySourceStmt.run(source);
+		return result.changes;
+	}
+
+	/**
+	 * Get all content hashes for a specific source
+	 * Used for file cleanup before database deletion
+	 */
+	getHashesBySource(source: string): string[] {
+		const rows = this.getHashesBySourceStmt.all(source) as Array<{
+			hash: string;
+		}>;
+		return rows.map((row) => row.hash);
 	}
 
 	/**

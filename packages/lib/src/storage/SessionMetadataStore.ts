@@ -58,6 +58,8 @@ export class SessionMetadataStore extends MetadataDatabase {
 	private getSessionStmt!: Database.Statement;
 	private getAllSessionsStmt!: Database.Statement;
 	private endSessionStmt!: Database.Statement;
+	private deleteSessionsBySourceStmt!: Database.Statement;
+	private countSessionsBySourceStmt!: Database.Statement;
 
 	// Session-content junction statements
 	private linkContentToSessionStmt!: Database.Statement;
@@ -113,6 +115,14 @@ export class SessionMetadataStore extends MetadataDatabase {
 			JOIN crawled_content cc ON sc.content_id = cc.id
 			WHERE sc.session_id = ?
 			ORDER BY sc.processed_order ASC
+		`);
+
+		this.deleteSessionsBySourceStmt = this.db.prepare(`
+			DELETE FROM crawl_sessions WHERE source_id = ?
+		`);
+
+		this.countSessionsBySourceStmt = this.db.prepare(`
+			SELECT COUNT(*) as count FROM crawl_sessions WHERE source_id = ?
 		`);
 	}
 
@@ -283,6 +293,25 @@ export class SessionMetadataStore extends MetadataDatabase {
 		} catch (error) {
 			throw new Error(`Failed to get session contents: ${error}`);
 		}
+	}
+
+	/**
+	 * Delete all sessions for a specific source
+	 * Returns the number of sessions deleted
+	 */
+	deleteSessionsBySource(sourceId: string): number {
+		const result = this.deleteSessionsBySourceStmt.run(sourceId);
+		return result.changes;
+	}
+
+	/**
+	 * Count sessions for a specific source
+	 */
+	countSessionsBySource(sourceId: string): number {
+		const result = this.countSessionsBySourceStmt.get(sourceId) as {
+			count: number;
+		};
+		return result.count;
 	}
 
 	/**

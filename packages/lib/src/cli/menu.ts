@@ -1,6 +1,8 @@
 import type { ProcessingPipeline, SourceRegistry } from "@/index.js";
+import { handleClean } from "./commands/clean.js";
 import { handleCrawl } from "./commands/crawl.js";
 import { handleSessions } from "./commands/sessions.js";
+import { MENU_LABELS, NAV_VALUES } from "./constants.js";
 
 interface Command {
 	name: string;
@@ -8,9 +10,10 @@ interface Command {
 }
 
 const COMMANDS: Command[] = [
-	{ name: "crawl", description: "Start crawling a source" },
-	{ name: "sessions", description: "Browse previous crawl sessions" },
-	{ name: "exit", description: "Exit the program" },
+	{ name: NAV_VALUES.CRAWL, description: "Start crawling a source" },
+	{ name: NAV_VALUES.SESSIONS, description: "Browse previous crawl sessions" },
+	{ name: "clean", description: "Clean stored data" },
+	{ name: NAV_VALUES.EXIT, description: MENU_LABELS.EXIT_PROGRAM },
 ];
 
 export async function showMainMenu(
@@ -32,7 +35,7 @@ export async function showMainMenu(
 			},
 		]);
 
-		if (command === "exit") {
+		if (command === NAV_VALUES.EXIT) {
 			console.log("Goodbye!");
 			process.exit(0);
 		}
@@ -40,12 +43,12 @@ export async function showMainMenu(
 		let action = await handleCommand(command, sourceRegistry, pipeline);
 
 		// Handle cascading crawl commands
-		while (action === "crawl") {
+		while (action === NAV_VALUES.CRAWL) {
 			action = await handleCrawl(sourceRegistry, pipeline);
 		}
 
 		// Handle final action
-		if (action === "exit") {
+		if (action === NAV_VALUES.EXIT) {
 			console.log("Goodbye!");
 			process.exit(0);
 		}
@@ -59,12 +62,14 @@ async function handleCommand(
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit" | undefined> {
 	switch (command) {
-		case "crawl":
+		case NAV_VALUES.CRAWL:
 			return await handleCrawl(sourceRegistry, pipeline);
-		case "sessions":
+		case NAV_VALUES.SESSIONS:
 			return await handleSessions(pipeline);
+		case "clean":
+			return await handleClean(sourceRegistry, pipeline);
 		default:
 			console.log("Unknown command");
-			return "main";
+			return NAV_VALUES.MAIN;
 	}
 }

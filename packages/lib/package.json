@@ -14,7 +14,7 @@
 		"test:watch": "vitest --watch",
 		"lint": "biome check src/",
 		"format": "biome format --write src/",
-		"cli": "tsc && tsc-alias && node dist/cli/index.js"
+		"cli": "node dist/cli/index.js"
 	},
 	"dependencies": {
 		"better-sqlite3": "^12.2.0",

@@ -266,6 +266,35 @@ export class ContentStore {
 	}
 
 	/**
+	 * Delete content files from disk by their hashes
+	 * Returns the number of files successfully deleted
+	 */
+	async deleteContentFiles(
+		hashes: string[],
+	): Promise<{ deleted: number; errors: string[] }> {
+		const { unlink } = await import("node:fs/promises");
+		const errors: string[] = [];
+		let deleted = 0;
+
+		for (const hash of hashes) {
+			try {
+				const filePath = join(this.storageDir, `${hash}.json`);
+				await unlink(filePath);
+				deleted++;
+			} catch (error) {
+				if (ContentStore.isErrnoException(error) && error.code === "ENOENT") {
+					// File doesn't exist, count as success
+					deleted++;
+				} else {
+					errors.push(`Failed to delete ${hash}.json: ${error}`);
+				}
+			}
+		}
+
+		return { deleted, errors };
+	}
+
+	/**
 	 * Close any open connections
 	 */
 	close(): void {
