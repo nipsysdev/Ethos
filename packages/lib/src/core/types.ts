@@ -47,7 +47,6 @@ export interface FieldConfig {
 
 export interface PaginationConfig {
 	next_button_selector?: string;
-	current_page_selector?: string;
 	maxPages?: number;
 }
 

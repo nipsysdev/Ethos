@@ -12,7 +12,6 @@ sources:
       url: "https://eff.org/updates"
       pagination:
         next_button_selector: ".pager__item--next a"
-        current_page_selector: ".pager__item--current"
       items:
         container_selector: ".views-row article.node"
         fields:

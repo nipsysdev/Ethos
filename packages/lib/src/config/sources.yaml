@@ -8,7 +8,6 @@ sources:
 
       pagination:
         next_button_selector: ".pager__item.pager__item--next a"
-        current_page_selector: ".pager__item.pager__item--current"
 
       items:
         container_selector: ".views-row article.node"
@@ -62,7 +61,6 @@ sources:
 
       pagination:
         next_button_selector: ".pagination .pagination-link:nth-of-type(2)"
-        current_page_selector: ".pagination .pagination-detail span.highlighted"
 
       items:
         container_selector: ".article-list .card-listing"
