@@ -47,7 +47,6 @@ export interface FieldConfig {
 
 export interface PaginationConfig {
 	next_button_selector?: string;
-	current_page_selector?: string;
 	maxPages?: number;
 }
 
@@ -73,6 +72,7 @@ export interface SourceConfig {
 	type: CrawlerType;
 	listing: ListingConfig;
 	content: ContentConfig;
+	content_url_excludes?: string[]; // URL patterns to exclude from content extraction
 }
 
 export interface CrawlResult {
@@ -129,6 +129,7 @@ export interface CrawlSummary {
 	endTime: Date;
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
+	urlsExcluded?: number;
 	stoppedReason?:
 		| "max_pages"
 		| "no_next_button"
@@ -154,7 +155,7 @@ export interface ContentSessionLinker {
 export interface CrawlOptions {
 	maxPages?: number;
 	onPageComplete?: (items: CrawledData[]) => Promise<void>;
-	contentConcurrency?: number; // Number of content pages to crawl concurrently (default: 5)
+	contentConcurrency?: number; // Number of content pages to crawl concurrently (default: 8)
 	metadataTracker?: ContentSessionLinker; // MetadataTracker instance for junction table linking
 	skipExistingUrls?: boolean; // Skip content crawling for URLs already in database (default: true)
 	/**
@@ -176,6 +177,7 @@ export interface CrawlMetadataItem {
 
 export interface CrawlMetadata {
 	duplicatesSkipped: number;
+	urlsExcluded: number; // URLs excluded by content_url_excludes patterns
 	totalFilteredItems: number;
 	itemsProcessed: number; // Track total items processed (replaces itemUrls.length)
 	pagesProcessed: number;

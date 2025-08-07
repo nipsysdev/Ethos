@@ -18,6 +18,7 @@ import {
 } from "../constants.js";
 import { createDataViewChoices } from "../ui/menus.js";
 import { displayCrawlSummary } from "../ui/summary.js";
+import { buildCrawlSummary } from "../utils/summaryBuilder.js";
 import { checkMetadataStore } from "../utils.js";
 
 /**
@@ -161,31 +162,40 @@ async function createSessionSummaryResult(
 		const fieldStats = calculateFieldStats(contents);
 		const contentFieldStats = calculateContentFieldStats(contents);
 
-		// Create a summary that matches the CrawlSummary interface
-		const summary = {
-			sourceId: session.sourceId,
-			sourceName: session.sourceName,
-			itemsFound: contents.length,
-			itemsProcessed: contents.length,
-			itemsWithErrors: errorCount,
-			fieldStats: fieldStats, // Use calculated field stats
-			contentFieldStats: contentFieldStats, // Use calculated content field stats
-			listingErrors: storedMetadata.listingErrors || [],
-			startTime: session.startTime,
-			endTime: session.endTime || new Date(),
-			pagesProcessed: storedMetadata.pagesProcessed || 0,
+		// Create complete metadata using stored data and calculated stats
+		const completeMetadata: CrawlMetadata = {
 			duplicatesSkipped: storedMetadata.duplicatesSkipped || 0,
+			urlsExcluded: storedMetadata.urlsExcluded || 0,
+			totalFilteredItems: storedMetadata.totalFilteredItems || 0,
+			itemsProcessed: contents.length,
+			pagesProcessed: storedMetadata.pagesProcessed || 0,
 			contentsCrawled: successCount,
-			contentErrors: contents
-				.filter((c) => c.hadContentExtractionError)
-				.map((c) => `${c.url}: Content extraction failed`),
-			sessionId: session.id,
-			storageStats: {
-				itemsStored: successCount,
-				itemsFailed: errorCount,
-				totalItems: contents.length,
-			},
+			fieldStats: fieldStats,
+			contentFieldStats: contentFieldStats,
+			listingErrors: storedMetadata.listingErrors || [],
+			contentErrors: storedMetadata.contentErrors || [],
+			stoppedReason: storedMetadata.stoppedReason,
 		};
+
+		// Use shared summary builder to ensure consistency
+		const summary = buildCrawlSummary(
+			{
+				sourceId: session.sourceId,
+				sourceName: session.sourceName,
+				startTime: session.startTime,
+				endTime: session.endTime,
+				sessionId: sessionId, // Use the parameter instead of session.id
+			},
+			completeMetadata,
+			{
+				itemsWithErrors: errorCount, // Use the actual error count from content extraction
+				storageStats: {
+					itemsStored: successCount,
+					itemsFailed: errorCount,
+					totalItems: contents.length,
+				},
+			},
+		);
 
 		return { summary };
 	} catch (error) {

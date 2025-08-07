@@ -1,13 +1,14 @@
+import { buildCrawlSummary } from "@/cli/utils/summaryBuilder.js";
 import type {
 	ContentSessionLinker,
 	CrawledData,
 	CrawlMetadata,
 	CrawlResult,
-	CrawlSummary,
 	FieldConfig,
 	SourceConfig,
 } from "@/core/types.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
+import { CrawlErrorManager } from "./CrawlErrorManager.js";
 
 /**
  * Handles metadata tracking and session management for crawl operations.
@@ -17,6 +18,7 @@ export class MetadataTracker implements ContentSessionLinker {
 	private metadata: CrawlMetadata;
 	private sessionId: string;
 	private metadataStore: MetadataStore;
+	private errorManager: CrawlErrorManager;
 	private contentLinkedCount = 0; // Track how many items have been linked
 
 	constructor(
@@ -32,9 +34,16 @@ export class MetadataTracker implements ContentSessionLinker {
 		// Initialize metadata store (use provided one for testing, or create new one)
 		this.metadataStore = metadataStore ?? new MetadataStore();
 
+		// Initialize error manager
+		this.errorManager = new CrawlErrorManager(
+			this.metadataStore,
+			this.sessionId,
+		);
+
 		// Initialize crawl metadata
 		this.metadata = {
 			duplicatesSkipped: 0,
+			urlsExcluded: 0,
 			totalFilteredItems: 0,
 			itemsProcessed: 0,
 			pagesProcessed: 0,
@@ -57,6 +66,7 @@ export class MetadataTracker implements ContentSessionLinker {
 					missingItems: [],
 				}),
 			),
+			// Don't initialize error arrays - errors are stored directly in database
 			listingErrors: [],
 			contentErrors: [],
 		};
@@ -150,12 +160,66 @@ export class MetadataTracker implements ContentSessionLinker {
 	}
 
 	/**
+	 * Track URLs that were excluded by content_url_excludes patterns
+	 */
+	addUrlsExcluded(count: number): void {
+		this.metadata.urlsExcluded += count;
+		// Also increment total filtered items count for accurate totals
+		this.metadata.totalFilteredItems += count;
+		this.updateSessionInDatabase();
+	}
+
+	/**
+	 * Remove field statistics for excluded URLs to prevent them from affecting required field error counts
+	 */
+	removeFieldStatsForExcludedUrls(
+		excludedCount: number,
+		excludedItemIndices: number[],
+	): void {
+		// Reduce the total attempts count for each field by the number of excluded URLs
+		this.metadata.fieldStats.forEach((stat) => {
+			if (stat.totalAttempts >= excludedCount) {
+				stat.totalAttempts -= excludedCount;
+
+				// Remove specific excluded item indices from missingItems
+				// Convert to absolute indices based on current item offset
+				const absoluteExcludedIndices = new Set(excludedItemIndices);
+				stat.missingItems = stat.missingItems.filter(
+					(itemIndex) => !absoluteExcludedIndices.has(itemIndex),
+				);
+			}
+		});
+		this.updateSessionInDatabase();
+	}
+
+	/**
 	 * Track filtered items
 	 */
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
-		this.metadata.listingErrors.push(...reasons);
-		this.updateSessionInDatabase();
+		// Use error manager for consistent error handling
+		this.errorManager.addListingErrors(reasons);
+		// Update the session to reflect the new totalFilteredItems count
+		this.updateSessionMetadataField(
+			"totalFilteredItems",
+			this.metadata.totalFilteredItems,
+		);
+	}
+
+	/**
+	 * Track content extraction errors
+	 */
+	addContentErrors(errors: string[]): void {
+		// Use error manager for consistent error handling
+		this.errorManager.addContentErrors(errors);
+	}
+
+	/**
+	 * Track field extraction warnings (for optional fields and non-fatal issues)
+	 */
+	addFieldExtractionWarnings(warnings: string[]): void {
+		// Use error manager with automatic categorization
+		this.errorManager.addFieldExtractionWarnings(warnings);
 	}
 
 	/**
@@ -163,7 +227,10 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	addContentsCrawled(count: number): void {
 		this.metadata.contentsCrawled += count;
-		this.updateSessionInDatabase();
+		this.updateSessionMetadataField(
+			"contentsCrawled",
+			this.metadata.contentsCrawled,
+		);
 	}
 
 	/**
@@ -177,7 +244,10 @@ export class MetadataTracker implements ContentSessionLinker {
 			| "process_interrupted",
 	): void {
 		this.metadata.stoppedReason = reason;
-		this.updateSessionInDatabase();
+		this.updateSessionMetadataField(
+			"stoppedReason",
+			this.metadata.stoppedReason,
+		);
 	}
 
 	/**
@@ -190,40 +260,46 @@ export class MetadataTracker implements ContentSessionLinker {
 			throw new Error(`Session not found: ${this.sessionId}`);
 		}
 
+		// Get errors from the error manager (which retrieves from database)
+		const { listingErrors, contentErrors } =
+			this.errorManager.getSessionErrors();
+
+		// Merge database errors with current metadata for summary generation
+		const metadataWithErrors = {
+			...this.metadata,
+			listingErrors,
+			contentErrors,
+		};
+
+		// Calculate actual items with content extraction errors (not just error message count)
+		// This ensures consistency between fresh crawls and session reconstruction
+		const sessionContents = this.metadataStore.getSessionContents(
+			this.sessionId,
+		);
+		const actualItemsWithErrors = sessionContents.filter(
+			(content) => content.hadContentExtractionError,
+		).length;
+
 		// End the session as crawling is complete
 		this.metadataStore.endSession(this.sessionId);
 
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: session.sourceId,
-			sourceName: session.sourceName,
-			itemsFound:
-				this.metadata.itemsProcessed +
-				this.metadata.duplicatesSkipped +
-				this.metadata.totalFilteredItems,
-			itemsProcessed: this.metadata.itemsProcessed,
-			itemsWithErrors: this.metadata.totalFilteredItems,
-			fieldStats: this.metadata.fieldStats,
-			contentFieldStats: this.metadata.contentFieldStats,
-			listingErrors: this.metadata.listingErrors,
-			startTime: session.startTime,
-			endTime,
-			pagesProcessed: this.metadata.pagesProcessed,
-			duplicatesSkipped: this.metadata.duplicatesSkipped,
-			stoppedReason: this.metadata.stoppedReason,
-			contentsCrawled: this.metadata.contentsCrawled,
-			contentErrors: this.metadata.contentErrors,
-		};
+		const summary = buildCrawlSummary(
+			{
+				sourceId: session.sourceId,
+				sourceName: session.sourceName,
+				startTime: session.startTime,
+				endTime: new Date(),
+				sessionId: this.sessionId,
+			},
+			metadataWithErrors, // Use metadata with errors from database
+			{ itemsWithErrors: actualItemsWithErrors }, // Override with actual item error count
+		);
 
 		// Return empty data array since all items were processed immediately
 		// The actual data was stored via onPageComplete callback
 		return {
 			data: [], // Empty since items were processed and stored immediately
-			summary: {
-				...summary,
-				// Include session ID for viewer to access crawl metadata from database
-				sessionId: this.sessionId,
-			},
+			summary,
 		};
 	}
 
@@ -232,13 +308,58 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	private updateSessionInDatabase(): void {
 		try {
-			this.metadataStore.updateSession(this.sessionId, this.metadata);
+			// Get current session to preserve existing errors
+			const session = this.metadataStore.getSession(this.sessionId);
+			if (!session) {
+				this.metadataStore.updateSession(this.sessionId, this.metadata);
+				return;
+			}
+
+			// Get errors from error manager and merge with current metadata
+			const { listingErrors, contentErrors } =
+				this.errorManager.getSessionErrors();
+			const mergedMetadata = {
+				...this.metadata,
+				listingErrors,
+				contentErrors,
+			};
+
+			this.metadataStore.updateSession(this.sessionId, mergedMetadata);
 		} catch (error) {
 			console.error(
 				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
 			// Intentionally do not re-throw the error: this method runs as a background operation,
 			// and any failure to update session metadata should not interrupt or break the main crawling process.
+		}
+	}
+
+	/**
+	 * Update a specific field in session metadata without overwriting errors
+	 */
+	private updateSessionMetadataField<K extends keyof CrawlMetadata>(
+		fieldName: K,
+		value: CrawlMetadata[K],
+	): void {
+		try {
+			// Get current session to preserve existing data including errors
+			const session = this.metadataStore.getSession(this.sessionId);
+			if (!session) {
+				throw new Error(`Session not found: ${this.sessionId}`);
+			}
+
+			// Parse current metadata to preserve errors
+			const currentMetadata = JSON.parse(session.metadata);
+
+			// Update the specific field
+			currentMetadata[fieldName] = value;
+
+			// Update the session with the modified metadata
+			this.metadataStore.updateSession(this.sessionId, currentMetadata);
+		} catch (error) {
+			console.error(
+				`Failed to update session metadata field ${String(fieldName)} (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	}
 }

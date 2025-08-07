@@ -11,10 +11,12 @@ import type {
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { ContentPageExtractor } from "./extractors/ContentPageExtractor.js";
+import { EXTRACTION_CONCURRENCY } from "./extractors/constants.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
 import { MetadataTracker } from "./MetadataTracker.js";
 import { InterruptionHandler } from "./utils/InterruptionHandler.js";
+import { filterByExclusion, filterDuplicates } from "./utils/UrlFilter.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -114,22 +116,55 @@ export class ArticleListingCrawler implements Crawler {
 					metadata.itemsProcessed,
 				);
 
-				// Track filtered items
+				// Filter out URLs that match exclude patterns FIRST (before any error counting)
+				const exclusionResult = filterByExclusion(
+					pageResult.items,
+					{
+						excludePatterns: config.content_url_excludes,
+						baseUrl: config.listing.url,
+					},
+					metadata.itemsProcessed,
+				);
+
+				const {
+					filteredItems: filteredPageItems,
+					excludedCount,
+					excludedItemIndices,
+				} = exclusionResult;
+
+				// Track excluded URLs as filtered items (but not as errors)
+				if (excludedCount > 0) {
+					metadataTracker.addUrlsExcluded(excludedCount);
+					// Remove field statistics for excluded URLs so they don't count as required field errors
+					metadataTracker.removeFieldStatsForExcludedUrls(
+						excludedCount,
+						excludedItemIndices,
+					);
+				}
+
+				// Track other filtered items from listing extraction
 				metadataTracker.addFilteredItems(
 					pageResult.filteredCount,
 					pageResult.filteredReasons,
 				);
 
-				// Filter out duplicates and count them
-				const newItems: CrawledData[] = [];
+				// Track field extraction warnings (including optional field failures)
+				const fieldWarnings = pageResult.filteredReasons.filter(
+					(reason) =>
+						reason.includes("Optional field") ||
+						reason.includes("Required field"),
+				);
+				if (fieldWarnings.length > 0) {
+					metadataTracker.addFieldExtractionWarnings(fieldWarnings);
+				}
 
-				for (const item of pageResult.items) {
-					if (seenUrls.has(item.url)) {
-						metadataTracker.addDuplicatesSkipped(1);
-					} else {
-						seenUrls.add(item.url);
-						newItems.push(item);
-					}
+				// Filter out duplicates and count them (use filtered items, not original)
+				const newItems = filterDuplicates(filteredPageItems, seenUrls);
+				const sessionDuplicatesSkipped =
+					filteredPageItems.length - newItems.length;
+
+				if (sessionDuplicatesSkipped > 0) {
+					metadataTracker.addDuplicatesSkipped(sessionDuplicatesSkipped);
 				}
 
 				// Early database check to filter out URLs that already exist
@@ -155,19 +190,28 @@ export class ArticleListingCrawler implements Crawler {
 					}
 				}
 
-				// Check if all items (after both session and database deduplication) are duplicates
+				// Note: URL exclusion filtering is now done earlier, before duplicate checking
+
+				// Check if all items (after exclusion, session and database deduplication) are duplicates
 				if (
-					pageResult.items.length > 0 &&
+					filteredPageItems.length > 0 &&
 					itemsToProcess.length === 0 &&
 					options?.stopOnAllDuplicates !== false
 				) {
 					metadataTracker.setStoppedReason("all_duplicates");
 					// Update logging to reflect database duplicates too
 					const totalDuplicatesOnPage =
-						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+						filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+
+					// Create updated page result that includes excluded URLs in filtered count
+					const updatedPageResult = {
+						...pageResult,
+						filteredCount: pageResult.filteredCount + excludedCount,
+					};
+
 					this.logPageSummary(
 						metadata.pagesProcessed,
-						pageResult,
+						updatedPageResult,
 						0, // No new items after database check
 						totalDuplicatesOnPage,
 						options?.maxPages,
@@ -178,10 +222,17 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Log page summary for all pages
 				const totalDuplicatesOnPage =
-					pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+					filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+
+				// Create updated page result that includes excluded URLs in filtered count
+				const updatedPageResult = {
+					...pageResult,
+					filteredCount: pageResult.filteredCount + excludedCount,
+				};
+
 				this.logPageSummary(
 					metadata.pagesProcessed,
-					pageResult,
+					updatedPageResult,
 					itemsToProcess.length,
 					totalDuplicatesOnPage,
 					options?.maxPages,
@@ -193,7 +244,9 @@ export class ArticleListingCrawler implements Crawler {
 					// Store current listing page URL so we can return to it after content extraction
 					const currentListingUrl = page.url();
 
-					const concurrency = options?.contentConcurrency ?? 5;
+					const concurrency =
+						options?.contentConcurrency ??
+						EXTRACTION_CONCURRENCY.HIGH_PERFORMANCE_LIMIT;
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
 						`Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
@@ -208,8 +261,25 @@ export class ArticleListingCrawler implements Crawler {
 						skipExisting,
 						metadata.contentErrors,
 						metadata.contentFieldStats,
+						metadataTracker, // Pass the tracker for storing filtering stats
 					);
 					metadataTracker.addContentsCrawled(itemsToProcess.length);
+
+					// Add any content errors that were captured during extraction
+					if (metadata.contentErrors.length > 0) {
+						metadataTracker.addContentErrors(metadata.contentErrors);
+						// Clear the temporary array to avoid double-counting on subsequent pages
+						metadata.contentErrors.length = 0;
+					}
+
+					// Track field extraction warnings from content extraction
+					const contentWarnings = metadata.contentErrors.filter(
+						(error) =>
+							error.includes("Optional field") || error.includes("not found"),
+					);
+					if (contentWarnings.length > 0) {
+						metadataTracker.addFieldExtractionWarnings(contentWarnings);
+					}
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });

@@ -141,6 +141,14 @@ export class MetadataStore {
 		return this.sessionStore.countSessionsBySource(sourceId);
 	}
 
+	addSessionErrors(
+		sessionId: string,
+		errorType: "listing" | "content",
+		errors: string[],
+	): void {
+		this.sessionStore.addSessionErrors(sessionId, errorType, errors);
+	}
+
 	// Database management
 	close(): void {
 		this.contentStore.close();

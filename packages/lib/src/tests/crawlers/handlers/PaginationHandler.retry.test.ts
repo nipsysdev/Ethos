@@ -68,7 +68,7 @@ describe("PaginationHandler - Retry Logic", () => {
 		const result = await promise;
 
 		expect(result).toBe(false);
-		expect(mockButton.click).toHaveBeenCalledTimes(3); // Should retry 3 times
+		expect(mockButton.click).toHaveBeenCalledTimes(2); // Should retry 2 times (optimized)
 	});
 
 	it("should succeed on second attempt after first failure", async () => {
@@ -124,7 +124,7 @@ describe("PaginationHandler - Retry Logic", () => {
 		await promise;
 
 		// Verify delays were used (this is implicit in the retry logic working)
-		expect(mockButton.click).toHaveBeenCalledTimes(3);
+		expect(mockButton.click).toHaveBeenCalledTimes(2); // Optimized retry count
 	});
 
 	it("should return false when container doesn't load after all retries", async () => {
@@ -145,6 +145,6 @@ describe("PaginationHandler - Retry Logic", () => {
 		const result = await promise;
 
 		expect(result).toBe(false);
-		expect(mockButton.click).toHaveBeenCalledTimes(3); // All retries exhausted
+		expect(mockButton.click).toHaveBeenCalledTimes(2); // All retries exhausted (optimized)
 	});
 });

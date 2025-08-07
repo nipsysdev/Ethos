@@ -21,7 +21,7 @@ export const MENU_LABELS = {
 	BACK_TO_MAIN: "Back to main menu",
 	BACK_TO_SOURCE_SELECTION: "Back to source selection",
 	BACK_TO_SESSIONS_LIST: "Back to sessions list",
-	BACK_TO_MENU: "< Back to menu",
+	BACK_TO_MENU: "Back to menu",
 	EXIT_PROGRAM: "Exit the program",
 } as const;
 

@@ -42,7 +42,6 @@ sources:
 
       pagination:
         next_button_selector: ".pager__item.pager__item--next a"
-        current_page_selector: ".pager__item.pager__item--current"
 
       items:
         container_selector: ".views-row article.node"

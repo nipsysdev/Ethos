@@ -2,13 +2,14 @@ sources:
   - id: "eff"
     name: "Electronic Frontier Foundation"
     type: "listing"
+    content_url_excludes:
+      - "/event/"
 
     listing:
       url: "https://eff.org/updates"
 
       pagination:
         next_button_selector: ".pager__item.pager__item--next a"
-        current_page_selector: ".pager__item.pager__item--current"
 
       items:
         container_selector: ".views-row article.node"
@@ -25,6 +26,7 @@ sources:
           excerpt:
             selector: ".node__content"
             attribute: "text"
+            optional: true
           author:
             selector: ".node-author"
             attribute: "text"
@@ -35,25 +37,16 @@ sources:
             optional: true
 
     content:
-      container_selector: ".node-type-blog"
+      container_selector: "body"
       fields:
-        title:
-          selector: ".pane-page-title h1"
-          attribute: "text"
-        date:
-          selector: ".pane-eff-author .date"
-          attribute: "text"
         content:
-          selector: ".pane-node .node__content"
-          attribute: "text"
-        author:
-          selector: ".pane-eff-author .byline"
+          selector: ".node--full"
           attribute: "text"
         image:
           selector: ".pane-banner img"
           attribute: "src"
 
-  - id: "freedomPress"
+  - id: "fpf"
     name: "Freedom of the Press Foundation"
     type: "listing"
 
@@ -62,7 +55,6 @@ sources:
 
       pagination:
         next_button_selector: ".pagination .pagination-link:nth-of-type(2)"
-        current_page_selector: ".pagination .pagination-detail span.highlighted"
 
       items:
         container_selector: ".article-list .card-listing"
@@ -79,6 +71,7 @@ sources:
           excerpt:
             selector: ".inner-content p"
             attribute: "text"
+            optional: true
           author:
             selector: ".meta-info .card-meta-link:not(:nth-child(1))"
             attribute: "text"
@@ -91,20 +84,65 @@ sources:
     content:
       container_selector: ".blog-page"
       fields:
-        title:
-          selector: ".header-banner .heading"
-          attribute: "text"
-        date:
-          selector: ".header-banner .author time"
-          attribute: "text"
         content:
           selector: ".post-content"
           attribute: "text"
           exclude_selectors:
             - ".form.newsletter-signup"
-        author:
-          selector: ".header-banner .author-link"
-          attribute: "text"
         image:
           selector: ".header-image img"
           attribute: "src"
+
+  - id: "lpe"
+    name: "Logos Press Engine"
+    type: "listing"
+
+    listing:
+      url: "https://press.logos.co/search?type=article"
+
+      pagination:
+        next_button_selector: ""
+
+      items:
+        container_selector: ".section .post-card"
+        fields:
+          title:
+            selector: ".post-card__title"
+            attribute: "text"
+          url:
+            selector: ".post-card__title"
+            attribute: "href"
+          date:
+            selector: ".post-card__label span:nth-of-type(2)"
+            attribute: "text"
+          excerpt:
+            selector: ".post-card__content > span"
+            attribute: "text"
+            optional: true
+          author:
+            # Author is not displayed in the listing
+            selector: ""
+            attribute: "text"
+            optional: true
+          image:
+            selector: ".post-card__cover-image img"
+            attribute: "src"
+            optional: true
+
+    content:
+      container_selector: "main article"
+      fields:
+        content:
+          # retrieving all text from the container_selector while excluding specific elements
+          selector: ""
+          attribute: "text"
+          exclude_selectors:
+            - "header"
+            - "div"
+            - "span"
+        image:
+          selector: "header .loaded img"
+          attribute: "src"
+        author:
+          selector: "header div > p"
+          attribute: "text"

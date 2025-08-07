@@ -4,6 +4,26 @@
  */
 
 /**
+ * Resolves a URL attribute value to an absolute URL using browser's URL resolution
+ * @param urlValue - The URL value from the attribute
+ * @param baseUrl - The base URL to resolve against (typically window.location.href in browser context)
+ * @returns The absolute URL or original value if resolution fails
+ */
+export function resolveUrlAttribute(
+	urlValue: string | null,
+	baseUrl: string,
+): string | null {
+	if (!urlValue) return null;
+
+	try {
+		return new URL(urlValue, baseUrl).href;
+	} catch {
+		// If URL construction fails, return the original value
+		return urlValue;
+	}
+}
+
+/**
  * Extracts text content from an element, optionally excluding child elements
  */
 export function extractTextWithExclusions(
@@ -35,6 +55,13 @@ export function extractFieldValue(
 
 	if (fieldConfig.attribute === "text") {
 		return extractTextWithExclusions(element, fieldConfig.exclude_selectors);
+	} else if (
+		fieldConfig.attribute === "href" ||
+		fieldConfig.attribute === "src"
+	) {
+		// For href and src attributes, get the absolute URL using the browser's URL resolution
+		const urlValue = element.getAttribute(fieldConfig.attribute);
+		return resolveUrlAttribute(urlValue, window.location.href);
 	} else {
 		return element.getAttribute(fieldConfig.attribute);
 	}
@@ -50,6 +77,20 @@ export function createBrowserExtractionFunction() {
 		fields: Record<string, unknown>;
 	}) => {
 		// Inline helper functions (duplicated for browser context)
+		function resolveUrlAttribute(
+			urlValue: string | null,
+			baseUrl: string,
+		): string | null {
+			if (!urlValue) return null;
+
+			try {
+				return new URL(urlValue, baseUrl).href;
+			} catch {
+				// If URL construction fails, return the original value
+				return urlValue;
+			}
+		}
+
 		function extractTextWithExclusions(
 			element: Element,
 			excludeSelectors?: string[],
@@ -79,6 +120,13 @@ export function createBrowserExtractionFunction() {
 					element,
 					fieldConfig.exclude_selectors,
 				);
+			} else if (
+				fieldConfig.attribute === "href" ||
+				fieldConfig.attribute === "src"
+			) {
+				// For href and src attributes, get the absolute URL using the browser's URL resolution
+				const urlValue = element.getAttribute(fieldConfig.attribute);
+				return resolveUrlAttribute(urlValue, window.location.href);
 			} else {
 				return element.getAttribute(fieldConfig.attribute);
 			}
@@ -106,12 +154,36 @@ export function createBrowserExtractionFunction() {
 					selector: string;
 					attribute: string;
 					exclude_selectors?: string[];
+					optional?: boolean;
 				};
-				const element = containerElement.querySelector(
-					typedFieldConfig.selector,
-				);
+
+				// If selector is empty, use the container element itself
+				// Otherwise, find the child element with the selector
+				let element: Element | null;
+				if (
+					!typedFieldConfig.selector ||
+					typedFieldConfig.selector.trim() === ""
+				) {
+					element = containerElement;
+				} else {
+					element = containerElement.querySelector(typedFieldConfig.selector);
+				}
+
 				const value = extractFieldValue(element, typedFieldConfig);
 				results[fieldName] = value && value !== "" ? value : null;
+
+				// Log extraction issues for both required and optional fields
+				if (!value || value === "") {
+					if (typedFieldConfig.optional) {
+						extractionErrors.push(
+							`Optional field '${fieldName}' not found: selector '${typedFieldConfig.selector}' returned no results`,
+						);
+					} else {
+						extractionErrors.push(
+							`Required field '${fieldName}' not found: selector '${typedFieldConfig.selector}' returned no results`,
+						);
+					}
+				}
 			} catch (error) {
 				extractionErrors.push(`Failed to extract ${fieldName}: ${error}`);
 				results[fieldName] = null;

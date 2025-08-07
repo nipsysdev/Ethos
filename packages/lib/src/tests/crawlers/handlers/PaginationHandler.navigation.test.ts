@@ -74,11 +74,11 @@ describe("PaginationHandler - Navigation", () => {
 		expect(result).toBe(true);
 		expect(mockButton.click).toHaveBeenCalled();
 		expect(mockPage.waitForSelector).toHaveBeenCalledWith(".article", {
-			timeout: 10000, // Updated timeout
+			timeout: 6000, // Updated timeout to match optimized value
 		});
 		expect(mockPage.waitForNavigation).toHaveBeenCalledWith({
 			waitUntil: "domcontentloaded",
-			timeout: 8000, // Updated timeout
+			timeout: 5000, // Updated timeout to match optimized value
 		});
 	});
 
