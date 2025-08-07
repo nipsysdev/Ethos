@@ -13,6 +13,17 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 
 	if (summary.itemsWithErrors > 0) {
 		console.log(`  Items with errors: ${summary.itemsWithErrors}`);
+
+		// Show breakdown of error types if available
+		const listingErrorCount = summary.listingErrors?.length || 0;
+		const contentErrorCount = summary.contentErrors?.length || 0;
+
+		if (listingErrorCount > 0) {
+			console.log(`    Listing extraction errors: ${listingErrorCount}`);
+		}
+		if (contentErrorCount > 0) {
+			console.log(`    Content extraction errors: ${contentErrorCount}`);
+		}
 	}
 
 	// Pagination stats (if available)

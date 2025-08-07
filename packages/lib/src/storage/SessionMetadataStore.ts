@@ -315,6 +315,55 @@ export class SessionMetadataStore extends MetadataDatabase {
 	}
 
 	/**
+	 * Add errors to session metadata directly in database
+	 */
+	addSessionErrors(
+		sessionId: string,
+		errorType: "listing" | "content",
+		errors: string[],
+	): void {
+		if (errors.length === 0) {
+			return;
+		}
+
+		try {
+			// Use a transaction to ensure atomicity
+			const transaction = this.db.transaction(() => {
+				// Get current session
+				const session = this.getSession(sessionId);
+				if (!session) {
+					throw new Error(`Session not found: ${sessionId}`);
+				}
+
+				// Parse current metadata
+				const metadata = JSON.parse(session.metadata);
+
+				// Initialize error arrays if they don't exist
+				if (!metadata.listingErrors) metadata.listingErrors = [];
+				if (!metadata.contentErrors) metadata.contentErrors = [];
+
+				// Add new errors
+				if (errorType === "listing") {
+					metadata.listingErrors.push(...errors);
+				} else {
+					metadata.contentErrors.push(...errors);
+				}
+
+				// Update session with new metadata using direct SQL
+				const updatedMetadata = JSON.stringify(metadata);
+				this.updateSessionStmt.run(updatedMetadata, sessionId);
+			});
+
+			// Execute the transaction
+			transaction();
+		} catch (error) {
+			throw new Error(
+				`Failed to add session errors: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	}
+
+	/**
 	 * Map database row to ContentMetadata (reused from ContentMetadataStore)
 	 */
 	private mapRowToMetadata(row: DatabaseRow): ContentMetadata {

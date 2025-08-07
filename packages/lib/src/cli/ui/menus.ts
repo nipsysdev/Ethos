@@ -6,8 +6,14 @@ import type { ProcessingSummaryResult } from "@/index.js";
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],
 ): number {
-	const { listingErrors, contentErrors, fieldStats } = summary;
+	const { listingErrors, contentErrors, fieldStats, itemsWithErrors } = summary;
 
+	// Use itemsWithErrors if available (more accurate for sessions)
+	if (itemsWithErrors !== undefined && itemsWithErrors > 0) {
+		return itemsWithErrors;
+	}
+
+	// Fallback to calculating from individual error arrays
 	const requiredFieldIssues = fieldStats.filter(
 		(stat) => !stat.isOptional && stat.successCount < stat.totalAttempts,
 	);

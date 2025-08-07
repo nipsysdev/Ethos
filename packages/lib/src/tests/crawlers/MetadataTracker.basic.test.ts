@@ -10,6 +10,8 @@ const mockUpdateSession = vi.fn();
 const mockGetSession = vi.fn();
 const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
+const mockGetSessionContents = vi.fn();
+const mockAddSessionErrors = vi.fn();
 
 const mockMetadataStore: Partial<MetadataStore> = {
 	createSession: mockCreateSession,
@@ -17,6 +19,8 @@ const mockMetadataStore: Partial<MetadataStore> = {
 	getSession: mockGetSession,
 	endSession: mockEndSession,
 	checkpoint: mockCheckpoint,
+	getSessionContents: mockGetSessionContents,
+	addSessionErrors: mockAddSessionErrors,
 };
 
 describe("MetadataTracker - Basic Functionality", () => {
@@ -32,6 +36,11 @@ describe("MetadataTracker - Basic Functionality", () => {
 		mockGetSession.mockClear();
 		mockEndSession.mockClear();
 		mockCheckpoint.mockClear();
+		mockGetSessionContents.mockClear();
+		mockAddSessionErrors.mockClear();
+
+		// Set up default return values
+		mockGetSessionContents.mockReturnValue([]);
 
 		startTime = new Date();
 		mockConfig = {
@@ -129,11 +138,23 @@ describe("MetadataTracker - Basic Functionality", () => {
 
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.totalFilteredItems).toBe(3);
-		expect(metadata.listingErrors).toEqual([
-			"Missing title",
-			"Invalid URL",
-			"Missing date",
-		]);
+		// Errors are now stored directly in database, not in memory
+		expect(metadata.listingErrors).toEqual([]);
+
+		// Verify database storage method was called correctly
+		expect(mockAddSessionErrors).toHaveBeenCalledTimes(2);
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			1,
+			expect.any(String),
+			"listing",
+			["Missing title", "Invalid URL"],
+		);
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			2,
+			expect.any(String),
+			"listing",
+			["Missing date"],
+		);
 	});
 
 	it("should track content crawled", () => {
@@ -142,6 +163,67 @@ describe("MetadataTracker - Basic Functionality", () => {
 
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.contentsCrawled).toBe(8);
+	});
+
+	it("should track content errors", () => {
+		metadataTracker.addContentErrors([
+			"Content extraction failed for https://example.com/1: Failed to extract content",
+			"Failed to load content page https://example.com/2: Navigation timeout",
+		]);
+		metadataTracker.addContentErrors(["Another content error"]);
+
+		const metadata = metadataTracker.getMetadata();
+		// Errors are now stored directly in database, not in memory
+		expect(metadata.contentErrors).toEqual([]);
+
+		// Verify database storage method was called correctly
+		expect(mockAddSessionErrors).toHaveBeenCalledTimes(2);
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			1,
+			expect.any(String),
+			"content",
+			[
+				"Content extraction failed for https://example.com/1: Failed to extract content",
+				"Failed to load content page https://example.com/2: Navigation timeout",
+			],
+		);
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			2,
+			expect.any(String),
+			"content",
+			["Another content error"],
+		);
+	});
+
+	it("should track field extraction warnings", () => {
+		metadataTracker.addFieldExtractionWarnings([
+			"Optional field 'author' not found for \"Test Article\"",
+			"Optional field 'image' not found for \"Another Article\"",
+			"Content extraction warning: element not found",
+		]);
+
+		const metadata = metadataTracker.getMetadata();
+		// Errors are now stored directly in database, not in memory
+		expect(metadata.listingErrors).toEqual([]);
+		expect(metadata.contentErrors).toEqual([]);
+
+		// Verify database storage method was called correctly
+		expect(mockAddSessionErrors).toHaveBeenCalledTimes(2); // Once for listing, once for content
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			1,
+			expect.any(String),
+			"listing",
+			[
+				"Optional field 'author' not found for \"Test Article\"",
+				"Optional field 'image' not found for \"Another Article\"",
+			],
+		);
+		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
+			2,
+			expect.any(String),
+			"content",
+			["Content extraction warning: element not found"],
+		);
 	});
 
 	it("should set stopped reason", () => {

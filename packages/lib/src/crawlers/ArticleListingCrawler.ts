@@ -11,10 +11,12 @@ import type {
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { ContentPageExtractor } from "./extractors/ContentPageExtractor.js";
+import { EXTRACTION_CONCURRENCY } from "./extractors/constants.js";
 import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
 import { PaginationHandler } from "./handlers/PaginationHandler.js";
 import { MetadataTracker } from "./MetadataTracker.js";
 import { InterruptionHandler } from "./utils/InterruptionHandler.js";
+import { filterByExclusion, filterDuplicates } from "./utils/UrlFilter.js";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());
@@ -115,42 +117,29 @@ export class ArticleListingCrawler implements Crawler {
 				);
 
 				// Filter out URLs that match exclude patterns FIRST (before any error counting)
-				let excludedCount = 0;
-				const filteredPageItems: CrawledData[] = [];
-				const excludedItemIndices: number[] = [];
+				const exclusionResult = filterByExclusion(
+					pageResult.items,
+					{
+						excludePatterns: config.content_url_excludes,
+						baseUrl: config.listing.url,
+					},
+					metadata.itemsProcessed,
+				);
 
-				if (
-					config.content_url_excludes &&
-					config.content_url_excludes.length > 0
-				) {
-					const excludePatterns = config.content_url_excludes;
-					pageResult.items.forEach((item, index) => {
-						const absoluteUrl = new URL(item.url, config.listing.url).href;
-						const isExcluded = excludePatterns.some((pattern) =>
-							absoluteUrl.includes(pattern),
-						);
+				const {
+					filteredItems: filteredPageItems,
+					excludedCount,
+					excludedItemIndices,
+				} = exclusionResult;
 
-						if (isExcluded) {
-							excludedCount++;
-							// Track the absolute index (offset + current page item index + 1)
-							excludedItemIndices.push(metadata.itemsProcessed + index + 1);
-						} else {
-							filteredPageItems.push(item);
-						}
-					});
-
-					// Track excluded URLs as filtered items (but not as errors)
-					if (excludedCount > 0) {
-						metadataTracker.addUrlsExcluded(excludedCount);
-						// Remove field statistics for excluded URLs so they don't count as required field errors
-						metadataTracker.removeFieldStatsForExcludedUrls(
-							excludedCount,
-							excludedItemIndices,
-						);
-					}
-				} else {
-					// No exclusion patterns, use all items
-					filteredPageItems.push(...pageResult.items);
+				// Track excluded URLs as filtered items (but not as errors)
+				if (excludedCount > 0) {
+					metadataTracker.addUrlsExcluded(excludedCount);
+					// Remove field statistics for excluded URLs so they don't count as required field errors
+					metadataTracker.removeFieldStatsForExcludedUrls(
+						excludedCount,
+						excludedItemIndices,
+					);
 				}
 
 				// Track other filtered items from listing extraction
@@ -159,16 +148,23 @@ export class ArticleListingCrawler implements Crawler {
 					pageResult.filteredReasons,
 				);
 
-				// Filter out duplicates and count them (use filtered items, not original)
-				const newItems: CrawledData[] = [];
+				// Track field extraction warnings (including optional field failures)
+				const fieldWarnings = pageResult.filteredReasons.filter(
+					(reason) =>
+						reason.includes("Optional field") ||
+						reason.includes("Required field"),
+				);
+				if (fieldWarnings.length > 0) {
+					metadataTracker.addFieldExtractionWarnings(fieldWarnings);
+				}
 
-				for (const item of filteredPageItems) {
-					if (seenUrls.has(item.url)) {
-						metadataTracker.addDuplicatesSkipped(1);
-					} else {
-						seenUrls.add(item.url);
-						newItems.push(item);
-					}
+				// Filter out duplicates and count them (use filtered items, not original)
+				const newItems = filterDuplicates(filteredPageItems, seenUrls);
+				const sessionDuplicatesSkipped =
+					filteredPageItems.length - newItems.length;
+
+				if (sessionDuplicatesSkipped > 0) {
+					metadataTracker.addDuplicatesSkipped(sessionDuplicatesSkipped);
 				}
 
 				// Early database check to filter out URLs that already exist
@@ -248,7 +244,9 @@ export class ArticleListingCrawler implements Crawler {
 					// Store current listing page URL so we can return to it after content extraction
 					const currentListingUrl = page.url();
 
-					const concurrency = options?.contentConcurrency ?? 8; // Increased from 5 for faster processing
+					const concurrency =
+						options?.contentConcurrency ??
+						EXTRACTION_CONCURRENCY.HIGH_PERFORMANCE_LIMIT;
 					const skipExisting = options?.skipExistingUrls ?? true;
 					console.log(
 						`Extracting content data for ${itemsToProcess.length} items (concurrency: ${concurrency})...`,
@@ -266,6 +264,22 @@ export class ArticleListingCrawler implements Crawler {
 						metadataTracker, // Pass the tracker for storing filtering stats
 					);
 					metadataTracker.addContentsCrawled(itemsToProcess.length);
+
+					// Add any content errors that were captured during extraction
+					if (metadata.contentErrors.length > 0) {
+						metadataTracker.addContentErrors(metadata.contentErrors);
+						// Clear the temporary array to avoid double-counting on subsequent pages
+						metadata.contentErrors.length = 0;
+					}
+
+					// Track field extraction warnings from content extraction
+					const contentWarnings = metadata.contentErrors.filter(
+						(error) =>
+							error.includes("Optional field") || error.includes("not found"),
+					);
+					if (contentWarnings.length > 0) {
+						metadataTracker.addFieldExtractionWarnings(contentWarnings);
+					}
 
 					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });

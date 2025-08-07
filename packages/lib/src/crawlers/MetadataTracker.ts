@@ -1,9 +1,9 @@
+import { buildCrawlSummary } from "@/cli/utils/summaryBuilder.js";
 import type {
 	ContentSessionLinker,
 	CrawledData,
 	CrawlMetadata,
 	CrawlResult,
-	CrawlSummary,
 	FieldConfig,
 	SourceConfig,
 } from "@/core/types.js";
@@ -58,6 +58,7 @@ export class MetadataTracker implements ContentSessionLinker {
 					missingItems: [],
 				}),
 			),
+			// Don't initialize error arrays - errors are stored directly in database
 			listingErrors: [],
 			contentErrors: [],
 		};
@@ -188,8 +189,52 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
-		this.metadata.listingErrors.push(...reasons);
-		this.updateSessionInDatabase();
+		// Store errors directly in database, don't accumulate in memory
+		this.metadataStore.addSessionErrors(this.sessionId, "listing", reasons);
+		// Update the session to reflect the new totalFilteredItems count
+		// We need to get the current session metadata and update it to avoid overwriting errors
+		this.updateSessionMetadataField(
+			"totalFilteredItems",
+			this.metadata.totalFilteredItems,
+		);
+	}
+
+	/**
+	 * Track content extraction errors
+	 */
+	addContentErrors(errors: string[]): void {
+		// Store errors directly in database, don't accumulate in memory
+		this.metadataStore.addSessionErrors(this.sessionId, "content", errors);
+		// Don't call updateSessionInDatabase() here as addSessionErrors already updates the session
+	}
+
+	/**
+	 * Track field extraction warnings (for optional fields and non-fatal issues)
+	 */
+	addFieldExtractionWarnings(warnings: string[]): void {
+		// Separate and store warnings directly in database
+		const listingWarnings = warnings.filter(
+			(w) => w.includes("Optional field") || w.includes("Required field"),
+		);
+		const contentWarnings = warnings.filter(
+			(w) => w.includes("content") || w.includes("extraction"),
+		);
+
+		if (listingWarnings.length > 0) {
+			this.metadataStore.addSessionErrors(
+				this.sessionId,
+				"listing",
+				listingWarnings,
+			);
+		}
+		if (contentWarnings.length > 0) {
+			this.metadataStore.addSessionErrors(
+				this.sessionId,
+				"content",
+				contentWarnings,
+			);
+		}
+		// Don't call updateSessionInDatabase() here as addSessionErrors already updates the session
 	}
 
 	/**
@@ -197,7 +242,10 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	addContentsCrawled(count: number): void {
 		this.metadata.contentsCrawled += count;
-		this.updateSessionInDatabase();
+		this.updateSessionMetadataField(
+			"contentsCrawled",
+			this.metadata.contentsCrawled,
+		);
 	}
 
 	/**
@@ -211,7 +259,10 @@ export class MetadataTracker implements ContentSessionLinker {
 			| "process_interrupted",
 	): void {
 		this.metadata.stoppedReason = reason;
-		this.updateSessionInDatabase();
+		this.updateSessionMetadataField(
+			"stoppedReason",
+			this.metadata.stoppedReason,
+		);
 	}
 
 	/**
@@ -224,41 +275,45 @@ export class MetadataTracker implements ContentSessionLinker {
 			throw new Error(`Session not found: ${this.sessionId}`);
 		}
 
+		// Parse session metadata to get errors stored in database
+		const sessionMetadata = JSON.parse(session.metadata);
+
+		// Merge database errors with current metadata for summary generation
+		const metadataWithErrors = {
+			...this.metadata,
+			listingErrors: sessionMetadata.listingErrors || [],
+			contentErrors: sessionMetadata.contentErrors || [],
+		};
+
+		// Calculate actual items with content extraction errors (not just error message count)
+		// This ensures consistency between fresh crawls and session reconstruction
+		const sessionContents = this.metadataStore.getSessionContents(
+			this.sessionId,
+		);
+		const actualItemsWithErrors = sessionContents.filter(
+			(content) => content.hadContentExtractionError,
+		).length;
+
 		// End the session as crawling is complete
 		this.metadataStore.endSession(this.sessionId);
 
-		const endTime = new Date();
-		const summary: CrawlSummary = {
-			sourceId: session.sourceId,
-			sourceName: session.sourceName,
-			itemsFound:
-				this.metadata.itemsProcessed +
-				this.metadata.duplicatesSkipped +
-				this.metadata.totalFilteredItems,
-			itemsProcessed: this.metadata.itemsProcessed,
-			itemsWithErrors:
-				this.metadata.listingErrors.length + this.metadata.contentErrors.length,
-			fieldStats: this.metadata.fieldStats,
-			contentFieldStats: this.metadata.contentFieldStats,
-			listingErrors: this.metadata.listingErrors,
-			startTime: session.startTime,
-			endTime,
-			pagesProcessed: this.metadata.pagesProcessed,
-			duplicatesSkipped: this.metadata.duplicatesSkipped,
-			stoppedReason: this.metadata.stoppedReason,
-			contentsCrawled: this.metadata.contentsCrawled,
-			contentErrors: this.metadata.contentErrors,
-		};
+		const summary = buildCrawlSummary(
+			{
+				sourceId: session.sourceId,
+				sourceName: session.sourceName,
+				startTime: session.startTime,
+				endTime: new Date(),
+				sessionId: this.sessionId,
+			},
+			metadataWithErrors, // Use metadata with errors from database
+			{ itemsWithErrors: actualItemsWithErrors }, // Override with actual item error count
+		);
 
 		// Return empty data array since all items were processed immediately
 		// The actual data was stored via onPageComplete callback
 		return {
 			data: [], // Empty since items were processed and stored immediately
-			summary: {
-				...summary,
-				// Include session ID for viewer to access crawl metadata from database
-				sessionId: this.sessionId,
-			},
+			summary,
 		};
 	}
 
@@ -267,13 +322,56 @@ export class MetadataTracker implements ContentSessionLinker {
 	 */
 	private updateSessionInDatabase(): void {
 		try {
-			this.metadataStore.updateSession(this.sessionId, this.metadata);
+			// Get current session to preserve existing errors
+			const session = this.metadataStore.getSession(this.sessionId);
+			if (!session) {
+				this.metadataStore.updateSession(this.sessionId, this.metadata);
+				return;
+			}
+
+			// Parse current metadata to preserve errors
+			const currentMetadata = JSON.parse(session.metadata);
+
+			// Merge in-memory metadata with existing errors
+			const mergedMetadata = {
+				...this.metadata,
+				listingErrors: currentMetadata.listingErrors || [],
+				contentErrors: currentMetadata.contentErrors || [],
+			};
+
+			this.metadataStore.updateSession(this.sessionId, mergedMetadata);
 		} catch (error) {
 			console.error(
 				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
 			// Intentionally do not re-throw the error: this method runs as a background operation,
 			// and any failure to update session metadata should not interrupt or break the main crawling process.
+		}
+	}
+
+	/**
+	 * Update a specific field in session metadata without overwriting errors
+	 */
+	private updateSessionMetadataField(fieldName: string, value: unknown): void {
+		try {
+			// Get current session to preserve existing data including errors
+			const session = this.metadataStore.getSession(this.sessionId);
+			if (!session) {
+				throw new Error(`Session not found: ${this.sessionId}`);
+			}
+
+			// Parse current metadata to preserve errors
+			const currentMetadata = JSON.parse(session.metadata);
+
+			// Update the specific field
+			currentMetadata[fieldName] = value;
+
+			// Update the session with the modified metadata
+			this.metadataStore.updateSession(this.sessionId, currentMetadata);
+		} catch (error) {
+			console.error(
+				`Failed to update session metadata field ${fieldName} (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	}
 }

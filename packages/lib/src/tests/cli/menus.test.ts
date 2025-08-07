@@ -53,7 +53,7 @@ describe("menus module", () => {
 				message: "What would you like to do next:",
 				choices: expect.arrayContaining([
 					expect.objectContaining({
-						name: "View crawling errors (3)",
+						name: "View crawling errors (2)",
 						value: "errors",
 					}),
 				]),

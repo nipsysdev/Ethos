@@ -1,12 +1,27 @@
 import type { Page } from "puppeteer";
 import type { SourceConfig } from "@/core/types.js";
 
-// Timeout constants for pagination handling - optimized for faster crawling
-const NAVIGATION_TIMEOUT_MS = 5000; // Reduced from 8000 - most sites load faster
-const CONTAINER_WAIT_TIMEOUT_MS = 6000; // Reduced from 10000 - faster timeout
-const CONTENT_LOAD_DELAY_MS = 1000; // Reduced from 3000 - minimal delay for content loading
-const RETRY_ATTEMPTS = 2; // Reduced from 3 - fewer retries for faster failure detection
-const RETRY_DELAY_MS = 1000; // Reduced from 2000 - faster retry cycles
+/**
+ * Timeout constants for pagination handling - optimized for faster crawling
+ */
+const PAGINATION_TIMEOUTS = {
+	/** Maximum time to wait for page navigation (reduced for speed) */
+	NAVIGATION_MS: 5000,
+	/** Maximum time to wait for container selector to appear */
+	CONTAINER_WAIT_MS: 6000,
+	/** Delay for content loading after navigation */
+	CONTENT_LOAD_DELAY_MS: 1000,
+	/** Delay between retry attempts */
+	RETRY_DELAY_MS: 1000,
+} as const;
+
+/**
+ * Retry configuration for pagination operations
+ */
+const PAGINATION_RETRY = {
+	/** Maximum number of retry attempts for failed pagination */
+	MAX_ATTEMPTS: 2,
+} as const;
 
 export class PaginationHandler {
 	async navigateToNextPage(page: Page, config: SourceConfig): Promise<boolean> {
@@ -17,7 +32,7 @@ export class PaginationHandler {
 		}
 
 		// Try multiple times with better error handling
-		for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+		for (let attempt = 1; attempt <= PAGINATION_RETRY.MAX_ATTEMPTS; attempt++) {
 			try {
 				// Check if next button exists and is clickable
 				const nextButton = await page.$(nextButtonSelector);
@@ -54,7 +69,7 @@ export class PaginationHandler {
 				try {
 					await page.waitForNavigation({
 						waitUntil: "domcontentloaded",
-						timeout: NAVIGATION_TIMEOUT_MS,
+						timeout: PAGINATION_TIMEOUTS.NAVIGATION_MS,
 					});
 				} catch {
 					// No navigation occurred - likely AJAX pagination, continue anyway
@@ -62,18 +77,20 @@ export class PaginationHandler {
 
 				// Additional wait for content to load (important for timing-sensitive sites)
 				await new Promise((resolve) =>
-					setTimeout(resolve, CONTENT_LOAD_DELAY_MS),
+					setTimeout(resolve, PAGINATION_TIMEOUTS.CONTENT_LOAD_DELAY_MS),
 				);
 
 				// Wait for the container selector to be available (works for both navigation types)
 				try {
 					await page.waitForSelector(config.listing.items.container_selector, {
-						timeout: CONTAINER_WAIT_TIMEOUT_MS,
+						timeout: PAGINATION_TIMEOUTS.CONTAINER_WAIT_MS,
 					});
 				} catch (_error) {
 					// Container didn't load - this is a failure, retry if possible
-					if (attempt < RETRY_ATTEMPTS) {
-						await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+					if (attempt < PAGINATION_RETRY.MAX_ATTEMPTS) {
+						await new Promise((resolve) =>
+							setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
+						);
 						continue;
 					}
 					return false;
@@ -84,12 +101,14 @@ export class PaginationHandler {
 				return true;
 			} catch (_error) {
 				// If this was the last attempt, return false
-				if (attempt === RETRY_ATTEMPTS) {
+				if (attempt === PAGINATION_RETRY.MAX_ATTEMPTS) {
 					return false;
 				}
 
 				// Otherwise, wait and retry
-				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+				await new Promise((resolve) =>
+					setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
+				);
 			}
 		}
 

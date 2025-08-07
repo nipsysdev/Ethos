@@ -168,6 +168,55 @@ export class ListingPageExtractor {
 				!result.hasRequiredFields || Object.keys(result.item).length === 0,
 		);
 
+		// Generate reasons for filtered items AND track field extraction issues
+		const filteredReasons: string[] = [];
+
+		// Add reasons for completely filtered items
+		filteredItems.forEach((result: ExtractionResult) => {
+			if (Object.keys(result.item).length === 0) {
+				filteredReasons.push("Item contained no extractable data");
+			} else if (!result.hasRequiredFields) {
+				const missingFields = result.missingRequiredFields.join(", ");
+				const itemIdentifier =
+					result.item.title || result.item.url || "Unknown item";
+				filteredReasons.push(
+					`Item "${itemIdentifier}" missing required fields: ${missingFields}`,
+				);
+			} else {
+				filteredReasons.push("Item failed validation");
+			}
+		});
+
+		// Add field extraction issues for all items (including valid ones)
+		extractionResult.forEach((result: ExtractionResult, itemIndex: number) => {
+			const itemIdentifier =
+				result.item.title || result.item.url || `Item ${itemIndex + 1}`;
+
+			Object.entries(result.fieldResults).forEach(
+				([fieldName, fieldResult]) => {
+					if (!fieldResult.success) {
+						// Find the field config to check if it's optional
+						const fieldConfig = config.listing.items.fields[fieldName] as {
+							selector: string;
+							attribute: string;
+							optional?: boolean;
+						};
+						const isOptional = fieldConfig?.optional || false;
+
+						if (isOptional) {
+							filteredReasons.push(
+								`Optional field '${fieldName}' not found for "${itemIdentifier}"`,
+							);
+						} else {
+							filteredReasons.push(
+								`Required field '${fieldName}' not found for "${itemIdentifier}"`,
+							);
+						}
+					}
+				},
+			);
+		});
+
 		// Update field stats based on extraction results
 		extractionResult.forEach((result: ExtractionResult, itemIndex: number) => {
 			fieldStats.forEach((stat) => {
@@ -217,7 +266,7 @@ export class ListingPageExtractor {
 		return {
 			items: crawledItems,
 			filteredCount: filteredItems.length,
-			filteredReasons: [], // Could be enhanced later with specific filter reasons
+			filteredReasons,
 		};
 	}
 }

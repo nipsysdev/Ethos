@@ -10,6 +10,7 @@ const mockUpdateSession = vi.fn();
 const mockGetSession = vi.fn();
 const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
+const mockGetSessionContents = vi.fn();
 
 const mockMetadataStore: Partial<MetadataStore> = {
 	createSession: mockCreateSession,
@@ -17,6 +18,7 @@ const mockMetadataStore: Partial<MetadataStore> = {
 	getSession: mockGetSession,
 	endSession: mockEndSession,
 	checkpoint: mockCheckpoint,
+	getSessionContents: mockGetSessionContents,
 };
 
 describe("MetadataTracker - Items Processing", () => {
@@ -32,6 +34,10 @@ describe("MetadataTracker - Items Processing", () => {
 		mockGetSession.mockClear();
 		mockEndSession.mockClear();
 		mockCheckpoint.mockClear();
+		mockGetSessionContents.mockClear();
+
+		// Set up default return values
+		mockGetSessionContents.mockReturnValue([]);
 
 		startTime = new Date();
 		mockConfig = {
