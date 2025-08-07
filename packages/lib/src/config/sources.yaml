@@ -120,6 +120,7 @@ sources:
             attribute: "text"
             optional: true
           author:
+            # Author is not displayed in the listing
             selector: ""
             attribute: "text"
             optional: true
@@ -132,6 +133,7 @@ sources:
       container_selector: "main article"
       fields:
         content:
+          # retrieving all text from the container_selector while excluding specific elements
           selector: ""
           attribute: "text"
           exclude_selectors:
