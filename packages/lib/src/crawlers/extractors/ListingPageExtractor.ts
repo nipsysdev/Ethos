@@ -6,6 +6,7 @@ import type {
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { parsePublishedDate } from "@/utils/date.js";
+import { DYNAMIC_CONTENT_TIMEOUT } from "./constants.js";
 
 export interface ListingExtractionResult {
 	items: CrawledData[];
@@ -27,6 +28,18 @@ export class ListingPageExtractor {
 		fieldStats: FieldExtractionStats[],
 		currentItemOffset: number,
 	): Promise<ListingExtractionResult> {
+		// Wait for container elements to appear (handles dynamic content)
+		try {
+			await page.waitForSelector(config.listing.items.container_selector, {
+				timeout: DYNAMIC_CONTENT_TIMEOUT,
+			});
+		} catch {
+			// If we can't find any containers, continue anyway (might be an empty page)
+			console.warn(
+				`Warning: Container selector "${config.listing.items.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds`,
+			);
+		}
+
 		// Extract all items using the container selector
 		const extractionResult = await page.evaluate((itemsConfig) => {
 			// NOTE: These helper functions are duplicated in ContentPageExtractor

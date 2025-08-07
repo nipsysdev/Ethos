@@ -107,9 +107,19 @@ export function createBrowserExtractionFunction() {
 					attribute: string;
 					exclude_selectors?: string[];
 				};
-				const element = containerElement.querySelector(
-					typedFieldConfig.selector,
-				);
+
+				// If selector is empty, use the container element itself
+				// Otherwise, find the child element with the selector
+				let element: Element | null;
+				if (
+					!typedFieldConfig.selector ||
+					typedFieldConfig.selector.trim() === ""
+				) {
+					element = containerElement;
+				} else {
+					element = containerElement.querySelector(typedFieldConfig.selector);
+				}
+
 				const value = extractFieldValue(element, typedFieldConfig);
 				results[fieldName] = value && value !== "" ? value : null;
 			} catch (error) {

@@ -12,6 +12,7 @@ import {
 	updateFieldStats,
 	updateItemMetadata,
 } from "./ContentDataMapper.js";
+import { DYNAMIC_CONTENT_TIMEOUT } from "./constants.js";
 
 export interface ContentExtractionResult {
 	contentData: Record<string, string | null>;
@@ -37,6 +38,20 @@ export class ContentPageExtractor {
 
 			// Navigate to the content page
 			await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
+
+			// Wait for container elements to appear (handles dynamic content)
+			if (config.content.container_selector) {
+				try {
+					await page.waitForSelector(config.content.container_selector, {
+						timeout: DYNAMIC_CONTENT_TIMEOUT,
+					});
+				} catch {
+					// If we can't find the container, continue anyway (might be an empty page)
+					console.warn(
+						`Warning: Content container selector "${config.content.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds for ${absoluteUrl}`,
+					);
+				}
+			}
 
 			// Extract fields from content page using the browser extraction function
 			const extractionFunction = createBrowserExtractionFunction();
@@ -223,6 +238,9 @@ export class ContentPageExtractor {
 	): Promise<void> {
 		if (!item.url) return;
 
+		// Check if we have excerpt content from the listing page
+		const hasExcerpt = item.content && item.content.trim().length > 0;
+
 		try {
 			const { contentData, errors } = await this.extractFromContentPage(
 				page,
@@ -243,15 +261,45 @@ export class ContentPageExtractor {
 			// Update item metadata
 			updateItemMetadata(item, contentFields, failedContentFields, errors);
 
-			// Add errors to main error list
+			// Handle errors based on whether we have an excerpt
 			if (errors.length > 0) {
-				contentErrors.push(
-					...errors.map((err) => `Content extraction for ${item.url}: ${err}`),
-				);
+				if (hasExcerpt) {
+					// If we have excerpt, treat content page errors as warnings
+					console.warn(
+						`Content extraction warnings for ${item.url} (excerpt available):`,
+						errors.join(", "),
+					);
+					// Still add to errors array for tracking, but don't throw
+					contentErrors.push(
+						...errors.map(
+							(err) => `Content extraction warning for ${item.url}: ${err}`,
+						),
+					);
+				} else {
+					// If no excerpt, content page errors are critical
+					const errorMessage = `Critical: Content extraction failed for ${item.url} (no excerpt available): ${errors.join(", ")}`;
+					contentErrors.push(errorMessage);
+					throw new Error(errorMessage);
+				}
 			}
 		} catch (error) {
 			const errorMessage = `Failed to extract content data for ${item.url}: ${error}`;
-			contentErrors.push(errorMessage);
+
+			if (hasExcerpt) {
+				// If we have excerpt, log warning but continue
+				console.warn(
+					`Content page failed for ${item.url}, but excerpt is available:`,
+					error,
+				);
+				contentErrors.push(
+					`Content extraction warning for ${item.url}: ${errorMessage}`,
+				);
+			} else {
+				// If no excerpt, this is a critical error
+				const criticalError = `Critical: ${errorMessage} (no excerpt available)`;
+				contentErrors.push(criticalError);
+				throw new Error(criticalError);
+			}
 
 			// Add error info to metadata
 			updateItemMetadata(item, [], [], [errorMessage]);
