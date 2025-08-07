@@ -143,11 +143,6 @@ export class ContentPageExtractor {
 			// Handle errors based on whether we have an excerpt
 			if (errors.length > 0) {
 				if (hasExcerpt) {
-					// If we have excerpt, treat content page errors as warnings
-					console.warn(
-						`Content extraction warnings for ${item.url} (excerpt available):`,
-						errors.join(", "),
-					);
 					// Add to errors array for tracking/debugging, but don't throw
 					contentErrors.push(
 						...errors.map(
@@ -157,10 +152,6 @@ export class ContentPageExtractor {
 				} else {
 					// If no excerpt, content page errors are still logged but don't stop crawling
 					const errorMessage = `Content extraction failed for ${item.url} (no excerpt available): ${errors.join(", ")}`;
-					console.warn(
-						`Content extraction failed for ${item.url}:`,
-						errors.join(", "),
-					);
 					contentErrors.push(errorMessage);
 					// Don't throw - continue crawling but log the failure for debugging
 				}
@@ -169,17 +160,10 @@ export class ContentPageExtractor {
 			const errorMessage = `Failed to extract content data for ${item.url}: ${error}`;
 
 			if (hasExcerpt) {
-				// If we have excerpt, log warning but continue
-				console.warn(
-					`Content page failed for ${item.url}, but excerpt is available:`,
-					error,
-				);
 				contentErrors.push(
 					`Content extraction warning for ${item.url}: ${errorMessage}`,
 				);
 			} else {
-				// If no excerpt, log error but still continue crawling
-				console.warn(`Content page failed for ${item.url}:`, error);
 				contentErrors.push(
 					`Content extraction failed for ${item.url}: ${errorMessage}`,
 				);
