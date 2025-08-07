@@ -2,6 +2,8 @@ sources:
   - id: "eff"
     name: "Electronic Frontier Foundation"
     type: "listing"
+    content_url_excludes:
+      - "/event/"
 
     listing:
       url: "https://eff.org/updates"
@@ -35,10 +37,10 @@ sources:
             optional: true
 
     content:
-      container_selector: ".node-type-blog"
+      container_selector: "body"
       fields:
         content:
-          selector: ".pane-node .node__content"
+          selector: ".node--full"
           attribute: "text"
         image:
           selector: ".pane-banner img"
@@ -140,5 +142,5 @@ sources:
           selector: "header .loaded img"
           attribute: "src"
         author:
-          selector: "header p"
+          selector: "header div > p"
           attribute: "text"

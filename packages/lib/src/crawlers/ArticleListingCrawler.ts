@@ -114,16 +114,55 @@ export class ArticleListingCrawler implements Crawler {
 					metadata.itemsProcessed,
 				);
 
-				// Track filtered items
+				// Filter out URLs that match exclude patterns FIRST (before any error counting)
+				let excludedCount = 0;
+				const filteredPageItems: CrawledData[] = [];
+				const excludedItemIndices: number[] = [];
+
+				if (
+					config.content_url_excludes &&
+					config.content_url_excludes.length > 0
+				) {
+					const excludePatterns = config.content_url_excludes;
+					pageResult.items.forEach((item, index) => {
+						const absoluteUrl = new URL(item.url, config.listing.url).href;
+						const isExcluded = excludePatterns.some((pattern) =>
+							absoluteUrl.includes(pattern),
+						);
+
+						if (isExcluded) {
+							excludedCount++;
+							// Track the absolute index (offset + current page item index + 1)
+							excludedItemIndices.push(metadata.itemsProcessed + index + 1);
+						} else {
+							filteredPageItems.push(item);
+						}
+					});
+
+					// Track excluded URLs as filtered items (but not as errors)
+					if (excludedCount > 0) {
+						metadataTracker.addUrlsExcluded(excludedCount);
+						// Remove field statistics for excluded URLs so they don't count as required field errors
+						metadataTracker.removeFieldStatsForExcludedUrls(
+							excludedCount,
+							excludedItemIndices,
+						);
+					}
+				} else {
+					// No exclusion patterns, use all items
+					filteredPageItems.push(...pageResult.items);
+				}
+
+				// Track other filtered items from listing extraction
 				metadataTracker.addFilteredItems(
 					pageResult.filteredCount,
 					pageResult.filteredReasons,
 				);
 
-				// Filter out duplicates and count them
+				// Filter out duplicates and count them (use filtered items, not original)
 				const newItems: CrawledData[] = [];
 
-				for (const item of pageResult.items) {
+				for (const item of filteredPageItems) {
 					if (seenUrls.has(item.url)) {
 						metadataTracker.addDuplicatesSkipped(1);
 					} else {
@@ -155,19 +194,28 @@ export class ArticleListingCrawler implements Crawler {
 					}
 				}
 
-				// Check if all items (after both session and database deduplication) are duplicates
+				// Note: URL exclusion filtering is now done earlier, before duplicate checking
+
+				// Check if all items (after exclusion, session and database deduplication) are duplicates
 				if (
-					pageResult.items.length > 0 &&
+					filteredPageItems.length > 0 &&
 					itemsToProcess.length === 0 &&
 					options?.stopOnAllDuplicates !== false
 				) {
 					metadataTracker.setStoppedReason("all_duplicates");
 					// Update logging to reflect database duplicates too
 					const totalDuplicatesOnPage =
-						pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+						filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+
+					// Create updated page result that includes excluded URLs in filtered count
+					const updatedPageResult = {
+						...pageResult,
+						filteredCount: pageResult.filteredCount + excludedCount,
+					};
+
 					this.logPageSummary(
 						metadata.pagesProcessed,
-						pageResult,
+						updatedPageResult,
 						0, // No new items after database check
 						totalDuplicatesOnPage,
 						options?.maxPages,
@@ -178,10 +226,17 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Log page summary for all pages
 				const totalDuplicatesOnPage =
-					pageResult.items.length - newItems.length + dbDuplicatesSkipped;
+					filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+
+				// Create updated page result that includes excluded URLs in filtered count
+				const updatedPageResult = {
+					...pageResult,
+					filteredCount: pageResult.filteredCount + excludedCount,
+				};
+
 				this.logPageSummary(
 					metadata.pagesProcessed,
-					pageResult,
+					updatedPageResult,
 					itemsToProcess.length,
 					totalDuplicatesOnPage,
 					options?.maxPages,
@@ -208,6 +263,7 @@ export class ArticleListingCrawler implements Crawler {
 						skipExisting,
 						metadata.contentErrors,
 						metadata.contentFieldStats,
+						metadataTracker, // Pass the tracker for storing filtering stats
 					);
 					metadataTracker.addContentsCrawled(itemsToProcess.length);
 

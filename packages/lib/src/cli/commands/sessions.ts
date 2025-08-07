@@ -175,6 +175,7 @@ async function createSessionSummaryResult(
 			endTime: session.endTime || new Date(),
 			pagesProcessed: storedMetadata.pagesProcessed || 0,
 			duplicatesSkipped: storedMetadata.duplicatesSkipped || 0,
+			urlsExcluded: storedMetadata.urlsExcluded || 0,
 			contentsCrawled: successCount,
 			contentErrors: contents
 				.filter((c) => c.hadContentExtractionError)

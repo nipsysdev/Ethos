@@ -82,6 +82,21 @@ export class ListingPageExtractor {
 						element,
 						fieldConfig.exclude_selectors,
 					);
+				} else if (
+					fieldConfig.attribute === "href" ||
+					fieldConfig.attribute === "src"
+				) {
+					// For href and src attributes, get the absolute URL using the browser's URL resolution
+					const urlValue = element.getAttribute(fieldConfig.attribute);
+					if (!urlValue) return null;
+
+					// Use the browser's built-in URL resolution to get absolute URLs
+					try {
+						return new URL(urlValue, window.location.href).href;
+					} catch {
+						// If URL construction fails, return the original value
+						return urlValue;
+					}
 				} else {
 					return element.getAttribute(fieldConfig.attribute);
 				}

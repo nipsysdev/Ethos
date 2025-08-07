@@ -35,6 +35,7 @@ export class MetadataTracker implements ContentSessionLinker {
 		// Initialize crawl metadata
 		this.metadata = {
 			duplicatesSkipped: 0,
+			urlsExcluded: 0,
 			totalFilteredItems: 0,
 			itemsProcessed: 0,
 			pagesProcessed: 0,
@@ -150,6 +151,39 @@ export class MetadataTracker implements ContentSessionLinker {
 	}
 
 	/**
+	 * Track URLs that were excluded by content_url_excludes patterns
+	 */
+	addUrlsExcluded(count: number): void {
+		this.metadata.urlsExcluded += count;
+		// Also increment total filtered items count for accurate totals
+		this.metadata.totalFilteredItems += count;
+		this.updateSessionInDatabase();
+	}
+
+	/**
+	 * Remove field statistics for excluded URLs to prevent them from affecting required field error counts
+	 */
+	removeFieldStatsForExcludedUrls(
+		excludedCount: number,
+		excludedItemIndices: number[],
+	): void {
+		// Reduce the total attempts count for each field by the number of excluded URLs
+		this.metadata.fieldStats.forEach((stat) => {
+			if (stat.totalAttempts >= excludedCount) {
+				stat.totalAttempts -= excludedCount;
+
+				// Remove specific excluded item indices from missingItems
+				// Convert to absolute indices based on current item offset
+				const absoluteExcludedIndices = new Set(excludedItemIndices);
+				stat.missingItems = stat.missingItems.filter(
+					(itemIndex) => !absoluteExcludedIndices.has(itemIndex),
+				);
+			}
+		});
+		this.updateSessionInDatabase();
+	}
+
+	/**
 	 * Track filtered items
 	 */
 	addFilteredItems(count: number, reasons: string[]): void {
@@ -202,7 +236,8 @@ export class MetadataTracker implements ContentSessionLinker {
 				this.metadata.duplicatesSkipped +
 				this.metadata.totalFilteredItems,
 			itemsProcessed: this.metadata.itemsProcessed,
-			itemsWithErrors: this.metadata.totalFilteredItems,
+			itemsWithErrors:
+				this.metadata.listingErrors.length + this.metadata.contentErrors.length,
 			fieldStats: this.metadata.fieldStats,
 			contentFieldStats: this.metadata.contentFieldStats,
 			listingErrors: this.metadata.listingErrors,

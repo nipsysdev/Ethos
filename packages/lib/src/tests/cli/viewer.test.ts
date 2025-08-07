@@ -158,7 +158,7 @@ describe("Data Viewer", () => {
 						short: "Test Article",
 					},
 					{
-						name: "< Back to menu",
+						name: "Back to menu",
 						value: "back",
 						short: "Back",
 					},

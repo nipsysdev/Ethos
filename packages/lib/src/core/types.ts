@@ -72,6 +72,7 @@ export interface SourceConfig {
 	type: CrawlerType;
 	listing: ListingConfig;
 	content: ContentConfig;
+	content_url_excludes?: string[]; // URL patterns to exclude from content extraction
 }
 
 export interface CrawlResult {
@@ -128,6 +129,7 @@ export interface CrawlSummary {
 	endTime: Date;
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
+	urlsExcluded?: number;
 	stoppedReason?:
 		| "max_pages"
 		| "no_next_button"
@@ -175,6 +177,7 @@ export interface CrawlMetadataItem {
 
 export interface CrawlMetadata {
 	duplicatesSkipped: number;
+	urlsExcluded: number; // URLs excluded by content_url_excludes patterns
 	totalFilteredItems: number;
 	itemsProcessed: number; // Track total items processed (replaces itemUrls.length)
 	pagesProcessed: number;

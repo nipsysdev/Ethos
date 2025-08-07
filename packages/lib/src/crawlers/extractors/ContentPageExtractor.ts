@@ -102,35 +102,35 @@ export class ContentPageExtractor {
 		skipExistingUrls: boolean = true,
 		externalContentErrors?: string[],
 		externalContentFieldStats?: FieldExtractionStats[],
+		metadataTracker?: {
+			addDuplicatesSkipped: (count: number) => void;
+			addUrlsExcluded: (count: number) => void;
+		},
 	): Promise<void> {
 		// Get browser instance to create additional pages for concurrency
 		const browser = page.browser();
 
 		// Filter out URLs that already exist in the database if enabled
 		let itemsToProcess = items;
-		let skippedCount = 0;
+		let duplicateSkippedCount = 0;
 
 		if (skipExistingUrls && metadataStore) {
 			const result = this.filterExistingUrls(items, metadataStore);
 			itemsToProcess = result.filteredItems;
-			skippedCount = result.skippedCount;
+			duplicateSkippedCount = result.skippedCount;
 
-			if (skippedCount > 0) {
-				console.log(
-					`Skipped ${skippedCount} URLs already in database, processing ${itemsToProcess.length} new URLs`,
-				);
+			if (duplicateSkippedCount > 0 && metadataTracker) {
+				metadataTracker.addDuplicatesSkipped(duplicateSkippedCount);
 			}
 		}
 
+		// Note: URL exclusion filtering is now handled at the ArticleListingCrawler level
+
 		// If no items to process after filtering, return early
 		if (itemsToProcess.length === 0) {
-			console.log(
-				"All URLs already exist in database, skipping content extraction",
-			);
+			console.log("All URLs filtered out, skipping content extraction");
 			return;
-		}
-
-		// Initialize tracking arrays - use external ones if provided (for legacy test compatibility)
+		} // Initialize tracking arrays - use external ones if provided (for legacy test compatibility)
 		const contentErrors: string[] = externalContentErrors || [];
 		const contentFieldStats: FieldExtractionStats[] =
 			externalContentFieldStats || [];
@@ -269,17 +269,21 @@ export class ContentPageExtractor {
 						`Content extraction warnings for ${item.url} (excerpt available):`,
 						errors.join(", "),
 					);
-					// Still add to errors array for tracking, but don't throw
+					// Add to errors array for tracking/debugging, but don't throw
 					contentErrors.push(
 						...errors.map(
 							(err) => `Content extraction warning for ${item.url}: ${err}`,
 						),
 					);
 				} else {
-					// If no excerpt, content page errors are critical
-					const errorMessage = `Critical: Content extraction failed for ${item.url} (no excerpt available): ${errors.join(", ")}`;
+					// If no excerpt, content page errors are still logged but don't stop crawling
+					const errorMessage = `Content extraction failed for ${item.url} (no excerpt available): ${errors.join(", ")}`;
+					console.warn(
+						`Content extraction failed for ${item.url}:`,
+						errors.join(", "),
+					);
 					contentErrors.push(errorMessage);
-					throw new Error(errorMessage);
+					// Don't throw - continue crawling but log the failure for debugging
 				}
 			}
 		} catch (error) {
@@ -295,10 +299,12 @@ export class ContentPageExtractor {
 					`Content extraction warning for ${item.url}: ${errorMessage}`,
 				);
 			} else {
-				// If no excerpt, this is a critical error
-				const criticalError = `Critical: ${errorMessage} (no excerpt available)`;
-				contentErrors.push(criticalError);
-				throw new Error(criticalError);
+				// If no excerpt, log error but still continue crawling
+				console.warn(`Content page failed for ${item.url}:`, error);
+				contentErrors.push(
+					`Content extraction failed for ${item.url}: ${errorMessage}`,
+				);
+				// Don't throw - continue crawling but log the failure for debugging
 			}
 
 			// Add error info to metadata

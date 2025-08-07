@@ -26,6 +26,10 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 			console.log(`  Duplicates skipped: ${summary.duplicatesSkipped}`);
 		}
 
+		if (summary.urlsExcluded !== undefined && summary.urlsExcluded > 0) {
+			console.log(`  URLs excluded: ${summary.urlsExcluded}`);
+		}
+
 		if (summary.stoppedReason) {
 			const reasonMessages = {
 				max_pages: "reached maximum pages limit",
