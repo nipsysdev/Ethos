@@ -22,7 +22,7 @@ crawlerRegistry.register(new ArticleListingCrawler());
 
 program
 	.name("ethos")
-	.description("Web crawling application for content extraction and analysis")
+	.description("Ethos web crawling command line interface")
 	.version("1.0.0")
 	.action(async () => {
 		await showMainMenu(sourceRegistry, pipeline);
