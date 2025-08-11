@@ -1,26 +1,29 @@
 {
 	"name": "ethos",
 	"version": "1.0.0",
-	"description": "Persuasion and trust building tools for network states. Part of the Logos (logos.co) ecosystem",
-	"main": "index.js",
+	"description": "Ethos crawls then serves digital rights organizations' publications through its API.",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"commit": "git-cz",
 		"prepare": "lefthook install",
-		"watch": "pnpm -r run watch",
-		"build": "pnpm -r run build",
-		"test": "pnpm -r run test",
-		"clean": "pnpm -r run clean"
+		"watch": "tsc --watch",
+		"build": "tsc && tsc-alias",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:watch": "vitest --watch",
+		"clean": "rm -rf dist",
+		"cli": "node dist/cli/index.js"
 	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/nipsysdev/Ethos/"
 	},
-	"keywords": [],
-	"author": "",
-	"license": "Apache-2.0",
-	"type": "commonjs",
+	"author": "Xavier Saliniere <bonjour@xaviers.sh>",
+	"license": "MIT",
+	"type": "module",
 	"bugs": {
 		"url": "https://github.com/nipsysdev/Ethos/issues"
 	},
@@ -28,13 +31,33 @@
 	"engines": {
 		"node": "^22.0.0"
 	},
+	"dependencies": {
+		"better-sqlite3": "^12.2.0",
+		"commander": "^14.0.0",
+		"inquirer": "^9.2.12",
+		"puppeteer": "^24.11.2",
+		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-adblocker": "^2.13.6",
+		"puppeteer-extra-plugin-stealth": "^2.11.2",
+		"yaml": "^2.6.1"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.6",
 		"@commitlint/cli": "^19.8.1",
 		"@commitlint/config-conventional": "^19.8.1",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/inquirer": "^9.0.7",
+		"@types/node": "^24.0.10",
+		"@vitest/coverage-v8": "3.2.4",
 		"commitizen": "^4.3.1",
 		"cz-conventional-changelog": "^3.3.0",
-		"lefthook": "^1.11.16"
+		"lefthook": "^1.11.16",
+		"ts-node": "^10.9.2",
+		"tsc-alias": "^1.8.16",
+		"tsx": "^4.7.0",
+		"typescript": "^5.8.3",
+		"vite": "^5.2.0",
+		"vitest": "^3.2.4"
 	},
 	"pnpm": {
 		"overrides": {
