@@ -10,6 +10,31 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.2.0
+      commander:
+        specifier: ^14.0.0
+        version: 14.0.0
+      inquirer:
+        specifier: ^9.2.12
+        version: 9.3.7
+      puppeteer:
+        specifier: ^24.11.2
+        version: 24.11.2(typescript@5.8.3)
+      puppeteer-extra:
+        specifier: ^3.3.6
+        version: 3.3.6(puppeteer-core@24.11.2)(puppeteer@24.11.2(typescript@5.8.3))
+      puppeteer-extra-plugin-adblocker:
+        specifier: ^2.13.6
+        version: 2.13.6(encoding@0.1.13)(puppeteer-core@24.11.2)(puppeteer-extra@3.3.6(puppeteer-core@24.11.2)(puppeteer@24.11.2(typescript@5.8.3)))(puppeteer@24.11.2(typescript@5.8.3))
+      puppeteer-extra-plugin-stealth:
+        specifier: ^2.11.2
+        version: 2.11.2(puppeteer-extra@3.3.6(puppeteer-core@24.11.2)(puppeteer@24.11.2(typescript@5.8.3)))
+      yaml:
+        specifier: ^2.6.1
+        version: 2.8.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.0.6
@@ -20,6 +45,18 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^19.8.1
         version: 19.8.1
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      '@types/inquirer':
+        specifier: ^9.0.7
+        version: 9.0.8
+      '@types/node':
+        specifier: ^24.0.10
+        version: 24.0.10
+      '@vitest/coverage-v8':
+        specifier: 3.2.4
+        version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.0.10))
       commitizen:
         specifier: ^4.3.1
         version: 4.3.1(@types/node@24.0.10)(typescript@5.8.3)
@@ -29,6 +66,24 @@ importers:
       lefthook:
         specifier: ^1.11.16
         version: 1.11.16
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@24.0.10)(typescript@5.8.3)
+      tsc-alias:
+        specifier: ^1.8.16
+        version: 1.8.16
+      tsx:
+        specifier: ^4.7.0
+        version: 4.20.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vite:
+        specifier: ^5.2.0
+        version: 5.4.19(@types/node@24.0.10)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.0.10)
 
   packages/lib:
     dependencies:

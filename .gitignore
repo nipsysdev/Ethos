@@ -1,5 +1,5 @@
 # Lib
-packages/lib/storage/
+storage/
 
 # Dependencies
 node_modules/

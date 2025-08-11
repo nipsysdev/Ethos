@@ -21,8 +21,8 @@ const pipeline = new ProcessingPipeline(crawlerRegistry, "./storage");
 crawlerRegistry.register(new ArticleListingCrawler());
 
 program
-	.name("ethos-crawler")
-	.description("CLI for Ethos crawling library")
+	.name("ethos")
+	.description("Web crawling application for content extraction and analysis")
 	.version("1.0.0")
 	.action(async () => {
 		await showMainMenu(sourceRegistry, pipeline);
