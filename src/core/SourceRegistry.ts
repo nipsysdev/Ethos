@@ -25,10 +25,8 @@ export class SourceRegistry implements ISourceRegistry {
 				throw new Error("Invalid config: 'sources' must be an array");
 			}
 
-			// Clear existing sources
 			this.sources.clear();
 
-			// Load new sources
 			const sources: SourceConfig[] = config.sources;
 			for (const source of sources) {
 				this.validateSource(source);
@@ -82,7 +80,6 @@ export class SourceRegistry implements ISourceRegistry {
 			);
 		}
 
-		// Validate listing configuration structure
 		const listing = s.listing as Record<string, unknown>;
 		if (!listing.url || typeof listing.url !== "string") {
 			throw new Error(`Source '${s.id}' listing must have a valid 'url' field`);
@@ -108,7 +105,6 @@ export class SourceRegistry implements ISourceRegistry {
 			);
 		}
 
-		// Validate content configuration is required
 		if (!s.content || typeof s.content !== "object") {
 			throw new Error(`Source '${s.id}' must have a 'content' configuration`);
 		}

@@ -1,4 +1,3 @@
-// Crawler type constants
 export const CRAWLER_TYPES = {
 	LISTING: "listing",
 } as const;
@@ -167,7 +166,6 @@ export interface CrawlOptions {
 	stopOnAllDuplicates?: boolean;
 }
 
-// Shared types for crawl metadata
 export interface CrawlMetadataItem {
 	url: string;
 	title: string;

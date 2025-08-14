@@ -6,7 +6,6 @@ export function formatDataForViewing(
 ): string {
 	const lines: string[] = [];
 
-	// Header
 	lines.push("=".repeat(80));
 	lines.push(`EXTRACTED DATA - ${summary.sourceName} (${summary.sourceId})`);
 	lines.push(`Crawled: ${summary.endTime.toLocaleString()}`);
@@ -14,7 +13,6 @@ export function formatDataForViewing(
 	lines.push("=".repeat(80));
 	lines.push("");
 
-	// Data items
 	data.forEach((item, index) => {
 		lines.push(`--- Item ${index + 1} of ${data.length} ---`);
 		lines.push(`Title: ${item.title || "N/A"}`);
@@ -37,13 +35,11 @@ export function formatDataForViewing(
 
 		lines.push(`Content: ${item.content || "N/A"}`);
 
-		// Metadata
 		lines.push("\nMetadata:");
 		Object.entries(item.metadata).forEach(([key, value]) => {
 			lines.push(`  ${key}: ${JSON.stringify(value)}`);
 		});
 
-		// Storage information
 		if (item.storage) {
 			lines.push("\nStorage:");
 			lines.push(`  Hash: ${item.storage.hash}`);

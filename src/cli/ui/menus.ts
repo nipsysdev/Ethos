@@ -1,8 +1,5 @@
 import type { ProcessingSummaryResult } from "@/index.js";
 
-/**
- * Calculate total error count from a processing summary
- */
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],
 ): number {
@@ -25,9 +22,6 @@ export function calculateTotalErrors(
 	);
 }
 
-/**
- * Create menu choices for viewing data and errors
- */
 export async function createDataViewChoices(
 	summary: ProcessingSummaryResult["summary"],
 	pipeline?: import("@/index.js").ProcessingPipeline,
@@ -62,7 +56,6 @@ export async function createDataViewChoices(
 		});
 	}
 
-	// Add any additional choices
 	choices.push(...additionalChoices);
 
 	return choices;

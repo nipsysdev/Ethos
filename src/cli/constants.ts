@@ -5,7 +5,6 @@
  * to maintain consistency across the application.
  */
 
-// Navigation Values
 export const NAV_VALUES = {
 	BACK: "back",
 	EXIT: "exit",
@@ -16,7 +15,6 @@ export const NAV_VALUES = {
 	SESSIONS: "sessions",
 } as const;
 
-// Menu Labels
 export const MENU_LABELS = {
 	BACK_TO_MAIN: "Back to main menu",
 	BACK_TO_SOURCE_SELECTION: "Back to source selection",
@@ -25,14 +23,12 @@ export const MENU_LABELS = {
 	EXIT_PROGRAM: "Exit the program",
 } as const;
 
-// Clean Command Labels
 export const CLEAN_LABELS = {
 	DELETE_CONTENT: "content",
 	DELETE_SESSIONS: "sessions",
 	DELETE_EVERYTHING: "both",
 } as const;
 
-// Error Messages
 export const ERROR_MESSAGES = {
 	STORAGE_NOT_AVAILABLE: "Error: Storage not available",
 	METADATA_STORE_NOT_AVAILABLE: "Error: Metadata store not available",
@@ -47,7 +43,6 @@ export const ERROR_MESSAGES = {
 	CRAWL_FAILED: "Crawl failed",
 } as const;
 
-// Success/Info Messages
 export const INFO_MESSAGES = {
 	CRAWL_COMPLETED: "Crawl completed successfully!",
 	CLEANING_CANCELLED: "Cleaning cancelled.",
@@ -57,7 +52,6 @@ export const INFO_MESSAGES = {
 	DELETED_SESSIONS: "sessions from database",
 } as const;
 
-// Prompt Messages
 export const PROMPT_MESSAGES = {
 	SELECT_SOURCE_TO_CRAWL: "Select a source to crawl:",
 	SELECT_SOURCE_TO_CLEAN: "Select a source to clean:",
@@ -69,7 +63,6 @@ export const PROMPT_MESSAGES = {
 	RECRAWL_EXISTING: "Re-crawl existing content?",
 } as const;
 
-// Field Names for Inquirer
 export const FIELD_NAMES = {
 	SELECTED_SOURCE_ID: "selectedSourceId",
 	SELECTED_SOURCE: "selectedSource",
@@ -81,7 +74,6 @@ export const FIELD_NAMES = {
 	RECRAWL_EXISTING: "reCrawlExisting",
 } as const;
 
-// Input Validation Messages
 export const VALIDATION_MESSAGES = {
 	POSITIVE_NUMBER_OR_EMPTY:
 		"Please enter a positive number greater than 0 or leave empty",

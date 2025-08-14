@@ -42,17 +42,14 @@ export async function showMainMenu(
 
 		let action = await handleCommand(command, sourceRegistry, pipeline);
 
-		// Handle cascading crawl commands
 		while (action === NAV_VALUES.CRAWL) {
 			action = await handleCrawl(sourceRegistry, pipeline);
 		}
 
-		// Handle final action
 		if (action === NAV_VALUES.EXIT) {
 			console.log("Goodbye!");
 			process.exit(0);
 		}
-		// For "main" or undefined, continue to show main menu
 	}
 }
 

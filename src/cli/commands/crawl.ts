@@ -21,7 +21,6 @@ export async function handleCrawl(
 	const inquirer = (await import("inquirer")).default;
 
 	try {
-		// Load available sources
 		const sources = await sourceRegistry.getAllSources();
 
 		if (sources.length === 0) {
@@ -47,7 +46,6 @@ export async function handleCrawl(
 			},
 		]);
 
-		// Handle back navigation
 		if (selectedSourceId === NAV_VALUES.BACK) {
 			return NAV_VALUES.MAIN;
 		}
@@ -58,7 +56,6 @@ export async function handleCrawl(
 			return NAV_VALUES.MAIN;
 		}
 
-		// Ask for crawl options
 		const { maxPages, stopOnAllDuplicates, reCrawlExisting } =
 			await inquirer.prompt([
 				{

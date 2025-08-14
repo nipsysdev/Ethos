@@ -21,9 +21,6 @@ import { displayCrawlSummary } from "../ui/summary.js";
 import { buildCrawlSummary } from "../utils/summaryBuilder.js";
 import { checkMetadataStore } from "../utils.js";
 
-/**
- * Handle the sessions browsing command
- */
 export async function handleSessions(
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "exit"> {
@@ -36,7 +33,6 @@ export async function handleSessions(
 		}
 		const { metadataStore } = storeCheck;
 
-		// Get all sessions with basic info only
 		const allSessions = await getAllSessions(metadataStore);
 
 		if (allSessions.length === 0) {
@@ -44,7 +40,6 @@ export async function handleSessions(
 			return NAV_VALUES.MAIN;
 		}
 
-		// Directly show the sessions list for selection
 		while (true) {
 			const { selectedSessionId } = await inquirer.prompt([
 				{
@@ -74,26 +69,22 @@ export async function handleSessions(
 				return NAV_VALUES.MAIN;
 			}
 
-			// Create a ProcessingSummaryResult from the session and show the post-crawl menu
 			const sessionResult = await createSessionSummaryResult(
 				selectedSessionId,
 				metadataStore,
 			);
 			if (sessionResult) {
-				// Display the full summary with statistics
 				displayCrawlSummary(sessionResult);
 
-				// Show session-specific menu and handle actions
 				while (true) {
 					const action = await showSessionMenu(sessionResult);
 					if (action === "main") {
 						return "main";
 					}
 					if (action === "sessions") {
-						break; // Go back to sessions list
+						break;
 					}
 					if (action === "view") {
-						// Import and show the data viewer
 						const { showExtractedData } = await import("../ui/viewer.js");
 						await showExtractedData(sessionResult);
 						// After viewing, show the summary again and continue the session menu loop
@@ -101,7 +92,6 @@ export async function handleSessions(
 						continue;
 					}
 					if (action === "errors") {
-						// Import and show the errors viewer
 						const { showCrawlErrors } = await import("./errors.js");
 						await showCrawlErrors(sessionResult);
 						// After viewing errors, show the summary again and continue the session menu loop
@@ -116,9 +106,6 @@ export async function handleSessions(
 	}
 }
 
-/**
- * Get all sessions from the metadata store
- */
 async function getAllSessions(
 	metadataStore: MetadataStore,
 ): Promise<CrawlSession[]> {
@@ -130,9 +117,6 @@ async function getAllSessions(
 	}
 }
 
-/**
- * Create a ProcessingSummaryResult from a session for use with the post-crawl UI
- */
 async function createSessionSummaryResult(
 	sessionId: string,
 	metadataStore: MetadataStore,
@@ -150,7 +134,6 @@ async function createSessionSummaryResult(
 		).length;
 		const successCount = contents.length - errorCount;
 
-		// Parse the stored metadata to get pagesProcessed and other data
 		let storedMetadata: Partial<CrawlMetadata> = {};
 		try {
 			storedMetadata = JSON.parse(session.metadata) as CrawlMetadata;
@@ -158,11 +141,9 @@ async function createSessionSummaryResult(
 			console.warn("Could not parse session metadata:", error);
 		}
 
-		// Calculate field extraction statistics based on actual content
 		const fieldStats = calculateFieldStats(contents);
 		const contentFieldStats = calculateContentFieldStats(contents);
 
-		// Create complete metadata using stored data and calculated stats
 		const completeMetadata: CrawlMetadata = {
 			duplicatesSkipped: storedMetadata.duplicatesSkipped || 0,
 			urlsExcluded: storedMetadata.urlsExcluded || 0,
@@ -177,7 +158,6 @@ async function createSessionSummaryResult(
 			stoppedReason: storedMetadata.stoppedReason,
 		};
 
-		// Use shared summary builder to ensure consistency
 		const summary = buildCrawlSummary(
 			{
 				sourceId: session.sourceId,
@@ -188,7 +168,7 @@ async function createSessionSummaryResult(
 			},
 			completeMetadata,
 			{
-				itemsWithErrors: errorCount, // Use the actual error count from content extraction
+				itemsWithErrors: errorCount,
 				storageStats: {
 					itemsStored: successCount,
 					itemsFailed: errorCount,
@@ -204,9 +184,6 @@ async function createSessionSummaryResult(
 	}
 }
 
-/**
- * Show a session-specific menu with relevant options only
- */
 async function showSessionMenu(
 	result: ProcessingSummaryResult,
 ): Promise<"main" | "sessions" | "view" | "errors"> {
@@ -229,15 +206,11 @@ async function showSessionMenu(
 	return action;
 }
 
-/**
- * Calculate field extraction statistics from stored content metadata
- */
 function calculateFieldStats(
 	contents: Array<ContentMetadata & { hadContentExtractionError: boolean }>,
 ): FieldExtractionStats[] {
 	if (contents.length === 0) return [];
 
-	// Common fields that are tracked
 	const fields = [
 		{ name: "title", isOptional: false },
 		{ name: "url", isOptional: false },
@@ -266,9 +239,6 @@ function calculateFieldStats(
 	});
 }
 
-/**
- * Calculate content field extraction statistics (simplified for stored sessions)
- */
 function calculateContentFieldStats(
 	contents: Array<ContentMetadata & { hadContentExtractionError: boolean }>,
 ): FieldExtractionStats[] {

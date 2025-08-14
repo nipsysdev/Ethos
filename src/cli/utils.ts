@@ -14,9 +14,6 @@ import {
 	VALIDATION_MESSAGES,
 } from "./constants.js";
 
-/**
- * Common error checking and early returns for CLI commands
- */
 export function checkRequiredStores(pipeline: ProcessingPipeline) {
 	const metadataStore = pipeline.getMetadataStore();
 	const contentStore = pipeline.getContentStore();
@@ -29,9 +26,6 @@ export function checkRequiredStores(pipeline: ProcessingPipeline) {
 	return { error: false as const, metadataStore, contentStore };
 }
 
-/**
- * Check if metadata store is available
- */
 export function checkMetadataStore(pipeline: ProcessingPipeline) {
 	const metadataStore = pipeline.getMetadataStore();
 
@@ -43,18 +37,12 @@ export function checkMetadataStore(pipeline: ProcessingPipeline) {
 	return { error: false as const, metadataStore };
 }
 
-/**
- * Enhanced source data with names for display
- */
 export interface EnhancedSource {
 	id: string;
 	name: string;
 	count: number;
 }
 
-/**
- * Create enhanced source list with display names from SourceRegistry
- */
 export async function createEnhancedSourceList(
 	sources: Array<{ source: string; count: number }>,
 	sourceRegistry: SourceRegistry,
@@ -71,9 +59,6 @@ export async function createEnhancedSourceList(
 	);
 }
 
-/**
- * Create source selection choices for Inquirer prompts
- */
 export function createSourceChoices(sources: EnhancedSource[]) {
 	return [
 		...sources.map((source) => ({
@@ -87,9 +72,6 @@ export function createSourceChoices(sources: EnhancedSource[]) {
 	];
 }
 
-/**
- * Create source selection choices with custom back label
- */
 export function createSourceChoicesWithBackLabel(
 	sources: EnhancedSource[],
 	backLabel: string,
@@ -106,9 +88,6 @@ export function createSourceChoicesWithBackLabel(
 	];
 }
 
-/**
- * Prompt user to select a source from enhanced source list
- */
 export async function promptSourceSelection(
 	inquirer: typeof import("inquirer").default,
 	sources: EnhancedSource[],
@@ -126,9 +105,6 @@ export async function promptSourceSelection(
 	return selectedSource;
 }
 
-/**
- * Validation function for positive integers or empty input
- */
 export function validatePositiveIntegerOrEmpty(input: string): true | string {
 	if (input === "") return true;
 	const num = Number.parseInt(input, 10);

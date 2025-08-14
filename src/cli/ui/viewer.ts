@@ -5,16 +5,13 @@ import { ContentStore } from "@/storage/ContentStore.js";
 import { MetadataStore } from "@/storage/MetadataStore.js";
 import { MENU_LABELS, NAV_VALUES } from "../constants.js";
 
-// Pagination constants
-const ITEMS_PER_PAGE = 50; // Number of data items to show per page
-const MAX_VISIBLE_MENU_OPTIONS = 20; // Maximum menu options visible in terminal at once
+const ITEMS_PER_PAGE = 50;
+const MAX_VISIBLE_MENU_OPTIONS = 20;
 
-// Navigation constants
 const NAV_PREVIOUS = "prev";
 const NAV_NEXT = "next";
 const NAV_SEPARATOR = "separator";
 
-// Navigation display strings
 const DISPLAY_PREVIOUS_PREFIX = "<< Previous page";
 const DISPLAY_NEXT_SUFFIX = ">>";
 const SEPARATOR_LINE = "-".repeat(50);
@@ -41,13 +38,11 @@ async function isLessAvailable(): Promise<boolean> {
 export async function showExtractedData(
 	result: ProcessingSummaryResult,
 ): Promise<void> {
-	// Check if we have session ID for accessing crawl data
 	if (!result.summary.sessionId) {
 		console.log("No crawl session available for viewing.");
 		return;
 	}
 
-	// Get content items from junction table
 	const metadataStore = new MetadataStore();
 
 	interface ViewerItem {
@@ -69,7 +64,6 @@ export async function showExtractedData(
 			return;
 		}
 
-		// Transform junction table data to match expected format
 		storedItems = sessionContents.map((content) => ({
 			title: content.title,
 			hash: content.hash,
@@ -84,7 +78,6 @@ export async function showExtractedData(
 		metadataStore.close();
 	}
 
-	// Use pagination for large datasets
 	await showPaginatedViewer(storedItems, result);
 }
 
@@ -99,17 +92,15 @@ async function showPaginatedViewer(
 	currentPage = 0,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
-	const pageSize = ITEMS_PER_PAGE; // Show items per page
+	const pageSize = ITEMS_PER_PAGE;
 	const totalPages = Math.ceil(items.length / pageSize);
 	const startIndex = currentPage * pageSize;
 	const endIndex = Math.min(startIndex + pageSize, items.length);
 	const currentItems = items.slice(startIndex, endIndex);
 
-	// Create a ContentStore instance to get the storage directory
 	const contentStore = new ContentStore({ enableMetadata: false });
 	const storageDir = contentStore.getStorageDirectory();
 
-	// Create choices for current page items
 	const choices = currentItems.map((item, index) => {
 		const globalIndex = startIndex + index + 1;
 		const publishedInfo = item.publishedDate
@@ -122,7 +113,6 @@ async function showPaginatedViewer(
 		};
 	});
 
-	// Add navigation options
 	const navigationChoices = [];
 
 	if (currentPage > 0) {
@@ -141,7 +131,6 @@ async function showPaginatedViewer(
 		});
 	}
 
-	// Add separator and navigation if there are multiple pages
 	if (totalPages > 1) {
 		choices.push({
 			name: SEPARATOR_LINE,
@@ -183,7 +172,6 @@ async function showPaginatedViewer(
 		return;
 	}
 
-	// View the selected file
 	try {
 		if (await isLessAvailable()) {
 			const less = spawn("less", ["-R", selectedFile], {
@@ -217,6 +205,5 @@ async function showPaginatedViewer(
 		);
 	}
 
-	// Return to the same page after viewing
 	await showPaginatedViewer(items, result, currentPage);
 }

@@ -19,7 +19,7 @@ export class MetadataTracker implements ContentSessionLinker {
 	private sessionId: string;
 	private metadataStore: MetadataStore;
 	private errorManager: CrawlErrorManager;
-	private contentLinkedCount = 0; // Track how many items have been linked
+	private contentLinkedCount = 0;
 
 	constructor(
 		config: SourceConfig,
@@ -34,13 +34,11 @@ export class MetadataTracker implements ContentSessionLinker {
 		// Initialize metadata store (use provided one for testing, or create new one)
 		this.metadataStore = metadataStore ?? new MetadataStore();
 
-		// Initialize error manager
 		this.errorManager = new CrawlErrorManager(
 			this.metadataStore,
 			this.sessionId,
 		);
 
-		// Initialize crawl metadata
 		this.metadata = {
 			duplicatesSkipped: 0,
 			urlsExcluded: 0,
@@ -71,7 +69,6 @@ export class MetadataTracker implements ContentSessionLinker {
 			contentErrors: [],
 		};
 
-		// Create session in database
 		try {
 			this.metadataStore.createSession(
 				this.sessionId,
@@ -84,27 +81,18 @@ export class MetadataTracker implements ContentSessionLinker {
 			console.error(
 				`Failed to create crawl session (sessionId: ${this.sessionId}, sourceId: ${config.id}, sourceName: ${config.name}): ${error instanceof Error ? error.message : error}`,
 			);
-			throw error; // Re-throw to let the caller handle it
+			throw error;
 		}
 	}
 
-	/**
-	 * Get current metadata state
-	 */
 	getMetadata(): CrawlMetadata {
 		return this.metadata;
 	}
 
-	/**
-	 * Get the session ID
-	 */
 	getSessionId(): string {
 		return this.sessionId;
 	}
 
-	/**
-	 * Get the metadata store instance for URL existence checks
-	 */
 	getMetadataStore(): MetadataStore {
 		return this.metadataStore;
 	}
@@ -117,18 +105,12 @@ export class MetadataTracker implements ContentSessionLinker {
 		this.metadataStore.checkpoint();
 	}
 
-	/**
-	 * Add new items to tracking and update the session in database
-	 */
 	addItems(items: CrawledData[]): void {
 		this.metadata.itemsProcessed += items.length;
 
 		this.updateSessionInDatabase();
 	}
 
-	/**
-	 * Link stored content to this session
-	 */
 	linkContentToSession(
 		contentId: number,
 		hadContentExtractionError = false,
@@ -143,25 +125,16 @@ export class MetadataTracker implements ContentSessionLinker {
 		);
 	}
 
-	/**
-	 * Track that a page has been processed
-	 */
 	incrementPagesProcessed(): void {
 		this.metadata.pagesProcessed++;
 		this.updateSessionInDatabase();
 	}
 
-	/**
-	 * Track duplicates that were skipped
-	 */
 	addDuplicatesSkipped(count: number): void {
 		this.metadata.duplicatesSkipped += count;
 		this.updateSessionInDatabase();
 	}
 
-	/**
-	 * Track URLs that were excluded by content_url_excludes patterns
-	 */
 	addUrlsExcluded(count: number): void {
 		this.metadata.urlsExcluded += count;
 		// Also increment total filtered items count for accurate totals
@@ -192,9 +165,6 @@ export class MetadataTracker implements ContentSessionLinker {
 		this.updateSessionInDatabase();
 	}
 
-	/**
-	 * Track filtered items
-	 */
 	addFilteredItems(count: number, reasons: string[]): void {
 		this.metadata.totalFilteredItems += count;
 		// Use error manager for consistent error handling
@@ -206,9 +176,6 @@ export class MetadataTracker implements ContentSessionLinker {
 		);
 	}
 
-	/**
-	 * Track content extraction errors
-	 */
 	addContentErrors(errors: string[]): void {
 		// Use error manager for consistent error handling
 		this.errorManager.addContentErrors(errors);
@@ -222,9 +189,6 @@ export class MetadataTracker implements ContentSessionLinker {
 		this.errorManager.addFieldExtractionWarnings(warnings);
 	}
 
-	/**
-	 * Track that content data was crawled
-	 */
 	addContentsCrawled(count: number): void {
 		this.metadata.contentsCrawled += count;
 		this.updateSessionMetadataField(
@@ -233,9 +197,6 @@ export class MetadataTracker implements ContentSessionLinker {
 		);
 	}
 
-	/**
-	 * Set the reason why crawling stopped
-	 */
 	setStoppedReason(
 		reason:
 			| "max_pages"
@@ -303,9 +264,6 @@ export class MetadataTracker implements ContentSessionLinker {
 		};
 	}
 
-	/**
-	 * Update session metadata in the database
-	 */
 	private updateSessionInDatabase(): void {
 		try {
 			// Get current session to preserve existing errors
@@ -351,10 +309,8 @@ export class MetadataTracker implements ContentSessionLinker {
 			// Parse current metadata to preserve errors
 			const currentMetadata = JSON.parse(session.metadata);
 
-			// Update the specific field
 			currentMetadata[fieldName] = value;
 
-			// Update the session with the modified metadata
 			this.metadataStore.updateSession(this.sessionId, currentMetadata);
 		} catch (error) {
 			console.error(

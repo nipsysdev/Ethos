@@ -77,7 +77,6 @@ export class ArticleListingCrawler implements Crawler {
 			);
 		} finally {
 			await browser.close();
-			// Clean up signal handlers
 			this.interruptionHandler.cleanup();
 		}
 	}
@@ -88,14 +87,12 @@ export class ArticleListingCrawler implements Crawler {
 		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
-		// Initialize metadata tracker
 		const metadataTracker = new MetadataTracker(config, startTime);
 		const metadata = metadataTracker.getMetadata();
 
 		const seenUrls = new Set<string>();
 
 		try {
-			// Main pagination loop
 			while (true) {
 				// Single interruption check at the start of each loop
 				if (this.checkForInterruption(metadataTracker)) break;
@@ -108,7 +105,6 @@ export class ArticleListingCrawler implements Crawler {
 
 				metadataTracker.incrementPagesProcessed();
 
-				// Extract items from current page
 				const pageResult = await this.listingExtractor.extractItemsFromPage(
 					page,
 					config,
@@ -142,7 +138,6 @@ export class ArticleListingCrawler implements Crawler {
 					);
 				}
 
-				// Track other filtered items from listing extraction
 				metadataTracker.addFilteredItems(
 					pageResult.filteredCount,
 					pageResult.filteredReasons,
@@ -220,7 +215,6 @@ export class ArticleListingCrawler implements Crawler {
 					break;
 				}
 
-				// Log page summary for all pages
 				const totalDuplicatesOnPage =
 					filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
 
@@ -239,7 +233,6 @@ export class ArticleListingCrawler implements Crawler {
 					metadata, // Pass metadata for running totals
 				);
 
-				// Extract content data if we have new items
 				if (itemsToProcess.length > 0) {
 					// Store current listing page URL so we can return to it after content extraction
 					const currentListingUrl = page.url();
@@ -265,14 +258,12 @@ export class ArticleListingCrawler implements Crawler {
 					);
 					metadataTracker.addContentsCrawled(itemsToProcess.length);
 
-					// Add any content errors that were captured during extraction
 					if (metadata.contentErrors.length > 0) {
 						metadataTracker.addContentErrors(metadata.contentErrors);
 						// Clear the temporary array to avoid double-counting on subsequent pages
 						metadata.contentErrors.length = 0;
 					}
 
-					// Track field extraction warnings from content extraction
 					const contentWarnings = metadata.contentErrors.filter(
 						(error) =>
 							error.includes("Optional field") || error.includes("not found"),
@@ -281,10 +272,8 @@ export class ArticleListingCrawler implements Crawler {
 						metadataTracker.addFieldExtractionWarnings(contentWarnings);
 					}
 
-					// Navigate back to the listing page for pagination
 					await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
 
-					// Process items immediately through storage callback
 					if (options?.onPageComplete) {
 						// Temporarily set the metadata tracker for this call
 						const originalTracker = options.metadataTracker;
@@ -296,7 +285,6 @@ export class ArticleListingCrawler implements Crawler {
 						options.metadataTracker = originalTracker;
 					}
 
-					// Add items to metadata tracking
 					metadataTracker.addItems(itemsToProcess);
 
 					// Checkpoint WAL files periodically to prevent them from growing too large
@@ -307,7 +295,6 @@ export class ArticleListingCrawler implements Crawler {
 				} else {
 				}
 
-				// Try to navigate to next page
 				const hasNextPage = await this.paginationHandler.navigateToNextPage(
 					page,
 					config,
@@ -322,7 +309,6 @@ export class ArticleListingCrawler implements Crawler {
 				}
 			}
 
-			// Build final result from metadata tracker
 			return metadataTracker.buildCrawlResult();
 		} finally {
 			// Keep temporary file for viewer access - it will be cleaned up later

@@ -14,9 +14,6 @@ import {
 	promptSourceSelection,
 } from "../utils.js";
 
-/**
- * Handle the clean storage command
- */
 export async function handleClean(
 	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
@@ -28,7 +25,6 @@ export async function handleClean(
 		}
 		const { metadataStore, contentStore } = storeCheck;
 
-		// Get all sources with counts
 		const sources = metadataStore.getSources();
 
 		if (sources.length === 0) {
@@ -36,14 +32,12 @@ export async function handleClean(
 			return NAV_VALUES.MAIN;
 		}
 
-		// Enhance sources with full names from source registry
 		const sourcesWithNames = await createEnhancedSourceList(
 			sources,
 			sourceRegistry,
 		);
 
 		while (true) {
-			// Let user select source using utility function
 			const inquirer = (await import("inquirer")).default;
 			const selectedSource = await promptSourceSelection(
 				inquirer,
@@ -55,18 +49,15 @@ export async function handleClean(
 				return NAV_VALUES.MAIN;
 			}
 
-			// Find the selected source with its name
 			const selectedSourceData = sourcesWithNames.find(
 				(source) => source.id === selectedSource,
 			);
 			const sourceName = selectedSourceData?.name || selectedSource;
 
-			// Get session count for the selected source
 			const sessionCount = metadataStore.countSessionsBySource(selectedSource);
 			const contentCount = metadataStore.countBySource(selectedSource);
 
 			while (true) {
-				// Let user select what to clean
 				const { cleanType } = await inquirer.prompt([
 					{
 						type: "list",
@@ -94,10 +85,9 @@ export async function handleClean(
 				]);
 
 				if (cleanType === NAV_VALUES.BACK) {
-					break; // Go back to source selection
+					break;
 				}
 
-				// Confirm deletion
 				let confirmMessage = "";
 				switch (cleanType) {
 					case CLEAN_LABELS.DELETE_CONTENT:
@@ -122,10 +112,9 @@ export async function handleClean(
 
 				if (!confirmed) {
 					console.log(INFO_MESSAGES.CLEANING_CANCELLED);
-					continue; // Go back to clean type selection
+					continue;
 				}
 
-				// Perform the deletion
 				console.log("Cleaning...");
 
 				try {
@@ -133,18 +122,15 @@ export async function handleClean(
 						cleanType === CLEAN_LABELS.DELETE_CONTENT ||
 						cleanType === CLEAN_LABELS.DELETE_EVERYTHING
 					) {
-						// Get content hashes before deleting from database
 						const hashes =
 							metadataStore.getContentHashesBySource(selectedSource);
 
-						// Delete from database first
 						const deletedRows =
 							metadataStore.deleteContentBySource(selectedSource);
 						console.log(
 							`Deleted ${deletedRows} ${INFO_MESSAGES.DELETED_CONTENT_RECORDS}`,
 						);
 
-						// Delete files from disk
 						const fileResult = await contentStore.deleteContentFiles(hashes);
 						console.log(
 							`Deleted ${fileResult.deleted} ${INFO_MESSAGES.DELETED_CONTENT_FILES}`,

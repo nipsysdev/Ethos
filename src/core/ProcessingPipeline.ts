@@ -17,7 +17,6 @@ export interface ProcessingResult {
 	summary: CrawlSummary;
 }
 
-// Lightweight version for UI that doesn't hold full content in memory
 export interface ProcessingSummaryResult {
 	summary: CrawlSummary;
 }
@@ -60,14 +59,12 @@ export class ProcessingPipeline {
 			);
 		}
 
-		// Storage for processed data and streaming storage results
 		const processedData: ProcessedData[] = [];
 		const storageResults = new Map<
 			string,
 			{ hash: string; path: string; storedAt: Date }
 		>();
 
-		// Add the streaming callback to options
 		const streamingOptions: CrawlOptions = {
 			...options,
 		};
@@ -97,7 +94,6 @@ export class ProcessingPipeline {
 						);
 					}
 
-					// Build processed data immediately with storage info
 					processedData.push({
 						...data,
 						analysis: [],
@@ -109,7 +105,6 @@ export class ProcessingPipeline {
 					});
 				} catch (error) {
 					console.warn(`Failed to store item ${data.url}:`, error);
-					// Still add to processed data without storage info
 					processedData.push({
 						...data,
 						analysis: [],
@@ -119,16 +114,13 @@ export class ProcessingPipeline {
 			}
 		};
 
-		// Update the callback in streamingOptions
 		streamingOptions.onPageComplete = onPageComplete;
 
 		const result = await crawler.crawl(config, streamingOptions);
 
-		// Calculate storage statistics
 		const itemsStored = processedData.filter((item) => item.storage).length;
 		const itemsFailed = processedData.length - itemsStored;
 
-		// Add storage stats to summary
 		const summaryWithStorage = {
 			...result.summary,
 			storageStats: {
@@ -137,16 +129,12 @@ export class ProcessingPipeline {
 			},
 		};
 
-		// Return the processed data that was built during streaming
 		return {
 			data: processedData,
 			summary: summaryWithStorage,
 		};
 	}
 
-	/**
-	 * Creates a memory-efficient summary result that doesn't hold full content
-	 */
 	static createSummaryResult(
 		result: ProcessingResult,
 	): ProcessingSummaryResult {
@@ -155,9 +143,6 @@ export class ProcessingPipeline {
 		};
 	}
 
-	/**
-	 * Process and return only summary result for memory efficiency
-	 */
 	async processSummary(
 		config: SourceConfig,
 		options?: CrawlOptions,
@@ -166,16 +151,10 @@ export class ProcessingPipeline {
 		return ProcessingPipeline.createSummaryResult(fullResult);
 	}
 
-	/**
-	 * Get the metadata store instance for accessing session and content metadata
-	 */
 	getMetadataStore() {
 		return this.contentStore.getMetadataStore();
 	}
 
-	/**
-	 * Get the content store instance for file operations
-	 */
 	getContentStore() {
 		return this.contentStore;
 	}

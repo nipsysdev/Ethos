@@ -5,7 +5,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	const duration =
 		(summary.endTime.getTime() - summary.startTime.getTime()) / 1000;
 
-	// Summary stats
 	console.log("Summary:");
 	console.log(`  Source: ${summary.sourceName} (${summary.sourceId})`);
 	console.log(`  Items found: ${summary.itemsFound}`);
@@ -14,7 +13,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	if (summary.itemsWithErrors > 0) {
 		console.log(`  Items with errors: ${summary.itemsWithErrors}`);
 
-		// Show breakdown of error types if available
 		const listingErrorCount = summary.listingErrors?.length || 0;
 		const contentErrorCount = summary.contentErrors?.length || 0;
 
@@ -26,7 +24,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		}
 	}
 
-	// Pagination stats (if available)
 	if (summary.pagesProcessed !== undefined) {
 		console.log(`  Listing pages processed: ${summary.pagesProcessed}`);
 
@@ -52,7 +49,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		}
 	}
 
-	// Field extraction stats
 	console.log("\nListing field extraction stats:");
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
 		const percentage =
@@ -66,7 +62,6 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		);
 	});
 
-	// Content field extraction stats
 	const contentStats = summary.contentFieldStats;
 	if (contentStats && contentStats.length > 0) {
 		console.log("\nContent field extraction stats:");
@@ -82,6 +77,5 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		});
 	}
 
-	// Timing
 	console.log(`\nCrawl took: ${duration} seconds`);
 }

@@ -1,13 +1,7 @@
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
-/**
- * Error types for crawl operations
- */
 export type CrawlErrorType = "listing" | "content";
 
-/**
- * Interface for error categorization logic
- */
 export interface ErrorCategorizer {
 	categorizeErrors(errors: string[]): {
 		listingErrors: string[];
@@ -75,17 +69,11 @@ export class CrawlErrorManager {
 		this.errorCategorizer = errorCategorizer;
 	}
 
-	/**
-	 * Add errors of a specific type directly
-	 */
 	addErrors(type: CrawlErrorType, errors: string[]): void {
 		if (errors.length === 0) return;
 		this.metadataStore.addSessionErrors(this.sessionId, type, errors);
 	}
 
-	/**
-	 * Add errors with automatic categorization
-	 */
 	addErrorsWithCategorization(errors: string[]): void {
 		if (errors.length === 0) return;
 
@@ -101,30 +89,18 @@ export class CrawlErrorManager {
 		}
 	}
 
-	/**
-	 * Add listing-specific errors (for filtered items, missing fields, etc.)
-	 */
 	addListingErrors(errors: string[]): void {
 		this.addErrors("listing", errors);
 	}
 
-	/**
-	 * Add content extraction errors
-	 */
 	addContentErrors(errors: string[]): void {
 		this.addErrors("content", errors);
 	}
 
-	/**
-	 * Add field extraction warnings with automatic categorization
-	 */
 	addFieldExtractionWarnings(warnings: string[]): void {
 		this.addErrorsWithCategorization(warnings);
 	}
 
-	/**
-	 * Get all errors for the session from the database
-	 */
 	getSessionErrors(): { listingErrors: string[]; contentErrors: string[] } {
 		const session = this.metadataStore.getSession(this.sessionId);
 		if (!session) {

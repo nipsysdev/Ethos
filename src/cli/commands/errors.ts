@@ -4,21 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/index.js";
 
-/**
- * Display all crawling errors in a less interface
- */
 export async function showCrawlErrors(
 	result: ProcessingSummaryResult,
 ): Promise<void> {
 	const { summary } = result;
 	const { listingErrors, contentErrors, fieldStats } = summary;
 
-	// Check for required field issues
 	const requiredFieldIssues = fieldStats.filter(
 		(stat) => !stat.isOptional && stat.successCount < stat.totalAttempts,
 	);
 
-	// Check if there are any errors to display
 	const hasListingErrors = listingErrors && listingErrors.length > 0;
 	const hasContentErrors = contentErrors && contentErrors.length > 0;
 	const hasFieldIssues = requiredFieldIssues.length > 0;
@@ -32,7 +27,6 @@ export async function showCrawlErrors(
 		return;
 	}
 
-	// Generate error content
 	let errorContent = "";
 	errorContent += `Crawling Errors Report for ${summary.sourceName} (${summary.sourceId})\n`;
 	errorContent += `Generated: ${new Date().toISOString()}\n\n`;
@@ -44,7 +38,6 @@ export async function showCrawlErrors(
 		errorContent +=
 			"===============================================================\n\n";
 
-		// Add required field issues
 		if (hasFieldIssues) {
 			errorContent += "Required Field Extraction Issues:\n\n";
 			requiredFieldIssues.forEach((stat, index) => {
@@ -53,7 +46,6 @@ export async function showCrawlErrors(
 			});
 		}
 
-		// Add listing errors
 		if (hasListingErrors) {
 			const startIndex = hasFieldIssues ? requiredFieldIssues.length + 1 : 1;
 			if (hasFieldIssues) {
@@ -94,7 +86,6 @@ export async function showCrawlErrors(
 	try {
 		writeFileSync(tempFile, errorContent, "utf8");
 
-		// Launch less with the temporary file
 		await new Promise<void>((resolve, reject) => {
 			const lessProcess = spawn("less", ["-R", "-S", tempFile], {
 				stdio: "inherit",
@@ -121,7 +112,6 @@ export async function showCrawlErrors(
 			process.stdin.once("data", () => resolve());
 		});
 	} finally {
-		// Clean up temporary file
 		try {
 			unlinkSync(tempFile);
 		} catch {
