@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { showCrawlErrors } from "@/cli/commands/errors.js";
-import type { FieldExtractionStats, ProcessingSummaryResult } from "@/index.js";
+import { showCrawlErrors } from "../../commands/errors.js";
+import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
+import type { FieldExtractionStats } from "../../core/types.js";
 
 // Mock fs functions
 vi.mock("node:fs", () => ({

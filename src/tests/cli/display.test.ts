@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { displayResults, showPostCrawlMenuWithFlow } from "@/cli/ui/display.js";
-import type { ProcessingSummaryResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
+import { displayResults, showPostCrawlMenuWithFlow } from "../../ui/display.js";
 
 // Mock inquirer and other dependencies
 vi.mock("inquirer", () => ({
@@ -9,19 +9,19 @@ vi.mock("inquirer", () => ({
 	},
 }));
 
-vi.mock("@/cli/ui/menus.js", () => ({
+vi.mock("../../ui/menus.js", () => ({
 	showPostCrawlMenu: vi.fn(),
 }));
 
-vi.mock("@/cli/ui/viewer.js", () => ({
+vi.mock("../../ui/viewer.js", () => ({
 	showExtractedData: vi.fn(),
 }));
 
 const mockShowPostCrawlMenu = vi.mocked(
-	(await import("@/cli/ui/menus.js")).showPostCrawlMenu,
+	(await import("../../ui/menus.js")).showPostCrawlMenu,
 );
 const mockShowExtractedData = vi.mocked(
-	(await import("@/cli/ui/viewer.js")).showExtractedData,
+	(await import("../../ui/viewer.js")).showExtractedData,
 );
 
 describe("display module", () => {

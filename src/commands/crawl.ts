@@ -1,8 +1,3 @@
-import type {
-	CrawlOptions,
-	ProcessingPipeline,
-	SourceRegistry,
-} from "@/index.js";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -10,9 +5,12 @@ import {
 	MENU_LABELS,
 	NAV_VALUES,
 	PROMPT_MESSAGES,
-} from "../constants.js";
+} from "../cli/constants.js";
+import { validatePositiveIntegerOrEmpty } from "../cli/utils.js";
+import type { ProcessingPipeline } from "../core/ProcessingPipeline.js";
+import type { SourceRegistry } from "../core/SourceRegistry.js";
+import type { CrawlOptions } from "../core/types.js";
 import { displayResults, showPostCrawlMenuWithFlow } from "../ui/display.js";
-import { validatePositiveIntegerOrEmpty } from "../utils.js";
 
 export async function handleCrawl(
 	sourceRegistry: SourceRegistry,

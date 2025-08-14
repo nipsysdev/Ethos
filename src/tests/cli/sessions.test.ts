@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handleSessions } from "@/cli/commands/sessions.js";
-import type { ProcessingPipeline } from "@/index.js";
-import type { CrawlSession, MetadataStore } from "@/storage/index.js";
+import { handleSessions } from "../../commands/sessions.js";
+import type { ProcessingPipeline } from "../../core/ProcessingPipeline.js";
+import type { CrawlSession, MetadataStore } from "../../storage/index.js";
 
 // Mock inquirer
 const mockPrompt = vi.fn();
@@ -12,15 +12,15 @@ vi.mock("inquirer", () => ({
 }));
 
 // Mock display and viewer modules
-vi.mock("@/cli/ui/summary.js", () => ({
+vi.mock("../../ui/summary.js", () => ({
 	displayCrawlSummary: vi.fn(),
 }));
 
-vi.mock("@/cli/ui/viewer.js", () => ({
+vi.mock("../../ui/viewer.js", () => ({
 	showExtractedData: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/cli/commands/errors.js", () => ({
+vi.mock("../../commands/errors.js", () => ({
 	showCrawlErrors: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -37,9 +37,9 @@ describe("Sessions Command", () => {
 		vi.clearAllMocks();
 
 		// Get the mocked functions
-		const { displayCrawlSummary } = await import("@/cli/ui/summary.js");
-		const { showExtractedData } = await import("@/cli/ui/viewer.js");
-		const { showCrawlErrors } = await import("@/cli/commands/errors.js");
+		const { displayCrawlSummary } = await import("../../ui/summary.js");
+		const { showExtractedData } = await import("../../ui/viewer.js");
+		const { showCrawlErrors } = await import("../../commands/errors.js");
 
 		mockDisplayCrawlSummary = vi.mocked(displayCrawlSummary);
 		mockShowExtractedData = vi.mocked(showExtractedData);

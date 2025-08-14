@@ -1,25 +1,24 @@
-import type { CrawlMetadata } from "@/core/types.js";
-import type {
-	FieldExtractionStats,
-	ProcessingPipeline,
-	ProcessingSummaryResult,
-} from "@/index.js";
-import type {
-	ContentMetadata,
-	CrawlSession,
-	MetadataStore,
-} from "@/storage/index.js";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
 	MENU_LABELS,
 	NAV_VALUES,
 	PROMPT_MESSAGES,
-} from "../constants.js";
+} from "../cli/constants.js";
+import { checkMetadataStore } from "../cli/utils.js";
+import type {
+	ProcessingPipeline,
+	ProcessingSummaryResult,
+} from "../core/ProcessingPipeline.js";
+import type { CrawlMetadata, FieldExtractionStats } from "../core/types.js";
+import type {
+	ContentMetadata,
+	CrawlSession,
+	MetadataStore,
+} from "../storage/index.js";
 import { createDataViewChoices } from "../ui/menus.js";
 import { displayCrawlSummary } from "../ui/summary.js";
 import { buildCrawlSummary } from "../utils/summaryBuilder.js";
-import { checkMetadataStore } from "../utils.js";
 
 export async function handleSessions(
 	pipeline: ProcessingPipeline,

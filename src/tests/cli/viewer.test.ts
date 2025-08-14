@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { showExtractedData } from "@/cli/ui/viewer.js";
-import type { ProcessingSummaryResult } from "@/index.js";
+import { showExtractedData } from "@/ui/viewer.js";
+import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
 
 // Mock child_process and inquirer
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessingSummaryResult } from "@/index.js";
+import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
 
 // Mock inquirer
 const mockPrompt = vi.fn();
@@ -11,12 +11,12 @@ vi.mock("inquirer", () => ({
 
 describe("menus module", () => {
 	it("should export showPostCrawlMenu function", async () => {
-		const { showPostCrawlMenu } = await import("../../cli/ui/menus.js");
+		const { showPostCrawlMenu } = await import("../../ui/menus.js");
 		expect(typeof showPostCrawlMenu).toBe("function");
 	});
 
 	it("should show error menu option when there are errors", async () => {
-		const { showPostCrawlMenu } = await import("../../cli/ui/menus.js");
+		const { showPostCrawlMenu } = await import("../../ui/menus.js");
 
 		const mockResult: ProcessingSummaryResult = {
 			summary: {
@@ -62,7 +62,7 @@ describe("menus module", () => {
 	});
 
 	it("should not show error menu option when there are no errors", async () => {
-		const { showPostCrawlMenu } = await import("../../cli/ui/menus.js");
+		const { showPostCrawlMenu } = await import("../../ui/menus.js");
 
 		const mockResult: ProcessingSummaryResult = {
 			summary: {

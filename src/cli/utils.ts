@@ -4,7 +4,8 @@
  * Reusable utility functions for common CLI patterns to reduce code duplication.
  */
 
-import type { ProcessingPipeline, SourceRegistry } from "@/index.js";
+import type { ProcessingPipeline } from "../core/ProcessingPipeline.js";
+import type { SourceRegistry } from "../core/SourceRegistry.js";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,

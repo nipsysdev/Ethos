@@ -1,4 +1,4 @@
-import type { CrawlSummary, ProcessedData } from "@/index.js";
+import type { CrawlSummary, ProcessedData } from "../core/types.js";
 
 export function formatDataForViewing(
 	data: ProcessedData[],

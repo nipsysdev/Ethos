@@ -1,4 +1,4 @@
-import type { CrawlMetadata, CrawlSummary } from "@/core/types.js";
+import type { CrawlMetadata, CrawlSummary } from "../core/types.js";
 
 /**
  * Creates a consistent CrawlSummary from metadata and session data

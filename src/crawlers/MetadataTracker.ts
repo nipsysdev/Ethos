@@ -1,4 +1,3 @@
-import { buildCrawlSummary } from "@/cli/utils/summaryBuilder.js";
 import type {
 	ContentSessionLinker,
 	CrawledData,
@@ -6,8 +5,9 @@ import type {
 	CrawlResult,
 	FieldConfig,
 	SourceConfig,
-} from "@/core/types.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
+} from "../core/types.js";
+import { MetadataStore } from "../storage/MetadataStore.js";
+import { buildCrawlSummary } from "../utils/summaryBuilder.js";
 import { CrawlErrorManager } from "./CrawlErrorManager.js";
 
 /**
