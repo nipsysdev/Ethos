@@ -1,4 +1,3 @@
-import { MENU_LABELS, NAV_VALUES } from "../cli/constants.js";
 import { handleClean } from "../commands/clean.js";
 import { handleCrawl } from "../commands/crawl.js";
 import { handleSessions } from "../commands/sessions.js";
@@ -7,6 +6,13 @@ import type {
 	ProcessingSummaryResult,
 } from "../core/ProcessingPipeline.js";
 import type { SourceRegistry } from "../core/SourceRegistry.js";
+import {
+	ERROR_MESSAGES,
+	FIELD_NAMES,
+	MENU_LABELS,
+	NAV_VALUES,
+	PROMPT_MESSAGES,
+} from "./constants.js";
 
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],

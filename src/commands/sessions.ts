@@ -1,11 +1,3 @@
-import {
-	ERROR_MESSAGES,
-	FIELD_NAMES,
-	MENU_LABELS,
-	NAV_VALUES,
-	PROMPT_MESSAGES,
-} from "../cli/constants.js";
-import { checkMetadataStore } from "../cli/utils.js";
 import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
@@ -16,8 +8,16 @@ import type {
 	CrawlSession,
 	MetadataStore,
 } from "../storage/index.js";
+import {
+	ERROR_MESSAGES,
+	FIELD_NAMES,
+	MENU_LABELS,
+	NAV_VALUES,
+	PROMPT_MESSAGES,
+} from "../ui/constants.js";
 import { createDataViewChoices } from "../ui/menus.js";
 import { displayCrawlSummary } from "../ui/summary.js";
+import { checkMetadataStore } from "../ui/utils.js";
 import { buildCrawlSummary } from "../utils/summaryBuilder.js";
 
 export async function handleSessions(
