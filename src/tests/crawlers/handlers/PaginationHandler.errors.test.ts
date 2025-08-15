@@ -2,7 +2,7 @@ import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Error Handling", () => {
 	// Mock timers for all tests to avoid real delays
@@ -51,12 +51,11 @@ describe("PaginationHandler - Error Handling", () => {
 	};
 
 	it("should handle page query errors gracefully", async () => {
-		const handler = new PaginationHandler();
 		const mockPage = createMockPage({
 			$: vi.fn().mockRejectedValue(new Error("Page query failed")),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -64,14 +63,13 @@ describe("PaginationHandler - Error Handling", () => {
 	});
 
 	it("should handle evaluate errors gracefully", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
 			evaluate: vi.fn().mockRejectedValue(new Error("Evaluate failed")),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -79,7 +77,6 @@ describe("PaginationHandler - Error Handling", () => {
 	});
 
 	it("should handle button click errors gracefully", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = {
 			click: vi.fn().mockRejectedValue(new Error("Click failed")),
 		};
@@ -88,7 +85,7 @@ describe("PaginationHandler - Error Handling", () => {
 			evaluate: vi.fn().mockResolvedValue(false),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -96,7 +93,6 @@ describe("PaginationHandler - Error Handling", () => {
 	});
 
 	it("should handle missing pagination configuration", async () => {
-		const handler = new PaginationHandler();
 		const configNoSelector: SourceConfig = {
 			...mockConfig,
 			listing: {
@@ -109,7 +105,7 @@ describe("PaginationHandler - Error Handling", () => {
 
 		const mockPage = createMockPage();
 
-		const promise = handler.navigateToNextPage(mockPage, configNoSelector);
+		const promise = navigateToNextPage(mockPage, configNoSelector);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -117,7 +113,6 @@ describe("PaginationHandler - Error Handling", () => {
 	});
 
 	it("should handle completely missing pagination object", async () => {
-		const handler = new PaginationHandler();
 		const configNoPagination: SourceConfig = {
 			...mockConfig,
 			listing: {
@@ -128,7 +123,7 @@ describe("PaginationHandler - Error Handling", () => {
 
 		const mockPage = createMockPage();
 
-		const promise = handler.navigateToNextPage(mockPage, configNoPagination);
+		const promise = navigateToNextPage(mockPage, configNoPagination);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 

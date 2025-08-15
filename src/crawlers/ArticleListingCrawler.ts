@@ -13,7 +13,7 @@ import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
 import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
 import { MetadataTracker } from "@/crawlers/MetadataTracker";
 import { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import {
@@ -29,7 +29,6 @@ export class ArticleListingCrawler implements Crawler {
 
 	private listingExtractor = new ListingPageExtractor();
 	private contentExtractor = new ContentPageExtractor();
-	private paginationHandler = new PaginationHandler();
 	private interruptionHandler = new InterruptionHandler();
 
 	private checkForInterruption(metadataTracker: MetadataTracker): boolean {
@@ -298,10 +297,7 @@ export class ArticleListingCrawler implements Crawler {
 				} else {
 				}
 
-				const hasNextPage = await this.paginationHandler.navigateToNextPage(
-					page,
-					config,
-				);
+				const hasNextPage = await navigateToNextPage(page, config);
 
 				// Check for interruption - if interrupted, it takes precedence over no next page
 				if (this.checkForInterruption(metadataTracker)) break;

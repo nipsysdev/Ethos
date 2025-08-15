@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Basic Setup", () => {
 	// Mock timers for all tests to avoid real delays
@@ -11,14 +11,14 @@ describe("PaginationHandler - Basic Setup", () => {
 		vi.useRealTimers();
 	});
 
-	it("should create a pagination handler instance", () => {
-		const handler = new PaginationHandler();
-		expect(handler).toBeDefined();
-		expect(typeof handler.navigateToNextPage).toBe("function");
+	it("should export navigateToNextPage function", () => {
+		expect(navigateToNextPage).toBeDefined();
+		expect(typeof navigateToNextPage).toBe("function");
 	});
 
-	it("should have proper default configuration", () => {
-		const handler = new PaginationHandler();
-		expect(handler).toBeInstanceOf(PaginationHandler);
+	it("should have proper function signature", () => {
+		// Check that the function is properly exported and has the right signature
+		expect(navigateToNextPage.name).toBe("navigateToNextPage");
+		expect(navigateToNextPage.length).toBe(2); // page, config parameters
 	});
 });
