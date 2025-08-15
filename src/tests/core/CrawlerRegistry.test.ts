@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CrawlerRegistry } from "@/core/CrawlerRegistry.js";
+import { createCrawlerRegistry } from "@/core/CrawlerRegistry.js";
 import type { Crawler, CrawlResult, SourceConfig } from "@/core/types.js";
 
 describe("CrawlerRegistry", () => {
 	it("should register and retrieve crawlers", () => {
-		const registry = new CrawlerRegistry();
+		const registry = createCrawlerRegistry();
 		const mockCrawler: Crawler = {
 			type: "test-crawler",
 			crawl: async (_config: SourceConfig): Promise<CrawlResult> => ({
@@ -40,13 +40,13 @@ describe("CrawlerRegistry", () => {
 	});
 
 	it("should return undefined for unknown crawler types", () => {
-		const registry = new CrawlerRegistry();
+		const registry = createCrawlerRegistry();
 
 		expect(registry.getCrawler("unknown-type")).toBeUndefined();
 	});
 
 	it("should return empty array for supported types when no crawlers registered", () => {
-		const registry = new CrawlerRegistry();
+		const registry = createCrawlerRegistry();
 
 		expect(registry.getSupportedTypes()).toEqual([]);
 	});

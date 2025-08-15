@@ -3,18 +3,20 @@ import type {
 	CrawlerRegistry as ICrawlerRegistry,
 } from "@/core/types";
 
-export class CrawlerRegistry implements ICrawlerRegistry {
-	private crawlers: Map<string, Crawler> = new Map();
+export function createCrawlerRegistry(): ICrawlerRegistry {
+	const crawlers = new Map<string, Crawler>();
 
-	register(crawler: Crawler): void {
-		this.crawlers.set(crawler.type, crawler);
-	}
+	return {
+		register(crawler: Crawler): void {
+			crawlers.set(crawler.type, crawler);
+		},
 
-	getCrawler(type: string): Crawler | undefined {
-		return this.crawlers.get(type);
-	}
+		getCrawler(type: string): Crawler | undefined {
+			return crawlers.get(type);
+		},
 
-	getSupportedTypes(): string[] {
-		return Array.from(this.crawlers.keys());
-	}
+		getSupportedTypes(): string[] {
+			return Array.from(crawlers.keys());
+		},
+	};
 }
