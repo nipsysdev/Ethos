@@ -18,6 +18,7 @@ import {
 import { createDataViewChoices } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { checkMetadataStore } from "@/ui/utils";
+import { showExtractedData } from "@/ui/viewer";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
 export async function handleSessions(
@@ -84,7 +85,6 @@ export async function handleSessions(
 						break;
 					}
 					if (action === "view") {
-						const { showExtractedData } = await import("../ui/viewer.js");
 						await showExtractedData(sessionResult);
 						// After viewing, show the summary again and continue the session menu loop
 						displayCrawlSummary(sessionResult);
