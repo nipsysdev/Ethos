@@ -1,10 +1,10 @@
 import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
-} from "../core/ProcessingPipeline.js";
-import { showPostCrawlMenu } from "./menus.js";
-import { displayCrawlSummary } from "./summary.js";
-import { showExtractedData } from "./viewer.js";
+} from "@/core/ProcessingPipeline";
+import { showPostCrawlMenu } from "@/ui/menus";
+import { displayCrawlSummary } from "@/ui/summary";
+import { showExtractedData } from "@/ui/viewer";
 
 export function displayResults(result: ProcessingSummaryResult): void {
 	displayCrawlSummary(result);

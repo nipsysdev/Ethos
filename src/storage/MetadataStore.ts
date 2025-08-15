@@ -3,13 +3,13 @@ import {
 	type ContentMetadata,
 	ContentMetadataStore,
 	type MetadataQueryOptions,
-} from "./ContentMetadataStore.js";
-import type { MetadataStoreOptions } from "./MetadataDatabase.js";
+} from "@/storage/ContentMetadataStore";
+import type { MetadataStoreOptions } from "@/storage/MetadataDatabase";
 import {
 	type CrawlSession,
 	type SessionContent,
 	SessionMetadataStore,
-} from "./SessionMetadataStore.js";
+} from "@/storage/SessionMetadataStore";
 
 /**
  * Unified interface that provides both content and session metadata operations.

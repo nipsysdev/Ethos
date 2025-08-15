@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
 
 // Mock inquirer
 const mockPrompt = vi.fn();

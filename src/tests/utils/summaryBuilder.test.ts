@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { CrawlMetadata } from "@/core/types";
 import { buildCrawlSummary } from "@/utils/summaryBuilder.js";
-import type { CrawlMetadata } from "../../core/types.js";
 
 describe("Summary Builder", () => {
 	let mockMetadata: CrawlMetadata;

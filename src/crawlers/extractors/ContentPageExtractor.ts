@@ -4,16 +4,16 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
-import type { MetadataStore } from "@/storage/MetadataStore.js";
-import { resolveAbsoluteUrl } from "@/utils/url.js";
-import { createBrowserExtractionFunction } from "./BrowserFieldExtractor.js";
-import { ConcurrentContentExtractor } from "./ConcurrentContentExtractor.js";
+import { createBrowserExtractionFunction } from "@/crawlers/extractors/BrowserFieldExtractor";
+import { ConcurrentContentExtractor } from "@/crawlers/extractors/ConcurrentContentExtractor";
 import {
 	mergeContentData,
 	updateFieldStats,
 	updateItemMetadata,
-} from "./ContentDataMapper.js";
-import { DYNAMIC_CONTENT_TIMEOUT } from "./constants.js";
+} from "@/crawlers/extractors/ContentDataMapper";
+import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
+import { resolveAbsoluteUrl } from "@/utils/url.js";
 
 export interface ContentExtractionResult {
 	contentData: Record<string, string | null>;

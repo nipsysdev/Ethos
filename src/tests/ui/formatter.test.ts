@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CrawlSummary, ProcessedData } from "../../core/types.js";
-import { formatDataForViewing } from "../../ui/formatter.js";
+import type { CrawlSummary, ProcessedData } from "@/core/types";
+import { formatDataForViewing } from "@/ui/formatter";
 
 describe("Data Formatter", () => {
 	const createMockSummary = (): CrawlSummary => ({

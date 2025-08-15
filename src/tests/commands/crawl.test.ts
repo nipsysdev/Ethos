@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePositiveIntegerOrEmpty } from "../../ui/utils.js";
+import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
 
 describe("Crawl Command Validation", () => {
 	describe("validatePositiveIntegerOrEmpty", () => {

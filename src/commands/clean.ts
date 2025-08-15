@@ -1,5 +1,5 @@
-import type { ProcessingPipeline } from "../core/ProcessingPipeline.js";
-import type { SourceRegistry } from "../core/SourceRegistry.js";
+import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import type { SourceRegistry } from "@/core/SourceRegistry";
 import {
 	CLEAN_LABELS,
 	ERROR_MESSAGES,
@@ -8,12 +8,12 @@ import {
 	MENU_LABELS,
 	NAV_VALUES,
 	PROMPT_MESSAGES,
-} from "../ui/constants.js";
+} from "@/ui/constants";
 import {
 	checkRequiredStores,
 	createEnhancedSourceList,
 	promptSourceSelection,
-} from "../ui/utils.js";
+} from "@/ui/utils";
 
 export async function handleClean(
 	sourceRegistry: SourceRegistry,

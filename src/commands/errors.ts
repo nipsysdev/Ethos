@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ProcessingSummaryResult } from "../core/ProcessingPipeline.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
 
 export async function showCrawlErrors(
 	result: ProcessingSummaryResult,

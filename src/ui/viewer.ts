@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
-import type { ProcessingSummaryResult } from "../core/ProcessingPipeline.js";
-import { ContentStore } from "../storage/ContentStore.js";
-import { MetadataStore } from "../storage/MetadataStore.js";
-import { MENU_LABELS, NAV_VALUES } from "./constants.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { ContentStore } from "@/storage/ContentStore";
+import { MetadataStore } from "@/storage/MetadataStore";
+import { MENU_LABELS, NAV_VALUES } from "@/ui/constants";
 
 const ITEMS_PER_PAGE = 50;
 const MAX_VISIBLE_MENU_OPTIONS = 20;

@@ -4,8 +4,8 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
+import type { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
-import type { ContentPageExtractor } from "./ContentPageExtractor.js";
 
 /**
  * Configuration for concurrent content extraction

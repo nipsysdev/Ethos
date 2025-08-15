@@ -1,8 +1,11 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ContentData, CrawledData } from "@/core/types.js";
+import {
+	MetadataStore,
+	type MetadataStoreOptions,
+} from "@/storage/MetadataStore";
 import { generateStringHash } from "@/utils/hash.js";
-import { MetadataStore, type MetadataStoreOptions } from "./MetadataStore.js";
 
 export interface StorageResult {
 	hash: string;

@@ -1,9 +1,9 @@
 import type Database from "better-sqlite3";
-import type { ContentMetadata } from "./ContentMetadataStore.js";
+import type { ContentMetadata } from "@/storage/ContentMetadataStore";
 import {
 	MetadataDatabase,
 	type MetadataStoreOptions,
-} from "./MetadataDatabase.js";
+} from "@/storage/MetadataDatabase";
 
 export interface CrawlSession {
 	id?: string;

@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import { Command } from "commander";
-import { CrawlerRegistry } from "./core/CrawlerRegistry.js";
-import { ProcessingPipeline } from "./core/ProcessingPipeline.js";
-import { SourceRegistry } from "./core/SourceRegistry.js";
-import { ArticleListingCrawler } from "./crawlers/ArticleListingCrawler.js";
-import { showMainMenu } from "./ui/menus.js";
+import { CrawlerRegistry } from "@/core/CrawlerRegistry";
+import { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import { SourceRegistry } from "@/core/SourceRegistry";
+import { ArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
+import { showMainMenu } from "@/ui/menus";
 
 const program = new Command();
 

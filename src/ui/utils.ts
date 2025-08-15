@@ -4,8 +4,8 @@
  * Reusable utility functions for common CLI patterns to reduce code duplication.
  */
 
-import type { ProcessingPipeline } from "../core/ProcessingPipeline.js";
-import type { SourceRegistry } from "../core/SourceRegistry.js";
+import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import type { SourceRegistry } from "@/core/SourceRegistry";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -13,7 +13,7 @@ import {
 	NAV_VALUES,
 	PROMPT_MESSAGES,
 	VALIDATION_MESSAGES,
-} from "./constants.js";
+} from "@/ui/constants";
 
 export function checkRequiredStores(pipeline: ProcessingPipeline) {
 	const metadataStore = pipeline.getMetadataStore();

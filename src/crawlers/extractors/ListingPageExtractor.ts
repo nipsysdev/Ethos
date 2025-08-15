@@ -5,8 +5,8 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
+import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
 import { parsePublishedDate } from "@/utils/date.js";
-import { DYNAMIC_CONTENT_TIMEOUT } from "./constants.js";
 
 export interface ListingExtractionResult {
 	items: CrawledData[];

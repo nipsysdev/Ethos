@@ -1,5 +1,5 @@
-import type { ProcessingSummaryResult } from "../core/ProcessingPipeline.js";
-import type { FieldExtractionStats } from "../core/types.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import type { FieldExtractionStats } from "@/core/types";
 
 export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	const { summary } = result;

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
-import { displayResults, showPostCrawlMenuWithFlow } from "../../ui/display.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { displayResults, showPostCrawlMenuWithFlow } from "@/ui/display";
 
 // Mock inquirer and other dependencies
 vi.mock("inquirer", () => ({

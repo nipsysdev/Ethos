@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InterruptionHandler } from "../../../crawlers/utils/InterruptionHandler.js";
+import { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 
 describe("InterruptionHandler", () => {
 	it("should detect interruption correctly", () => {

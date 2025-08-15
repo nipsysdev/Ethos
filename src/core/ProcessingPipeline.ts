@@ -1,7 +1,3 @@
-import {
-	ContentStore,
-	type ContentStoreOptions,
-} from "@/storage/ContentStore.js";
 import type {
 	CrawledData,
 	CrawlerRegistry,
@@ -9,8 +5,12 @@ import type {
 	CrawlSummary,
 	ProcessedData,
 	SourceConfig,
-} from "./types.js";
-import { CrawlerError } from "./types.js";
+} from "@/core/types";
+import { CrawlerError } from "@/core/types";
+import {
+	ContentStore,
+	type ContentStoreOptions,
+} from "@/storage/ContentStore.js";
 
 export interface ProcessingResult {
 	data: ProcessedData[];

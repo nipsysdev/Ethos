@@ -3,7 +3,7 @@ import type { CrawledData } from "@/core/types.js";
 import {
 	MetadataDatabase,
 	type MetadataStoreOptions,
-} from "./MetadataDatabase.js";
+} from "@/storage/MetadataDatabase";
 
 export interface ContentMetadata {
 	id?: number;

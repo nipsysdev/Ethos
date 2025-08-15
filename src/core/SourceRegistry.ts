@@ -4,8 +4,8 @@ import { parse } from "yaml";
 import type {
 	SourceRegistry as ISourceRegistry,
 	SourceConfig,
-} from "./types.js";
-import { CRAWLER_TYPES } from "./types.js";
+} from "@/core/types";
+import { CRAWLER_TYPES } from "@/core/types";
 
 export class SourceRegistry implements ISourceRegistry {
 	private sources: Map<string, SourceConfig> = new Map();

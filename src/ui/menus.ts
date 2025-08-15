@@ -1,18 +1,18 @@
-import { handleClean } from "../commands/clean.js";
-import { handleCrawl } from "../commands/crawl.js";
-import { handleSessions } from "../commands/sessions.js";
+import { handleClean } from "@/commands/clean";
+import { handleCrawl } from "@/commands/crawl";
+import { handleSessions } from "@/commands/sessions";
 import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
-} from "../core/ProcessingPipeline.js";
-import type { SourceRegistry } from "../core/SourceRegistry.js";
+} from "@/core/ProcessingPipeline";
+import type { SourceRegistry } from "@/core/SourceRegistry";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
 	MENU_LABELS,
 	NAV_VALUES,
 	PROMPT_MESSAGES,
-} from "./constants.js";
+} from "@/ui/constants";
 
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],

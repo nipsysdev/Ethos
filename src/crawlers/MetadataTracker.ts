@@ -5,10 +5,10 @@ import type {
 	CrawlResult,
 	FieldConfig,
 	SourceConfig,
-} from "../core/types.js";
-import { MetadataStore } from "../storage/MetadataStore.js";
-import { buildCrawlSummary } from "../utils/summaryBuilder.js";
-import { CrawlErrorManager } from "./CrawlErrorManager.js";
+} from "@/core/types";
+import { CrawlErrorManager } from "@/crawlers/CrawlErrorManager";
+import { MetadataStore } from "@/storage/MetadataStore";
+import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
 /**
  * Handles metadata tracking and session management for crawl operations.

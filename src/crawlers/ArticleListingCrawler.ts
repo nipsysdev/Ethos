@@ -10,13 +10,16 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
-import { ContentPageExtractor } from "./extractors/ContentPageExtractor.js";
-import { EXTRACTION_CONCURRENCY } from "./extractors/constants.js";
-import { ListingPageExtractor } from "./extractors/ListingPageExtractor.js";
-import { PaginationHandler } from "./handlers/PaginationHandler.js";
-import { MetadataTracker } from "./MetadataTracker.js";
-import { InterruptionHandler } from "./utils/InterruptionHandler.js";
-import { filterByExclusion, filterDuplicates } from "./utils/UrlFilter.js";
+import { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
+import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
+import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
+import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler";
+import { MetadataTracker } from "@/crawlers/MetadataTracker";
+import { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
+import {
+	filterByExclusion,
+	filterDuplicates,
+} from "@/crawlers/utils/UrlFilter";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin());

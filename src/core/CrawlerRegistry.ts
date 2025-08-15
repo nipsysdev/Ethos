@@ -1,4 +1,7 @@
-import type { Crawler, CrawlerRegistry as ICrawlerRegistry } from "./types.js";
+import type {
+	Crawler,
+	CrawlerRegistry as ICrawlerRegistry,
+} from "@/core/types";
 
 export class CrawlerRegistry implements ICrawlerRegistry {
 	private crawlers: Map<string, Crawler> = new Map();

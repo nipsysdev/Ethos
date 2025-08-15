@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProcessingSummaryResult } from "../../core/ProcessingPipeline.js";
-import { displayCrawlSummary } from "../../ui/summary.js";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { displayCrawlSummary } from "@/ui/summary";
 
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 
