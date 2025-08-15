@@ -1,9 +1,5 @@
-import type { CrawlMetadata, CrawlSummary } from "@/core/types";
+import type { CrawlMetadata, CrawlSummary } from "@/core/types.js";
 
-/**
- * Creates a consistent CrawlSummary from metadata and session data
- * Used to ensure both fresh crawls and session reconstruction produce identical summaries
- */
 export function buildCrawlSummary(
 	sessionData: {
 		sourceId: string;
