@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ProcessingPipeline } from "@/../core/ProcessingPipeline";
-import type { SourceRegistry } from "@/../core/SourceRegistry";
 import { handleClean } from "@/commands/clean.js";
+import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import type { SourceRegistry } from "@/core/SourceRegistry";
 
 // Mock inquirer
 const mockPrompt = vi.fn();
