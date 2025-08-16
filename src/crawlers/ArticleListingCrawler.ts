@@ -14,7 +14,11 @@ import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExt
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
 import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import { MetadataTracker } from "@/crawlers/MetadataTracker";
+import type { MetadataTracker } from "@/crawlers/MetadataTracker";
+import {
+	createMetadataTracker,
+	StoppedReason,
+} from "@/crawlers/MetadataTracker";
 import { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import {
 	filterByExclusion,
@@ -33,7 +37,7 @@ export class ArticleListingCrawler implements Crawler {
 
 	private checkForInterruption(metadataTracker: MetadataTracker): boolean {
 		if (this.interruptionHandler.isProcessInterrupted()) {
-			metadataTracker.setStoppedReason("process_interrupted");
+			metadataTracker.setStoppedReason(StoppedReason.PROCESS_INTERRUPTED);
 			return true;
 		}
 		return false;
@@ -89,7 +93,7 @@ export class ArticleListingCrawler implements Crawler {
 		options: CrawlOptions = {},
 		startTime: Date,
 	): Promise<CrawlResult> {
-		const metadataTracker = new MetadataTracker(config, startTime);
+		const metadataTracker = createMetadataTracker(config, startTime);
 		const metadata = metadataTracker.getMetadata();
 
 		const seenUrls = new Set<string>();
@@ -101,7 +105,7 @@ export class ArticleListingCrawler implements Crawler {
 
 				// Check max pages limit before processing
 				if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
-					metadataTracker.setStoppedReason("max_pages");
+					metadataTracker.setStoppedReason(StoppedReason.MAX_PAGES);
 					break;
 				}
 
@@ -195,7 +199,7 @@ export class ArticleListingCrawler implements Crawler {
 					itemsToProcess.length === 0 &&
 					options?.stopOnAllDuplicates !== false
 				) {
-					metadataTracker.setStoppedReason("all_duplicates");
+					metadataTracker.setStoppedReason(StoppedReason.ALL_DUPLICATES);
 					// Update logging to reflect database duplicates too
 					const totalDuplicatesOnPage =
 						filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
@@ -303,7 +307,7 @@ export class ArticleListingCrawler implements Crawler {
 				if (this.checkForInterruption(metadataTracker)) break;
 
 				if (!hasNextPage) {
-					metadataTracker.setStoppedReason("no_next_button");
+					metadataTracker.setStoppedReason(StoppedReason.NO_NEXT_BUTTON);
 					break;
 				}
 			}
