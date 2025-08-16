@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Command } from "commander";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
-import { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import { createProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createSourceRegistry } from "@/core/SourceRegistry";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
@@ -12,7 +12,7 @@ const sourceRegistry = createSourceRegistry(
 	join(process.cwd(), "src", "config", "sources.yaml"),
 );
 const crawlerRegistry = createCrawlerRegistry();
-const pipeline = new ProcessingPipeline(crawlerRegistry, "./storage");
+const pipeline = createProcessingPipeline(crawlerRegistry, "./storage");
 
 crawlerRegistry.register(createArticleListingCrawler());
 

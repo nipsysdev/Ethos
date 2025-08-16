@@ -26,32 +26,119 @@ export interface ProcessingPipelineOptions {
 	contentStoreOptions?: ContentStoreOptions;
 }
 
-export class ProcessingPipeline {
-	private contentStore: ContentStore;
+export interface ProcessingPipeline {
+	process: (
+		config: SourceConfig,
+		options?: CrawlOptions,
+	) => Promise<ProcessingResult>;
+	processSummary: (
+		config: SourceConfig,
+		options?: CrawlOptions,
+	) => Promise<ProcessingSummaryResult>;
+	getMetadataStore: () => any;
+	getContentStore: () => ContentStore;
+}
 
-	constructor(
-		private crawlerRegistry: CrawlerRegistry,
-		optionsOrPath: ProcessingPipelineOptions | string = {},
-	) {
-		// Support backward compatibility: if string is passed, treat it as storageBasePath
-		const options =
-			typeof optionsOrPath === "string"
-				? { storageBasePath: optionsOrPath }
-				: optionsOrPath;
+function createContentStore(
+	optionsOrPath: ProcessingPipelineOptions | string = {},
+): ContentStore {
+	// Support backward compatibility: if string is passed, treat it as storageBasePath
+	const options =
+		typeof optionsOrPath === "string"
+			? { storageBasePath: optionsOrPath }
+			: optionsOrPath;
 
-		const { storageBasePath = "./storage", contentStoreOptions = {} } = options;
+	const { storageBasePath = "./storage", contentStoreOptions = {} } = options;
 
-		this.contentStore = new ContentStore({
-			storageDir: `${storageBasePath}/content`,
-			...contentStoreOptions,
-		});
+	return new ContentStore({
+		storageDir: `${storageBasePath}/content`,
+		...contentStoreOptions,
+	});
+}
+
+async function handleItemStorage(
+	data: CrawledData,
+	contentStore: ContentStore,
+	metadataTracker?: any,
+): Promise<ProcessedData> {
+	try {
+		const storageResult = await contentStore.store(data);
+
+		// Link content to session if metadata tracker is available
+		if (metadataTracker && storageResult.metadata?.id) {
+			// Check if this item had content extraction errors
+			const hadContentError = Boolean(
+				data.metadata?.contentFieldsFailed &&
+					Array.isArray(data.metadata.contentFieldsFailed) &&
+					data.metadata.contentFieldsFailed.length > 0,
+			);
+			metadataTracker.linkContentToSession(
+				storageResult.metadata.id,
+				hadContentError,
+			);
+		}
+
+		return {
+			...data,
+			analysis: [],
+			storage: {
+				hash: storageResult.hash,
+				path: storageResult.path,
+				storedAt: storageResult.storedAt,
+			},
+		};
+	} catch (error) {
+		console.warn(`Failed to store item ${data.url}:`, error);
+		return {
+			...data,
+			analysis: [],
+			storage: undefined,
+		};
+	}
+}
+
+async function processPageItems(
+	items: CrawledData[],
+	contentStore: ContentStore,
+	metadataTracker?: any,
+): Promise<ProcessedData[]> {
+	const processedData: ProcessedData[] = [];
+
+	for (const data of items) {
+		const processedItem = await handleItemStorage(
+			data,
+			contentStore,
+			metadataTracker,
+		);
+		processedData.push(processedItem);
 	}
 
-	async process(
+	return processedData;
+}
+
+function createStorageSummary(
+	processedData: ProcessedData[],
+): CrawlSummary["storageStats"] {
+	const itemsStored = processedData.filter((item) => item.storage).length;
+	const itemsFailed = processedData.length - itemsStored;
+
+	return {
+		itemsStored,
+		itemsFailed,
+	};
+}
+
+export function createProcessingPipeline(
+	crawlerRegistry: CrawlerRegistry,
+	optionsOrPath: ProcessingPipelineOptions | string = {},
+): ProcessingPipeline {
+	const contentStore = createContentStore(optionsOrPath);
+
+	async function process(
 		config: SourceConfig,
 		options?: CrawlOptions,
 	): Promise<ProcessingResult> {
-		const crawler = this.crawlerRegistry.getCrawler(config.type);
+		const crawler = crawlerRegistry.getCrawler(config.type);
 		if (!crawler) {
 			throw new CrawlerError(
 				`No crawler found for type: ${config.type}`,
@@ -60,10 +147,6 @@ export class ProcessingPipeline {
 		}
 
 		const processedData: ProcessedData[] = [];
-		const storageResults = new Map<
-			string,
-			{ hash: string; path: string; storedAt: Date }
-		>();
 
 		const streamingOptions: CrawlOptions = {
 			...options,
@@ -71,62 +154,23 @@ export class ProcessingPipeline {
 
 		// Create streaming storage callback with access to streamingOptions for metadataTracker
 		const onPageComplete = async (items: CrawledData[]) => {
-			for (const data of items) {
-				try {
-					const storageResult = await this.contentStore.store(data);
-					storageResults.set(data.url, {
-						hash: storageResult.hash,
-						path: storageResult.path,
-						storedAt: storageResult.storedAt,
-					});
-
-					// Link content to session if metadata tracker is available
-					if (streamingOptions?.metadataTracker && storageResult.metadata?.id) {
-						// Check if this item had content extraction errors
-						const hadContentError = Boolean(
-							data.metadata?.contentFieldsFailed &&
-								Array.isArray(data.metadata.contentFieldsFailed) &&
-								data.metadata.contentFieldsFailed.length > 0,
-						);
-						streamingOptions.metadataTracker.linkContentToSession(
-							storageResult.metadata.id,
-							hadContentError,
-						);
-					}
-
-					processedData.push({
-						...data,
-						analysis: [],
-						storage: {
-							hash: storageResult.hash,
-							path: storageResult.path,
-							storedAt: storageResult.storedAt,
-						},
-					});
-				} catch (error) {
-					console.warn(`Failed to store item ${data.url}:`, error);
-					processedData.push({
-						...data,
-						analysis: [],
-						storage: undefined,
-					});
-				}
-			}
+			const pageProcessedData = await processPageItems(
+				items,
+				contentStore,
+				streamingOptions?.metadataTracker,
+			);
+			processedData.push(...pageProcessedData);
 		};
 
 		streamingOptions.onPageComplete = onPageComplete;
 
 		const result = await crawler.crawl(config, streamingOptions);
 
-		const itemsStored = processedData.filter((item) => item.storage).length;
-		const itemsFailed = processedData.length - itemsStored;
+		const storageStats = createStorageSummary(processedData);
 
 		const summaryWithStorage = {
 			...result.summary,
-			storageStats: {
-				itemsStored,
-				itemsFailed,
-			},
+			storageStats,
 		};
 
 		return {
@@ -135,7 +179,7 @@ export class ProcessingPipeline {
 		};
 	}
 
-	static createSummaryResult(
+	function createSummaryResult(
 		result: ProcessingResult,
 	): ProcessingSummaryResult {
 		return {
@@ -143,19 +187,26 @@ export class ProcessingPipeline {
 		};
 	}
 
-	async processSummary(
+	async function processSummary(
 		config: SourceConfig,
 		options?: CrawlOptions,
 	): Promise<ProcessingSummaryResult> {
-		const fullResult = await this.process(config, options);
-		return ProcessingPipeline.createSummaryResult(fullResult);
+		const fullResult = await process(config, options);
+		return createSummaryResult(fullResult);
 	}
 
-	getMetadataStore() {
-		return this.contentStore.getMetadataStore();
+	function getMetadataStore() {
+		return contentStore.getMetadataStore();
 	}
 
-	getContentStore() {
-		return this.contentStore;
+	function getContentStore() {
+		return contentStore;
 	}
+
+	return {
+		process,
+		processSummary,
+		getMetadataStore,
+		getContentStore,
+	};
 }

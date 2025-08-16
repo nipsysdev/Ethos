@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry.js";
-import { ProcessingPipeline } from "@/core/ProcessingPipeline.js";
+import { createProcessingPipeline } from "@/core/ProcessingPipeline.js";
 import type {
 	Crawler,
 	CrawlOptions,
@@ -80,7 +80,7 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry, {
+		const pipeline = createProcessingPipeline(registry, {
 			storageBasePath: "./test-storage",
 			contentStoreOptions: { enableMetadata: false },
 		});
@@ -125,7 +125,7 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = new ProcessingPipeline(registry, {
+		const pipeline = createProcessingPipeline(registry, {
 			storageBasePath: "./test-storage",
 			contentStoreOptions: { enableMetadata: false },
 		});
