@@ -1,4 +1,3 @@
-import { buildCrawlSummary } from "@/cli/utils/summaryBuilder.js";
 import type {
 	ContentSessionLinker,
 	CrawledData,
@@ -6,42 +5,168 @@ import type {
 	CrawlResult,
 	FieldConfig,
 	SourceConfig,
-} from "@/core/types.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
-import { CrawlErrorManager } from "./CrawlErrorManager.js";
+} from "@/core/types";
+import { createCrawlErrorManager } from "@/crawlers/CrawlErrorManager";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore";
+import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
-/**
- * Handles metadata tracking and session management for crawl operations.
- * Uses SQLite database instead of temporary files for better persistence and concurrency.
- */
-export class MetadataTracker implements ContentSessionLinker {
-	private metadata: CrawlMetadata;
-	private sessionId: string;
-	private metadataStore: MetadataStore;
-	private errorManager: CrawlErrorManager;
-	private contentLinkedCount = 0; // Track how many items have been linked
+export enum MetadataActionType {
+	ADD_ITEMS = "ADD_ITEMS",
+	INCREMENT_PAGES_PROCESSED = "INCREMENT_PAGES_PROCESSED",
+	ADD_DUPLICATES_SKIPPED = "ADD_DUPLICATES_SKIPPED",
+	ADD_URLS_EXCLUDED = "ADD_URLS_EXCLUDED",
+	REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS = "REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS",
+	ADD_FILTERED_ITEMS = "ADD_FILTERED_ITEMS",
+	ADD_CONTENTS_CRAWLED = "ADD_CONTENTS_CRAWLED",
+	SET_STOPPED_REASON = "SET_STOPPED_REASON",
+	LINK_CONTENT_TO_SESSION = "LINK_CONTENT_TO_SESSION",
+}
 
-	constructor(
-		config: SourceConfig,
-		startTime: Date,
-		metadataStore?: MetadataStore,
-	) {
-		// Create epoch timestamp-based session ID
-		const epochTimestamp = Math.floor(startTime.getTime() / 1000);
-		this.sessionId = `crawl-session-${epochTimestamp}`;
-		console.log(`Starting crawl session: ${this.sessionId}`);
+export enum StoppedReason {
+	MAX_PAGES = "max_pages",
+	NO_NEXT_BUTTON = "no_next_button",
+	ALL_DUPLICATES = "all_duplicates",
+	PROCESS_INTERRUPTED = "process_interrupted",
+}
 
-		// Initialize metadata store (use provided one for testing, or create new one)
-		this.metadataStore = metadataStore ?? new MetadataStore();
+export interface MetadataState {
+	readonly sessionId: string;
+	readonly metadata: CrawlMetadata;
+	readonly contentLinkedCount: number;
+}
 
-		// Initialize error manager
-		this.errorManager = new CrawlErrorManager(
-			this.metadataStore,
-			this.sessionId,
-		);
+export type MetadataAction =
+	| { type: MetadataActionType.ADD_ITEMS; count: number }
+	| { type: MetadataActionType.INCREMENT_PAGES_PROCESSED }
+	| { type: MetadataActionType.ADD_DUPLICATES_SKIPPED; count: number }
+	| { type: MetadataActionType.ADD_URLS_EXCLUDED; count: number }
+	| {
+			type: MetadataActionType.REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS;
+			excludedCount: number;
+			excludedItemIndices: number[];
+	  }
+	| { type: MetadataActionType.ADD_FILTERED_ITEMS; count: number }
+	| { type: MetadataActionType.ADD_CONTENTS_CRAWLED; count: number }
+	| {
+			type: MetadataActionType.SET_STOPPED_REASON;
+			reason: StoppedReason;
+	  }
+	| { type: MetadataActionType.LINK_CONTENT_TO_SESSION };
 
-		// Initialize crawl metadata
-		this.metadata = {
+function metadataReducer(
+	state: MetadataState,
+	action: MetadataAction,
+): MetadataState {
+	switch (action.type) {
+		case MetadataActionType.ADD_ITEMS:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					itemsProcessed: state.metadata.itemsProcessed + action.count,
+				},
+			};
+
+		case MetadataActionType.INCREMENT_PAGES_PROCESSED:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					pagesProcessed: state.metadata.pagesProcessed + 1,
+				},
+			};
+
+		case MetadataActionType.ADD_DUPLICATES_SKIPPED:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					duplicatesSkipped: state.metadata.duplicatesSkipped + action.count,
+				},
+			};
+
+		case MetadataActionType.ADD_URLS_EXCLUDED:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					urlsExcluded: state.metadata.urlsExcluded + action.count,
+					totalFilteredItems: state.metadata.totalFilteredItems + action.count,
+				},
+			};
+
+		case MetadataActionType.REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					fieldStats: state.metadata.fieldStats.map((stat) => {
+						if (stat.totalAttempts >= action.excludedCount) {
+							const absoluteExcludedIndices = new Set(
+								action.excludedItemIndices,
+							);
+							return {
+								...stat,
+								totalAttempts: stat.totalAttempts - action.excludedCount,
+								missingItems: stat.missingItems.filter(
+									(itemIndex) => !absoluteExcludedIndices.has(itemIndex),
+								),
+							};
+						}
+						return stat;
+					}),
+				},
+			};
+
+		case MetadataActionType.ADD_FILTERED_ITEMS:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					totalFilteredItems: state.metadata.totalFilteredItems + action.count,
+				},
+			};
+
+		case MetadataActionType.ADD_CONTENTS_CRAWLED:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					contentsCrawled: state.metadata.contentsCrawled + action.count,
+				},
+			};
+
+		case MetadataActionType.SET_STOPPED_REASON:
+			return {
+				...state,
+				metadata: {
+					...state.metadata,
+					stoppedReason: action.reason,
+				},
+			};
+
+		case MetadataActionType.LINK_CONTENT_TO_SESSION:
+			return {
+				...state,
+				contentLinkedCount: state.contentLinkedCount + 1,
+			};
+
+		default:
+			return state;
+	}
+}
+
+function createInitialMetadata(
+	config: SourceConfig,
+	sessionId: string,
+): MetadataState {
+	return {
+		sessionId,
+		contentLinkedCount: 0,
+		metadata: {
 			duplicatesSkipped: 0,
 			urlsExcluded: 0,
 			totalFilteredItems: 0,
@@ -66,300 +191,242 @@ export class MetadataTracker implements ContentSessionLinker {
 					missingItems: [],
 				}),
 			),
-			// Don't initialize error arrays - errors are stored directly in database
 			listingErrors: [],
 			contentErrors: [],
-		};
+		},
+	};
+}
 
-		// Create session in database
-		try {
-			this.metadataStore.createSession(
-				this.sessionId,
-				config.id,
-				config.name,
-				startTime,
-				this.metadata,
-			);
-		} catch (error) {
-			console.error(
-				`Failed to create crawl session (sessionId: ${this.sessionId}, sourceId: ${config.id}, sourceName: ${config.name}): ${error instanceof Error ? error.message : error}`,
-			);
-			throw error; // Re-throw to let the caller handle it
-		}
-	}
+function createSessionId(startTime: Date): string {
+	const epochTimestamp = Math.floor(startTime.getTime() / 1000);
+	return `crawl-session-${epochTimestamp}`;
+}
 
-	/**
-	 * Get current metadata state
-	 */
-	getMetadata(): CrawlMetadata {
-		return this.metadata;
-	}
-
-	/**
-	 * Get the session ID
-	 */
-	getSessionId(): string {
-		return this.sessionId;
-	}
-
-	/**
-	 * Get the metadata store instance for URL existence checks
-	 */
-	getMetadataStore(): MetadataStore {
-		return this.metadataStore;
-	}
-
-	/**
-	 * Checkpoint WAL files to prevent them from growing too large.
-	 * Call this periodically during long crawl operations.
-	 */
-	checkpoint(): void {
-		this.metadataStore.checkpoint();
-	}
-
-	/**
-	 * Add new items to tracking and update the session in database
-	 */
-	addItems(items: CrawledData[]): void {
-		this.metadata.itemsProcessed += items.length;
-
-		this.updateSessionInDatabase();
-	}
-
-	/**
-	 * Link stored content to this session
-	 */
+export interface MetadataTracker extends ContentSessionLinker {
+	getMetadata(): CrawlMetadata;
+	getSessionId(): string;
+	getMetadataStore(): MetadataStore;
+	checkpoint(): void;
+	addItems(items: CrawledData[]): void;
 	linkContentToSession(
 		contentId: number,
-		hadContentExtractionError = false,
-	): void {
-		// Increment and use the counter for proper ordering
-		this.contentLinkedCount++;
-		this.metadataStore.linkContentToSession(
-			this.sessionId,
-			contentId,
-			this.contentLinkedCount,
-			hadContentExtractionError,
-		);
-	}
-
-	/**
-	 * Track that a page has been processed
-	 */
-	incrementPagesProcessed(): void {
-		this.metadata.pagesProcessed++;
-		this.updateSessionInDatabase();
-	}
-
-	/**
-	 * Track duplicates that were skipped
-	 */
-	addDuplicatesSkipped(count: number): void {
-		this.metadata.duplicatesSkipped += count;
-		this.updateSessionInDatabase();
-	}
-
-	/**
-	 * Track URLs that were excluded by content_url_excludes patterns
-	 */
-	addUrlsExcluded(count: number): void {
-		this.metadata.urlsExcluded += count;
-		// Also increment total filtered items count for accurate totals
-		this.metadata.totalFilteredItems += count;
-		this.updateSessionInDatabase();
-	}
-
-	/**
-	 * Remove field statistics for excluded URLs to prevent them from affecting required field error counts
-	 */
+		hadContentExtractionError?: boolean,
+	): void;
+	incrementPagesProcessed(): void;
+	addDuplicatesSkipped(count: number): void;
+	addUrlsExcluded(count: number): void;
 	removeFieldStatsForExcludedUrls(
 		excludedCount: number,
 		excludedItemIndices: number[],
-	): void {
-		// Reduce the total attempts count for each field by the number of excluded URLs
-		this.metadata.fieldStats.forEach((stat) => {
-			if (stat.totalAttempts >= excludedCount) {
-				stat.totalAttempts -= excludedCount;
+	): void;
+	addFilteredItems(count: number, reasons: string[]): void;
+	addContentErrors(errors: string[]): void;
+	addFieldExtractionWarnings(warnings: string[]): void;
+	addContentsCrawled(count: number): void;
+	setStoppedReason(reason: StoppedReason): void;
+	buildCrawlResult(): CrawlResult;
+}
 
-				// Remove specific excluded item indices from missingItems
-				// Convert to absolute indices based on current item offset
-				const absoluteExcludedIndices = new Set(excludedItemIndices);
-				stat.missingItems = stat.missingItems.filter(
-					(itemIndex) => !absoluteExcludedIndices.has(itemIndex),
-				);
-			}
-		});
-		this.updateSessionInDatabase();
-	}
+export function createMetadataTracker(
+	config: SourceConfig,
+	startTime: Date,
+	metadataStore?: MetadataStore,
+): MetadataTracker {
+	const sessionId = createSessionId(startTime);
+	console.log(`Starting crawl session: ${sessionId}`);
 
-	/**
-	 * Track filtered items
-	 */
-	addFilteredItems(count: number, reasons: string[]): void {
-		this.metadata.totalFilteredItems += count;
-		// Use error manager for consistent error handling
-		this.errorManager.addListingErrors(reasons);
-		// Update the session to reflect the new totalFilteredItems count
-		this.updateSessionMetadataField(
-			"totalFilteredItems",
-			this.metadata.totalFilteredItems,
+	const store = metadataStore ?? createMetadataStore();
+	const errorManager = createCrawlErrorManager(store, sessionId);
+
+	let state = createInitialMetadata(config, sessionId);
+
+	try {
+		store.createSession(
+			sessionId,
+			config.id,
+			config.name,
+			startTime,
+			state.metadata,
 		);
-	}
-
-	/**
-	 * Track content extraction errors
-	 */
-	addContentErrors(errors: string[]): void {
-		// Use error manager for consistent error handling
-		this.errorManager.addContentErrors(errors);
-	}
-
-	/**
-	 * Track field extraction warnings (for optional fields and non-fatal issues)
-	 */
-	addFieldExtractionWarnings(warnings: string[]): void {
-		// Use error manager with automatic categorization
-		this.errorManager.addFieldExtractionWarnings(warnings);
-	}
-
-	/**
-	 * Track that content data was crawled
-	 */
-	addContentsCrawled(count: number): void {
-		this.metadata.contentsCrawled += count;
-		this.updateSessionMetadataField(
-			"contentsCrawled",
-			this.metadata.contentsCrawled,
+	} catch (error) {
+		console.error(
+			`Failed to create crawl session (sessionId: ${sessionId}, sourceId: ${config.id}, sourceName: ${config.name}): ${error instanceof Error ? error.message : error}`,
 		);
+		throw error;
 	}
 
-	/**
-	 * Set the reason why crawling stopped
-	 */
-	setStoppedReason(
-		reason:
-			| "max_pages"
-			| "no_next_button"
-			| "all_duplicates"
-			| "process_interrupted",
-	): void {
-		this.metadata.stoppedReason = reason;
-		this.updateSessionMetadataField(
-			"stoppedReason",
-			this.metadata.stoppedReason,
-		);
+	function updateState(action: MetadataAction): void {
+		state = metadataReducer(state, action);
+		updateSessionInDatabase();
 	}
 
-	/**
-	 * Build the final crawl result from tracked metadata
-	 */
-	buildCrawlResult(): CrawlResult {
-		// Get session data from database for summary
-		const session = this.metadataStore.getSession(this.sessionId);
-		if (!session) {
-			throw new Error(`Session not found: ${this.sessionId}`);
-		}
-
-		// Get errors from the error manager (which retrieves from database)
-		const { listingErrors, contentErrors } =
-			this.errorManager.getSessionErrors();
-
-		// Merge database errors with current metadata for summary generation
-		const metadataWithErrors = {
-			...this.metadata,
-			listingErrors,
-			contentErrors,
-		};
-
-		// Calculate actual items with content extraction errors (not just error message count)
-		// This ensures consistency between fresh crawls and session reconstruction
-		const sessionContents = this.metadataStore.getSessionContents(
-			this.sessionId,
-		);
-		const actualItemsWithErrors = sessionContents.filter(
-			(content) => content.hadContentExtractionError,
-		).length;
-
-		// End the session as crawling is complete
-		this.metadataStore.endSession(this.sessionId);
-
-		const summary = buildCrawlSummary(
-			{
-				sourceId: session.sourceId,
-				sourceName: session.sourceName,
-				startTime: session.startTime,
-				endTime: new Date(),
-				sessionId: this.sessionId,
-			},
-			metadataWithErrors, // Use metadata with errors from database
-			{ itemsWithErrors: actualItemsWithErrors }, // Override with actual item error count
-		);
-
-		// Return empty data array since all items were processed immediately
-		// The actual data was stored via onPageComplete callback
-		return {
-			data: [], // Empty since items were processed and stored immediately
-			summary,
-		};
-	}
-
-	/**
-	 * Update session metadata in the database
-	 */
-	private updateSessionInDatabase(): void {
+	function updateSessionInDatabase(): void {
 		try {
-			// Get current session to preserve existing errors
-			const session = this.metadataStore.getSession(this.sessionId);
+			const session = store.getSession(sessionId);
 			if (!session) {
-				this.metadataStore.updateSession(this.sessionId, this.metadata);
+				store.updateSession(sessionId, state.metadata);
 				return;
 			}
 
-			// Get errors from error manager and merge with current metadata
-			const { listingErrors, contentErrors } =
-				this.errorManager.getSessionErrors();
+			const { listingErrors, contentErrors } = errorManager.getSessionErrors();
 			const mergedMetadata = {
-				...this.metadata,
+				...state.metadata,
 				listingErrors,
 				contentErrors,
 			};
 
-			this.metadataStore.updateSession(this.sessionId, mergedMetadata);
+			store.updateSession(sessionId, mergedMetadata);
 		} catch (error) {
 			console.error(
-				`Failed to update session metadata (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+				`Failed to update session metadata (sessionId: ${sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
-			// Intentionally do not re-throw the error: this method runs as a background operation,
-			// and any failure to update session metadata should not interrupt or break the main crawling process.
 		}
 	}
 
-	/**
-	 * Update a specific field in session metadata without overwriting errors
-	 */
-	private updateSessionMetadataField<K extends keyof CrawlMetadata>(
+	function updateSessionMetadataField<K extends keyof CrawlMetadata>(
 		fieldName: K,
 		value: CrawlMetadata[K],
 	): void {
 		try {
-			// Get current session to preserve existing data including errors
-			const session = this.metadataStore.getSession(this.sessionId);
+			const session = store.getSession(sessionId);
 			if (!session) {
-				throw new Error(`Session not found: ${this.sessionId}`);
+				throw new Error(`Session not found: ${sessionId}`);
 			}
 
-			// Parse current metadata to preserve errors
 			const currentMetadata = JSON.parse(session.metadata);
-
-			// Update the specific field
 			currentMetadata[fieldName] = value;
 
-			// Update the session with the modified metadata
-			this.metadataStore.updateSession(this.sessionId, currentMetadata);
+			store.updateSession(sessionId, currentMetadata);
 		} catch (error) {
 			console.error(
-				`Failed to update session metadata field ${String(fieldName)} (sessionId: ${this.sessionId}): ${error instanceof Error ? error.message : error}`,
+				`Failed to update session metadata field ${String(fieldName)} (sessionId: ${sessionId}): ${error instanceof Error ? error.message : error}`,
 			);
 		}
 	}
+
+	return {
+		getMetadata(): CrawlMetadata {
+			return state.metadata;
+		},
+
+		getSessionId(): string {
+			return state.sessionId;
+		},
+
+		getMetadataStore(): MetadataStore {
+			return store;
+		},
+
+		checkpoint(): void {
+			store.checkpoint();
+		},
+
+		addItems(items: CrawledData[]): void {
+			updateState({ type: MetadataActionType.ADD_ITEMS, count: items.length });
+		},
+
+		linkContentToSession(
+			contentId: number,
+			hadContentExtractionError = false,
+		): void {
+			updateState({ type: MetadataActionType.LINK_CONTENT_TO_SESSION });
+			store.linkContentToSession(
+				sessionId,
+				contentId,
+				state.contentLinkedCount,
+				hadContentExtractionError,
+			);
+		},
+
+		incrementPagesProcessed(): void {
+			updateState({ type: MetadataActionType.INCREMENT_PAGES_PROCESSED });
+		},
+
+		addDuplicatesSkipped(count: number): void {
+			updateState({ type: MetadataActionType.ADD_DUPLICATES_SKIPPED, count });
+		},
+
+		addUrlsExcluded(count: number): void {
+			updateState({ type: MetadataActionType.ADD_URLS_EXCLUDED, count });
+		},
+
+		removeFieldStatsForExcludedUrls(
+			excludedCount: number,
+			excludedItemIndices: number[],
+		): void {
+			updateState({
+				type: MetadataActionType.REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS,
+				excludedCount,
+				excludedItemIndices,
+			});
+		},
+
+		addFilteredItems(count: number, reasons: string[]): void {
+			updateState({ type: MetadataActionType.ADD_FILTERED_ITEMS, count });
+			errorManager.addListingErrors(reasons);
+			updateSessionMetadataField(
+				"totalFilteredItems",
+				state.metadata.totalFilteredItems,
+			);
+		},
+
+		addContentErrors(errors: string[]): void {
+			errorManager.addContentErrors(errors);
+		},
+
+		addFieldExtractionWarnings(warnings: string[]): void {
+			errorManager.addFieldExtractionWarnings(warnings);
+		},
+
+		addContentsCrawled(count: number): void {
+			updateState({ type: MetadataActionType.ADD_CONTENTS_CRAWLED, count });
+			updateSessionMetadataField(
+				"contentsCrawled",
+				state.metadata.contentsCrawled,
+			);
+		},
+
+		setStoppedReason(reason: StoppedReason): void {
+			updateState({ type: MetadataActionType.SET_STOPPED_REASON, reason });
+			updateSessionMetadataField("stoppedReason", state.metadata.stoppedReason);
+		},
+
+		buildCrawlResult(): CrawlResult {
+			const session = store.getSession(sessionId);
+			if (!session) {
+				throw new Error(`Session not found: ${sessionId}`);
+			}
+
+			const { listingErrors, contentErrors } = errorManager.getSessionErrors();
+			const metadataWithErrors = {
+				...state.metadata,
+				listingErrors,
+				contentErrors,
+			};
+
+			const sessionContents = store.getSessionContents(sessionId);
+			const actualItemsWithErrors = sessionContents.filter(
+				(content) => content.hadContentExtractionError,
+			).length;
+
+			store.endSession(sessionId);
+
+			const summary = buildCrawlSummary(
+				{
+					sourceId: session.sourceId,
+					sourceName: session.sourceName,
+					startTime: session.startTime,
+					endTime: new Date(),
+					sessionId,
+				},
+				metadataWithErrors,
+				{ itemsWithErrors: actualItemsWithErrors },
+			);
+
+			return {
+				data: [],
+				summary,
+			};
+		},
+	};
 }

@@ -2,7 +2,10 @@ import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
 
 describe("MetadataStore - Content Operations", () => {
 	let tempDbPath: string;
@@ -15,7 +18,7 @@ describe("MetadataStore - Content Operations", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = new MetadataStore({
+		store = createMetadataStore({
 			dbPath: resolve(tempDbPath, "metadata.db"),
 		});
 	});

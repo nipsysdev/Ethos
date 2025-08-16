@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { InterruptionHandler } from "../../../crawlers/utils/InterruptionHandler.js";
+import { createInterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 
 describe("InterruptionHandler", () => {
 	it("should detect interruption correctly", () => {
-		const handler = new InterruptionHandler();
+		const handler = createInterruptionHandler();
 
 		// Initially not interrupted
 		expect(handler.isProcessInterrupted()).toBe(false);
@@ -17,7 +17,7 @@ describe("InterruptionHandler", () => {
 	});
 
 	it("should provide abort signal", () => {
-		const handler = new InterruptionHandler();
+		const handler = createInterruptionHandler();
 
 		// Should be undefined before setup
 		expect(handler.getAbortSignal()).toBeUndefined();
@@ -32,7 +32,7 @@ describe("InterruptionHandler", () => {
 	});
 
 	it("should handle multiple setup calls gracefully", () => {
-		const handler = new InterruptionHandler();
+		const handler = createInterruptionHandler();
 
 		// Multiple setups should not cause issues
 		handler.setup();
@@ -46,7 +46,7 @@ describe("InterruptionHandler", () => {
 	});
 
 	it("should reset state after cleanup", () => {
-		const handler = new InterruptionHandler();
+		const handler = createInterruptionHandler();
 
 		handler.setup();
 		const signal1 = handler.getAbortSignal();

@@ -2,7 +2,7 @@ import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Navigation", () => {
 	// Mock timers for all tests to avoid real delays
@@ -51,7 +51,6 @@ describe("PaginationHandler - Navigation", () => {
 	};
 
 	it("should navigate to next page successfully with URL change", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton), // Button exists
@@ -64,7 +63,7 @@ describe("PaginationHandler - Navigation", () => {
 				.mockReturnValueOnce("https://example.com/page/2"), // After navigation
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 
 		// Fast-forward through all timers
 		await vi.runAllTimersAsync();
@@ -83,7 +82,6 @@ describe("PaginationHandler - Navigation", () => {
 	});
 
 	it("should handle AJAX pagination (no URL change but content loads)", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
@@ -93,7 +91,7 @@ describe("PaginationHandler - Navigation", () => {
 			url: vi.fn().mockReturnValue("https://example.com/ajax-page"), // Same URL
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 
 		// Fast-forward through all timers
 		await vi.runAllTimersAsync();

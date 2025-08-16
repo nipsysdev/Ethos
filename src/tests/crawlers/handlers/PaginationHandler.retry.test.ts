@@ -2,7 +2,7 @@ import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Retry Logic", () => {
 	// Mock timers for all tests to avoid real delays
@@ -51,7 +51,6 @@ describe("PaginationHandler - Retry Logic", () => {
 	};
 
 	it("should retry up to 3 times on failure", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
@@ -63,7 +62,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			url: vi.fn().mockReturnValue("https://example.com/page/1"), // Same URL (no change)
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -72,7 +71,6 @@ describe("PaginationHandler - Retry Logic", () => {
 	});
 
 	it("should succeed on second attempt after first failure", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		let attempt = 0;
 
@@ -90,7 +88,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			url: vi.fn().mockReturnValue("https://example.com/page/1"),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -99,7 +97,6 @@ describe("PaginationHandler - Retry Logic", () => {
 	});
 
 	it("should wait 2 seconds between retry attempts", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 
 		const mockPage = createMockPage({
@@ -112,7 +109,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			url: vi.fn().mockReturnValue("https://example.com/page/1"),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 
 		// Let the first attempt start, then check for pending timers
 		await vi.advanceTimersByTimeAsync(100); // Small advance to let first attempt begin
@@ -128,7 +125,6 @@ describe("PaginationHandler - Retry Logic", () => {
 	});
 
 	it("should return false when container doesn't load after all retries", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
@@ -140,7 +136,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			url: vi.fn().mockReturnValue("https://example.com/page/1"),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 

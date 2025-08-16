@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawledData, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
+import {
+	createMetadataTracker,
+	StoppedReason,
+} from "@/crawlers/MetadataTracker.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 // Create mock MetadataStore instance
@@ -22,7 +25,7 @@ const mockMetadataStore: Partial<MetadataStore> = {
 };
 
 describe("MetadataTracker - Session Management", () => {
-	let metadataTracker: MetadataTracker;
+	let metadataTracker: import("@/crawlers/MetadataTracker").MetadataTracker;
 	let mockConfig: SourceConfig;
 	let startTime: Date;
 
@@ -68,7 +71,7 @@ describe("MetadataTracker - Session Management", () => {
 		};
 
 		// Pass the mock MetadataStore to the constructor
-		metadataTracker = new MetadataTracker(
+		metadataTracker = createMetadataTracker(
 			mockConfig,
 			startTime,
 			mockMetadataStore as MetadataStore,
@@ -122,7 +125,7 @@ describe("MetadataTracker - Session Management", () => {
 		metadataTracker.addItems(mockItems);
 		metadataTracker.incrementPagesProcessed();
 		metadataTracker.addDuplicatesSkipped(1);
-		metadataTracker.setStoppedReason("no_next_button");
+		metadataTracker.setStoppedReason(StoppedReason.NO_NEXT_BUTTON);
 
 		const result = metadataTracker.buildCrawlResult();
 

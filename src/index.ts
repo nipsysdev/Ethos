@@ -1,13 +1,27 @@
-export { CrawlerRegistry } from "./core/CrawlerRegistry.js";
-export {
-	ProcessingPipeline,
-	type ProcessingResult,
-	type ProcessingSummaryResult,
-} from "./core/ProcessingPipeline.js";
-export { SourceRegistry } from "./core/SourceRegistry.js";
-export * from "./core/types.js";
+import { join } from "node:path";
+import { Command } from "commander";
+import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
+import { createProcessingPipeline } from "@/core/ProcessingPipeline";
+import { createSourceRegistry } from "@/core/SourceRegistry";
+import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
+import { showMainMenu } from "@/ui/menus";
 
-export { ArticleListingCrawler } from "./crawlers/ArticleListingCrawler.js";
-export { MetadataTracker } from "./crawlers/MetadataTracker.js";
-export type { ContentStoreOptions, StorageResult } from "./storage/index.js";
-export { ContentStore } from "./storage/index.js";
+const program = new Command();
+
+const sourceRegistry = createSourceRegistry(
+	join(process.cwd(), "src", "config", "sources.yaml"),
+);
+const crawlerRegistry = createCrawlerRegistry();
+const pipeline = createProcessingPipeline(crawlerRegistry, "./storage");
+
+crawlerRegistry.register(createArticleListingCrawler());
+
+program
+	.name("ethos")
+	.description("Ethos web crawling command line interface")
+	.version("1.0.0")
+	.action(async () => {
+		await showMainMenu(sourceRegistry, pipeline);
+	});
+
+program.parseAsync(process.argv).catch(console.error);

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawledData, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { MetadataTracker } from "@/crawlers/MetadataTracker.js";
+import { createMetadataTracker } from "@/crawlers/MetadataTracker.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 // Create mock MetadataStore instance
@@ -22,7 +22,7 @@ const mockMetadataStore: Partial<MetadataStore> = {
 };
 
 describe("MetadataTracker - Items Processing", () => {
-	let metadataTracker: MetadataTracker;
+	let metadataTracker: import("@/crawlers/MetadataTracker").MetadataTracker;
 	let mockConfig: SourceConfig;
 	let startTime: Date;
 
@@ -68,7 +68,7 @@ describe("MetadataTracker - Items Processing", () => {
 		};
 
 		// Pass the mock MetadataStore to the constructor
-		metadataTracker = new MetadataTracker(
+		metadataTracker = createMetadataTracker(
 			mockConfig,
 			startTime,
 			mockMetadataStore as MetadataStore,

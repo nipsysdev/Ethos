@@ -12,4 +12,4 @@ export {
 	updateItemMetadata,
 } from "./ContentDataMapper.js";
 export type { ContentExtractionResult } from "./ContentPageExtractor.js";
-export { ContentPageExtractor } from "./ContentPageExtractor.js";
+export { createContentPageExtractor } from "./ContentPageExtractor.js";

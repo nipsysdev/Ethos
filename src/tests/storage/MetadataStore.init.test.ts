@@ -2,7 +2,10 @@ import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MetadataStore } from "@/storage/MetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
 
 describe("MetadataStore - Database Initialization", () => {
 	let tempDbPath: string;
@@ -16,7 +19,7 @@ describe("MetadataStore - Database Initialization", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = new MetadataStore({
+		store = createMetadataStore({
 			dbPath: resolve(tempDbPath, "metadata.db"),
 		});
 	});
@@ -36,7 +39,7 @@ describe("MetadataStore - Database Initialization", () => {
 
 	it("should handle existing database gracefully", () => {
 		// Create another store with the same path
-		const store2 = new MetadataStore({
+		const store2 = createMetadataStore({
 			dbPath: resolve(tempDbPath, "metadata.db"),
 		});
 

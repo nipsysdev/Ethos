@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ContentStore } from "@/storage/ContentStore.js";
+import { createContentStore } from "@/storage/ContentStore.js";
 
 // Mock the dynamic fs/promises import used in deleteContentFiles
 const mockUnlink = vi.fn();
@@ -8,11 +8,11 @@ vi.doMock("node:fs/promises", () => ({
 }));
 
 describe("ContentStore - Deletion Operations", () => {
-	let contentStore: ContentStore;
+	let contentStore: ReturnType<typeof createContentStore>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		contentStore = new ContentStore({
+		contentStore = createContentStore({
 			storageDir: "/test/storage",
 			enableMetadata: false,
 		});

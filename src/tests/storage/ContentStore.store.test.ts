@@ -1,11 +1,11 @@
 import { access, readFile, rm } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
-import { ContentStore } from "@/storage/ContentStore.js";
+import { createContentStore } from "@/storage/ContentStore.js";
 
 describe("ContentStore - Store Operations", () => {
 	let testStorageDir: string;
-	let contentStore: ContentStore;
+	let contentStore: ReturnType<typeof createContentStore>;
 
 	// Sample crawled data for testing
 	const sampleData: CrawledData = {
@@ -24,7 +24,7 @@ describe("ContentStore - Store Operations", () => {
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
 		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-		contentStore = new ContentStore({
+		contentStore = createContentStore({
 			storageDir: testStorageDir,
 			enableMetadata: false,
 		});
