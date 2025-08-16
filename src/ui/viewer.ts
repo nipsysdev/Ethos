@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
 import { ContentStore } from "@/storage/ContentStore";
-import { MetadataStore } from "@/storage/MetadataStore";
+import type { MetadataStore } from "@/storage/MetadataStore";
 import { MENU_LABELS, NAV_VALUES } from "@/ui/constants";
 
 const ITEMS_PER_PAGE = 50;
@@ -37,13 +37,14 @@ async function isLessAvailable(): Promise<boolean> {
 
 export async function showExtractedData(
 	result: ProcessingSummaryResult,
+	metadataStoreFactory: () => MetadataStore,
 ): Promise<void> {
 	if (!result.summary.sessionId) {
 		console.log("No crawl session available for viewing.");
 		return;
 	}
 
-	const metadataStore = new MetadataStore();
+	const metadataStore = metadataStoreFactory();
 
 	interface ViewerItem {
 		title: string;
@@ -78,7 +79,7 @@ export async function showExtractedData(
 		metadataStore.close();
 	}
 
-	await showPaginatedViewer(storedItems, result);
+	await showPaginatedViewer(storedItems, result, metadataStoreFactory);
 }
 
 async function showPaginatedViewer(
@@ -89,6 +90,7 @@ async function showPaginatedViewer(
 		url: string;
 	}>,
 	result: ProcessingSummaryResult,
+	metadataStoreFactory: () => MetadataStore,
 	currentPage = 0,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
@@ -98,7 +100,8 @@ async function showPaginatedViewer(
 	const endIndex = Math.min(startIndex + pageSize, items.length);
 	const currentItems = items.slice(startIndex, endIndex);
 
-	const contentStore = new ContentStore({ enableMetadata: false });
+	const contentStoreFactory = () => new ContentStore({ enableMetadata: false });
+	const contentStore = contentStoreFactory();
 	const storageDir = contentStore.getStorageDirectory();
 
 	const choices = currentItems.map((item, index) => {
@@ -163,12 +166,22 @@ async function showPaginatedViewer(
 	}
 
 	if (selectedFile === NAV_PREVIOUS) {
-		await showPaginatedViewer(items, result, currentPage - 1);
+		await showPaginatedViewer(
+			items,
+			result,
+			metadataStoreFactory,
+			currentPage - 1,
+		);
 		return;
 	}
 
 	if (selectedFile === NAV_NEXT) {
-		await showPaginatedViewer(items, result, currentPage + 1);
+		await showPaginatedViewer(
+			items,
+			result,
+			metadataStoreFactory,
+			currentPage + 1,
+		);
 		return;
 	}
 
@@ -205,5 +218,5 @@ async function showPaginatedViewer(
 		);
 	}
 
-	await showPaginatedViewer(items, result, currentPage);
+	await showPaginatedViewer(items, result, metadataStoreFactory, currentPage);
 }

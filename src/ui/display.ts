@@ -2,6 +2,7 @@ import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
+import { MetadataStore } from "@/storage/MetadataStore";
 import { showPostCrawlMenu } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { showExtractedData } from "@/ui/viewer";
@@ -14,13 +15,13 @@ export async function showPostCrawlMenuWithFlow(
 	result: ProcessingSummaryResult,
 	pipeline?: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
-	// Keep looping until user chooses to leave this crawl result context
+	const metadataStoreFactory = () => new MetadataStore();
+
 	while (true) {
 		const action = await showPostCrawlMenu(result, pipeline);
 
 		if (action === "view") {
-			await showExtractedData(result);
-			// After viewing, show the summary again and continue the loop
+			await showExtractedData(result, metadataStoreFactory);
 			displayCrawlSummary(result);
 			continue;
 		}
@@ -28,12 +29,10 @@ export async function showPostCrawlMenuWithFlow(
 		if (action === "errors") {
 			const { showCrawlErrors } = await import("../commands/errors.js");
 			await showCrawlErrors(result);
-			// After viewing errors, show the summary again and continue the loop
 			displayCrawlSummary(result);
 			continue;
 		}
 
-		// Any non-"view" or non-"errors" action means we're leaving this crawl result context
 		return action;
 	}
 }

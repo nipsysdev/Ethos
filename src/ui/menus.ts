@@ -5,14 +5,8 @@ import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/SourceRegistry";
-import {
-	ERROR_MESSAGES,
-	FIELD_NAMES,
-	MENU_LABELS,
-	NAV_VALUES,
-	PROMPT_MESSAGES,
-} from "@/ui/constants";
+import type { SourceRegistry } from "@/core/types";
+import { MENU_LABELS, NAV_VALUES } from "./constants";
 
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],
@@ -38,7 +32,7 @@ export function calculateTotalErrors(
 
 export async function createDataViewChoices(
 	summary: ProcessingSummaryResult["summary"],
-	pipeline?: import("../core/ProcessingPipeline.js").ProcessingPipeline,
+	pipeline?: ProcessingPipeline,
 	additionalChoices: Array<{ name: string; value: string }> = [],
 ): Promise<Array<{ name: string; value: string }>> {
 	const totalErrors = calculateTotalErrors(summary);
@@ -77,7 +71,7 @@ export async function createDataViewChoices(
 
 export async function showPostCrawlMenu(
 	result: ProcessingSummaryResult,
-	pipeline?: import("../core/ProcessingPipeline.js").ProcessingPipeline,
+	pipeline?: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit" | "view" | "errors"> {
 	const inquirer = (await import("inquirer")).default;
 

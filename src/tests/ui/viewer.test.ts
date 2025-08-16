@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { MetadataStore } from "@/storage/MetadataStore.js";
 import { showExtractedData } from "@/ui/viewer.js";
 
 // Mock child_process and inquirer
@@ -92,8 +93,9 @@ describe("Data Viewer", () => {
 
 	it("should display message when no crawl session available", async () => {
 		const result = createMockResult(false); // Don't create session
+		const metadataStoreFactory = () => new MetadataStore();
 
-		await showExtractedData(result);
+		await showExtractedData(result, metadataStoreFactory);
 
 		expect(mockLog).toHaveBeenCalledWith(
 			"No crawl session available for viewing.",
@@ -105,6 +107,7 @@ describe("Data Viewer", () => {
 
 	it("should show file selection menu and open file with less", async () => {
 		const result = createMockResult();
+		const metadataStoreFactory = () => new MetadataStore();
 		let actualSelectedFile = "";
 
 		// Capture the actual file path from inquirer choices
@@ -143,7 +146,7 @@ describe("Data Viewer", () => {
 			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
 			.mockReturnValueOnce(mockLessProcess as any); // less command
 
-		await showExtractedData(result);
+		await showExtractedData(result, metadataStoreFactory);
 
 		// Verify inquirer was called with the correct structure
 		expect(mockInquirer.prompt).toHaveBeenCalledWith([
@@ -179,6 +182,7 @@ describe("Data Viewer", () => {
 
 	it("should handle when less is not available", async () => {
 		const result = createMockResult();
+		const metadataStoreFactory = () => new MetadataStore();
 		let actualSelectedFile = "";
 
 		mockInquirer.prompt
@@ -206,7 +210,7 @@ describe("Data Viewer", () => {
 		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
 		mockSpawn.mockReturnValueOnce(mockWhichProcess as any);
 
-		await showExtractedData(result);
+		await showExtractedData(result, metadataStoreFactory);
 
 		expect(mockLog).toHaveBeenCalledWith(
 			"Less viewer not available. Please install 'less' to view files.",
@@ -221,12 +225,13 @@ describe("Data Viewer", () => {
 
 	it("should handle back option", async () => {
 		const result = createMockResult();
+		const metadataStoreFactory = () => new MetadataStore();
 
 		mockInquirer.prompt.mockResolvedValueOnce({
 			selectedFile: "back",
 		});
 
-		await showExtractedData(result);
+		await showExtractedData(result, metadataStoreFactory);
 
 		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();

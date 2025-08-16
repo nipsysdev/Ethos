@@ -1,11 +1,5 @@
-/**
- * CLI Utility Functions
- *
- * Reusable utility functions for common CLI patterns to reduce code duplication.
- */
-
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/SourceRegistry";
+import type { SourceRegistry } from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,

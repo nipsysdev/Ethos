@@ -74,7 +74,10 @@ describe("display module", () => {
 			expect(result).toBe("main");
 			expect(mockShowPostCrawlMenu).toHaveBeenCalledTimes(2);
 			expect(mockShowExtractedData).toHaveBeenCalledTimes(1);
-			expect(mockShowExtractedData).toHaveBeenCalledWith(mockResult);
+			expect(mockShowExtractedData).toHaveBeenCalledWith(
+				mockResult,
+				expect.any(Function),
+			);
 		});
 
 		it("should handle user selection to exit", async () => {
