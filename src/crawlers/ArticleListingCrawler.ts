@@ -10,7 +10,7 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
-import { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
+import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
 import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
@@ -28,7 +28,7 @@ export class ArticleListingCrawler implements Crawler {
 	type = CRAWLER_TYPES.LISTING;
 
 	private listingExtractor = new ListingPageExtractor();
-	private contentExtractor = new ContentPageExtractor();
+	private contentExtractor = createContentPageExtractor();
 	private interruptionHandler = new InterruptionHandler();
 
 	private checkForInterruption(metadataTracker: MetadataTracker): boolean {

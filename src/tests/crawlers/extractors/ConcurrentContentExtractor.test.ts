@@ -6,13 +6,12 @@ import type {
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { ConcurrentContentExtractor } from "@/crawlers/extractors/ConcurrentContentExtractor.js";
-import type { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor.js";
+import { createConcurrentContentExtractor } from "@/crawlers/extractors/ConcurrentContentExtractor.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 describe("ConcurrentContentExtractor", () => {
-	let mockContentExtractor: ContentPageExtractor;
-	let concurrentExtractor: ConcurrentContentExtractor;
+	let mockExtractContentForSingleItem: ReturnType<typeof vi.fn>;
+	let concurrentExtractor: ReturnType<typeof createConcurrentContentExtractor>;
 	let mockPage: Page;
 	let mockBrowser: Browser;
 	let mockMetadataStore: MetadataStore;
@@ -58,10 +57,8 @@ describe("ConcurrentContentExtractor", () => {
 	];
 
 	beforeEach(() => {
-		// Create mock ContentPageExtractor
-		mockContentExtractor = {
-			extractContentForSingleItem: vi.fn().mockResolvedValue(undefined),
-		} as unknown as ContentPageExtractor;
+		// Create mock extractContentForSingleItem function
+		mockExtractContentForSingleItem = vi.fn().mockResolvedValue(undefined);
 
 		// Create mock browser and pages
 		const mockNewPage = vi.fn().mockResolvedValue({
@@ -81,7 +78,9 @@ describe("ConcurrentContentExtractor", () => {
 			getExistingUrls: vi.fn().mockReturnValue(new Set()),
 		} as unknown as MetadataStore;
 
-		concurrentExtractor = new ConcurrentContentExtractor(mockContentExtractor);
+		concurrentExtractor = createConcurrentContentExtractor({
+			extractContentForSingleItem: mockExtractContentForSingleItem,
+		});
 	});
 
 	describe("extractConcurrently", () => {
@@ -98,9 +97,7 @@ describe("ConcurrentContentExtractor", () => {
 				},
 			);
 
-			expect(
-				mockContentExtractor.extractContentForSingleItem,
-			).not.toHaveBeenCalled();
+			expect(mockExtractContentForSingleItem).not.toHaveBeenCalled();
 		});
 
 		it("should filter out existing URLs when skipExistingUrls is true", async () => {
@@ -128,9 +125,7 @@ describe("ConcurrentContentExtractor", () => {
 			);
 
 			expect(mockTracker.addDuplicatesSkipped).toHaveBeenCalledWith(1);
-			expect(
-				mockContentExtractor.extractContentForSingleItem,
-			).toHaveBeenCalledTimes(1);
+			expect(mockExtractContentForSingleItem).toHaveBeenCalledTimes(1);
 		});
 
 		it("should not filter URLs when skipExistingUrls is false", async () => {
@@ -147,9 +142,7 @@ describe("ConcurrentContentExtractor", () => {
 			);
 
 			expect(mockMetadataStore.getExistingUrls).not.toHaveBeenCalled();
-			expect(
-				mockContentExtractor.extractContentForSingleItem,
-			).toHaveBeenCalledTimes(2);
+			expect(mockExtractContentForSingleItem).toHaveBeenCalledTimes(2);
 		});
 
 		it("should respect concurrency limit", async () => {
@@ -224,9 +217,7 @@ describe("ConcurrentContentExtractor", () => {
 				},
 			);
 
-			expect(
-				mockContentExtractor.extractContentForSingleItem,
-			).toHaveBeenCalledWith(
+			expect(mockExtractContentForSingleItem).toHaveBeenCalledWith(
 				expect.any(Object), // page
 				mockItems[0], // item
 				mockConfig, // config
