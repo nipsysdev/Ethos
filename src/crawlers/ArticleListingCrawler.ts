@@ -14,7 +14,10 @@ import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import type { ContentExtractionResult } from "@/crawlers/extractors/ContentPageExtractor.js";
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
-import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
+import {
+	createListingPageExtractor,
+	type ListingPageExtractor,
+} from "@/crawlers/extractors/ListingPageExtractor";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
 import {
 	createMetadataTracker,
@@ -284,7 +287,7 @@ async function crawlListing(
 ): Promise<CrawlResult> {
 	const startTime = new Date();
 	const interruptionHandler = new InterruptionHandler();
-	const listingExtractor = new ListingPageExtractor();
+	const listingExtractor = createListingPageExtractor();
 	const contentExtractor = createContentPageExtractor();
 
 	interruptionHandler.setup();

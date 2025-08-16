@@ -2,7 +2,7 @@ import type { Page } from "puppeteer";
 import { describe, expect, it, vi } from "vitest";
 import type { FieldExtractionStats, SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { ListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor.js";
+import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor.js";
 
 describe("ListingPageExtractor", () => {
 	const mockConfig: SourceConfig = {
@@ -29,7 +29,7 @@ describe("ListingPageExtractor", () => {
 	};
 
 	it("should extract items from page successfully", async () => {
-		const extractor = new ListingPageExtractor();
+		const extractor = createListingPageExtractor();
 		const mockPage = {
 			evaluate: vi.fn().mockResolvedValue([
 				{
@@ -92,7 +92,7 @@ describe("ListingPageExtractor", () => {
 	});
 
 	it("should filter items missing required fields", async () => {
-		const extractor = new ListingPageExtractor();
+		const extractor = createListingPageExtractor();
 		const mockPage = {
 			evaluate: vi.fn().mockResolvedValue([
 				{
@@ -151,7 +151,7 @@ describe("ListingPageExtractor", () => {
 	});
 
 	it("should handle empty results gracefully", async () => {
-		const extractor = new ListingPageExtractor();
+		const extractor = createListingPageExtractor();
 		const mockPage = {
 			evaluate: vi.fn().mockResolvedValue([]),
 		} as unknown as Page;
