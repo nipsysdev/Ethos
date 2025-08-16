@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
-import { ContentStore } from "@/storage/ContentStore";
+import { createContentStore } from "@/storage/ContentStore";
 import type { MetadataStore } from "@/storage/MetadataStore";
 import { MENU_LABELS, NAV_VALUES } from "@/ui/constants";
 
@@ -100,7 +100,8 @@ async function showPaginatedViewer(
 	const endIndex = Math.min(startIndex + pageSize, items.length);
 	const currentItems = items.slice(startIndex, endIndex);
 
-	const contentStoreFactory = () => new ContentStore({ enableMetadata: false });
+	const contentStoreFactory = () =>
+		createContentStore({ enableMetadata: false });
 	const contentStore = contentStoreFactory();
 	const storageDir = contentStore.getStorageDirectory();
 

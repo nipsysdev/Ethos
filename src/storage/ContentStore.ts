@@ -25,285 +25,262 @@ export interface ContentStoreOptions {
 	metadataOptions?: MetadataStoreOptions;
 }
 
-export class ContentStore {
-	private readonly storageDir: string;
-	private readonly metadataStore?: MetadataStore;
-	private readonly enableMetadata: boolean;
+export interface ContentStore {
+	store(data: CrawledData): Promise<StorageResult>;
+	retrieve(url: string): Promise<ContentData | null>;
+	exists(url: string): Promise<boolean>;
+	getStorageDirectory(): string;
+	getMetadataStore(): MetadataStore | undefined;
+	deleteContentFiles(
+		hashes: string[],
+	): Promise<{ deleted: number; errors: string[] }>;
+	close(): void;
+}
 
-	constructor(options: ContentStoreOptions = {}) {
-		this.storageDir = resolve(options.storageDir ?? "./storage/content");
-		this.enableMetadata = options.enableMetadata ?? true;
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+	return (
+		error != null &&
+		typeof error === "object" &&
+		"code" in error &&
+		typeof (error as Record<string, unknown>).code === "string"
+	);
+}
 
-		if (this.enableMetadata) {
-			this.metadataStore = createMetadataStore(options.metadataOptions);
+function extractContentData(data: CrawledData): ContentData {
+	const { url, title, content, author, publishedDate, image } = data;
+	return {
+		url,
+		title,
+		content,
+		...(author && { author }),
+		...(publishedDate && { publishedDate }),
+		...(image && { image }),
+	};
+}
+
+function generateHash(content: string): string {
+	return generateStringHash(content);
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+	try {
+		await access(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function ensureDirectoryExists(dirPath: string): Promise<void> {
+	let retries = 3;
+	let lastError: unknown;
+
+	while (retries > 0) {
+		try {
+			await mkdir(dirPath, { recursive: true });
+			return;
+		} catch (error) {
+			lastError = error;
+			retries--;
+
+			if (isErrnoException(error)) {
+				if (error.code === "EACCES") {
+					throw new Error(`Permission denied creating directory ${dirPath}`);
+				}
+				if (error.code === "ENOTDIR") {
+					throw new Error(
+						`Invalid path: ${dirPath} contains a file where a directory is expected`,
+					);
+				}
+			}
+
+			if (retries > 0) {
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
 		}
 	}
 
-	/**
-	 * Type guard to check if an error is a Node.js errno exception
-	 */
-	private static isErrnoException(
-		error: unknown,
-	): error is NodeJS.ErrnoException {
-		return (
-			error != null &&
-			typeof error === "object" &&
-			"code" in error &&
-			typeof (error as Record<string, unknown>).code === "string"
-		);
-	}
+	throw new Error(
+		`Failed to create directory ${dirPath} after 3 attempts: ${lastError instanceof Error ? lastError.message : "Unknown error"}`,
+	);
+}
 
-	/**
-	 * Extract pure content data from crawled data (removing tracking metadata)
-	 */
-	private extractContentData(data: CrawledData): ContentData {
-		const { url, title, content, author, publishedDate, image } = data;
-		return {
-			url,
-			title,
-			content,
-			...(author && { author }),
-			...(publishedDate && { publishedDate }),
-			...(image && { image }),
-		};
-	}
+async function storeContent(
+	data: CrawledData,
+	storageDir: string,
+	metadataStore?: MetadataStore,
+): Promise<StorageResult> {
+	const hash = generateHash(data.url);
 
-	/**
-	 * Store crawled data using content-addressed storage
-	 * @param data The crawled data to store
-	 * @returns Storage result with hash, path, and whether file already existed
-	 */
-	async store(data: CrawledData): Promise<StorageResult> {
-		// Hash URL for content addressing (deduplication)
-		const hash = this.generateHash(data.url);
+	const contentData = extractContentData(data);
+	const serialized = JSON.stringify(contentData, null, 2);
+	const filename = `${hash}.json`;
+	const filePath = join(storageDir, filename);
 
-		// Extract only the content data for JSON storage (no tracking metadata)
-		const contentData = this.extractContentData(data);
-		const serialized = JSON.stringify(contentData, null, 2);
-		const filename = `${hash}.json`;
-		const filePath = join(this.storageDir, filename);
+	try {
+		const existed = await fileExists(filePath);
 
-		try {
-			// Check if file already exists (deduplication)
-			const existed = await this.fileExists(filePath);
+		let metadataResult: { id: number; stored: boolean } | undefined;
+		if (!existed) {
+			await ensureDirectoryExists(storageDir);
 
-			let metadataResult: { id: number; stored: boolean } | undefined;
-			if (!existed) {
-				// Ensure storage directory exists
-				await this.ensureDirectoryExists(this.storageDir);
+			await writeFile(filePath, serialized, "utf8");
 
-				// Write the file
-				await writeFile(filePath, serialized, "utf8");
-
-				// Store metadata if enabled
-				if (this.metadataStore) {
+			if (metadataStore) {
+				try {
+					const metadata = await metadataStore.store(data, hash);
+					metadataResult = {
+						id: metadata.id as number,
+						stored: true,
+					};
+				} catch (metadataError) {
+					console.warn(
+						`Failed to store metadata: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+					);
+				}
+			}
+		} else {
+			if (metadataStore) {
+				if (!metadataStore.existsByHash(hash)) {
 					try {
-						const metadata = await this.metadataStore.store(data, hash);
+						const metadata = await metadataStore.store(data, hash);
 						metadataResult = {
 							id: metadata.id as number,
 							stored: true,
 						};
 					} catch (metadataError) {
-						// Log but don't fail the whole operation
 						console.warn(
-							`Failed to store metadata: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
+							`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
 						);
 					}
-				}
-			} else {
-				// File exists, check if metadata also exists
-				if (this.metadataStore) {
-					if (!this.metadataStore.existsByHash(hash)) {
-						try {
-							const metadata = await this.metadataStore.store(data, hash);
-							metadataResult = {
-								id: metadata.id as number,
-								stored: true,
-							};
-						} catch (metadataError) {
-							// Metadata might already exist, that's ok
-							console.warn(
-								`Failed to store metadata for existing file: ${metadataError instanceof Error ? metadataError.message : "Unknown error"}`,
-							);
-						}
-					} else {
-						// Metadata already exists, get the existing ID
-						const existingMetadata = this.metadataStore.getByHash(hash);
-						if (existingMetadata?.id) {
-							metadataResult = {
-								id: existingMetadata.id,
-								stored: false, // Wasn't stored this time, already existed
-							};
-						}
+				} else {
+					const existingMetadata = metadataStore.getByHash(hash);
+					if (existingMetadata?.id) {
+						metadataResult = {
+							id: existingMetadata.id,
+							stored: false,
+						};
 					}
 				}
 			}
-
-			return {
-				hash,
-				path: filePath,
-				existed,
-				storedAt: new Date(),
-				metadata: metadataResult,
-			};
-		} catch (error) {
-			throw new Error(
-				`Failed to store content: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Retrieve stored data by URL
-	 * @param url The URL to look up
-	 * @returns The stored content data if found, null otherwise
-	 */
-	async retrieve(url: string): Promise<ContentData | null> {
-		const hash = this.generateHash(url);
-		const filePath = join(this.storageDir, `${hash}.json`);
-
-		try {
-			if (await this.fileExists(filePath)) {
-				const { readFile } = await import("node:fs/promises");
-				const content = await readFile(filePath, "utf8");
-				const parsed = JSON.parse(content);
-
-				return parsed as ContentData;
-			}
-			return null;
-		} catch (error) {
-			throw new Error(
-				`Failed to retrieve content for URL ${url}: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Check if content exists for a given URL
-	 * @param url The URL to check
-	 * @returns True if content exists, false otherwise
-	 */
-	async exists(url: string): Promise<boolean> {
-		// Use metadata store for fast lookup if available
-		if (this.metadataStore) {
-			return this.metadataStore.existsByUrl(url);
 		}
 
-		// Fallback to filesystem check
-		const hash = this.generateHash(url);
-		const filePath = join(this.storageDir, `${hash}.json`);
-		return this.fileExists(filePath);
-	}
-
-	/**
-	 * Generate a content hash for the given data (SHA-1 for shorter 40-char hashes)
-	 */
-	protected generateHash(content: string): string {
-		return generateStringHash(content);
-	}
-
-	/**
-	 * Check if a file exists
-	 */
-	private async fileExists(filePath: string): Promise<boolean> {
-		try {
-			await access(filePath);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
-	/**
-	 * Ensure a directory exists, creating it if necessary
-	 */
-	private async ensureDirectoryExists(dirPath: string): Promise<void> {
-		// Try up to 3 times with a small delay
-		let retries = 3;
-		let lastError: unknown;
-
-		while (retries > 0) {
-			try {
-				await mkdir(dirPath, { recursive: true });
-				return; // Success
-			} catch (error) {
-				lastError = error;
-				retries--;
-
-				// Don't retry on permission or path errors
-				if (ContentStore.isErrnoException(error)) {
-					if (error.code === "EACCES") {
-						throw new Error(`Permission denied creating directory ${dirPath}`);
-					}
-					if (error.code === "ENOTDIR") {
-						throw new Error(
-							`Invalid path: ${dirPath} contains a file where a directory is expected`,
-						);
-					}
-				}
-
-				// If we have retries left, wait a bit and try again
-				if (retries > 0) {
-					await new Promise((resolve) => setTimeout(resolve, 10));
-				}
-			}
-		}
-
-		// All retries exhausted
+		return {
+			hash,
+			path: filePath,
+			existed,
+			storedAt: new Date(),
+			metadata: metadataResult,
+		};
+	} catch (error) {
 		throw new Error(
-			`Failed to create directory ${dirPath} after 3 attempts: ${lastError instanceof Error ? lastError.message : "Unknown error"}`,
+			`Failed to store content: ${error instanceof Error ? error.message : "Unknown error"}`,
 		);
 	}
+}
 
-	/**
-	 * Get the storage directory path
-	 */
-	getStorageDirectory(): string {
-		return this.storageDir;
+async function retrieveContent(
+	url: string,
+	storageDir: string,
+): Promise<ContentData | null> {
+	const hash = generateHash(url);
+	const filePath = join(storageDir, `${hash}.json`);
+
+	try {
+		if (await fileExists(filePath)) {
+			const { readFile } = await import("node:fs/promises");
+			const content = await readFile(filePath, "utf8");
+			const parsed = JSON.parse(content);
+
+			return parsed as ContentData;
+		}
+		return null;
+	} catch (error) {
+		throw new Error(
+			`Failed to retrieve content for URL ${url}: ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
+	}
+}
+
+async function contentExists(
+	url: string,
+	storageDir: string,
+	metadataStore?: MetadataStore,
+): Promise<boolean> {
+	if (metadataStore) {
+		return metadataStore.existsByUrl(url);
 	}
 
-	/**
-	 * Get the metadata store instance
-	 */
-	getMetadataStore(): MetadataStore | undefined {
-		return this.metadataStore;
-	}
+	const hash = generateHash(url);
+	const filePath = join(storageDir, `${hash}.json`);
+	return fileExists(filePath);
+}
 
-	/**
-	 * Delete content files from disk by their hashes
-	 * Returns the number of files successfully deleted
-	 */
-	async deleteContentFiles(
-		hashes: string[],
-	): Promise<{ deleted: number; errors: string[] }> {
-		const { unlink } = await import("node:fs/promises");
-		const errors: string[] = [];
-		let deleted = 0;
+async function deleteContentFiles(
+	hashes: string[],
+	storageDir: string,
+): Promise<{ deleted: number; errors: string[] }> {
+	const { unlink } = await import("node:fs/promises");
+	const errors: string[] = [];
+	let deleted = 0;
 
-		for (const hash of hashes) {
-			try {
-				const filePath = join(this.storageDir, `${hash}.json`);
-				await unlink(filePath);
+	for (const hash of hashes) {
+		try {
+			const filePath = join(storageDir, `${hash}.json`);
+			await unlink(filePath);
+			deleted++;
+		} catch (error) {
+			if (isErrnoException(error) && error.code === "ENOENT") {
 				deleted++;
-			} catch (error) {
-				if (ContentStore.isErrnoException(error) && error.code === "ENOENT") {
-					// File doesn't exist, count as success
-					deleted++;
-				} else {
-					errors.push(`Failed to delete ${hash}.json: ${error}`);
-				}
+			} else {
+				errors.push(`Failed to delete ${hash}.json: ${error}`);
 			}
 		}
-
-		return { deleted, errors };
 	}
 
-	/**
-	 * Close any open connections
-	 */
-	close(): void {
-		if (this.metadataStore) {
-			this.metadataStore.close();
-		}
-	}
+	return { deleted, errors };
+}
+
+export function createContentStore(
+	options: ContentStoreOptions = {},
+): ContentStore {
+	const storageDir = resolve(options.storageDir ?? "./storage/content");
+	const enableMetadata = options.enableMetadata ?? true;
+	const metadataStore = enableMetadata
+		? createMetadataStore(options.metadataOptions)
+		: undefined;
+
+	return {
+		async store(data: CrawledData): Promise<StorageResult> {
+			return storeContent(data, storageDir, metadataStore);
+		},
+
+		async retrieve(url: string): Promise<ContentData | null> {
+			return retrieveContent(url, storageDir);
+		},
+
+		async exists(url: string): Promise<boolean> {
+			return contentExists(url, storageDir, metadataStore);
+		},
+
+		getStorageDirectory(): string {
+			return storageDir;
+		},
+
+		getMetadataStore(): MetadataStore | undefined {
+			return metadataStore;
+		},
+
+		async deleteContentFiles(
+			hashes: string[],
+		): Promise<{ deleted: number; errors: string[] }> {
+			return deleteContentFiles(hashes, storageDir);
+		},
+
+		close(): void {
+			if (metadataStore) {
+				metadataStore.close();
+			}
+		},
+	};
 }

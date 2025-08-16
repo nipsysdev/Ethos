@@ -8,8 +8,9 @@ import type {
 } from "@/core/types";
 import { CrawlerError } from "@/core/types";
 import {
-	ContentStore,
+	type ContentStore,
 	type ContentStoreOptions,
+	createContentStore as createContentStoreFromModule,
 } from "@/storage/ContentStore.js";
 
 export interface ProcessingResult {
@@ -50,7 +51,7 @@ function createContentStore(
 
 	const { storageBasePath = "./storage", contentStoreOptions = {} } = options;
 
-	return new ContentStore({
+	return createContentStoreFromModule({
 		storageDir: `${storageBasePath}/content`,
 		...contentStoreOptions,
 	});
