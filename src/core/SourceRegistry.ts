@@ -7,32 +7,28 @@ import type {
 	SourceConfig,
 } from "@/core/types";
 
-export class SourceRegistry implements ISourceRegistry {
-	private sources: Map<string, SourceConfig> = new Map();
-	private configPath: string;
+export function createSourceRegistry(configPath?: string): ISourceRegistry {
+	const sources: Map<string, SourceConfig> = new Map();
+	const resolvedConfigPath =
+		configPath || join(process.cwd(), "config", "sources.yaml");
 
-	constructor(configPath?: string) {
-		this.configPath =
-			configPath || join(process.cwd(), "config", "sources.yaml");
-	}
-
-	async loadSources(): Promise<SourceConfig[]> {
+	async function loadSources(): Promise<SourceConfig[]> {
 		try {
-			const configContent = await readFile(this.configPath, "utf-8");
+			const configContent = await readFile(resolvedConfigPath, "utf-8");
 			const config = parse(configContent);
 
 			if (!config.sources || !Array.isArray(config.sources)) {
 				throw new Error("Invalid config: 'sources' must be an array");
 			}
 
-			this.sources.clear();
+			sources.clear();
 
-			const sources: SourceConfig[] = validateSources(config.sources);
-			for (const source of sources) {
-				this.sources.set(source.id, source);
+			const validatedSources: SourceConfig[] = validateSources(config.sources);
+			for (const source of validatedSources) {
+				sources.set(source.id, source);
 			}
 
-			return Array.from(this.sources.values());
+			return Array.from(sources.values());
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error(`Failed to load sources: ${error.message}`);
@@ -41,17 +37,23 @@ export class SourceRegistry implements ISourceRegistry {
 		}
 	}
 
-	async getSource(id: string): Promise<SourceConfig | undefined> {
-		if (this.sources.size === 0) {
-			await this.loadSources();
+	async function getSource(id: string): Promise<SourceConfig | undefined> {
+		if (sources.size === 0) {
+			await loadSources();
 		}
-		return this.sources.get(id);
+		return sources.get(id);
 	}
 
-	async getAllSources(): Promise<SourceConfig[]> {
-		if (this.sources.size === 0) {
-			await this.loadSources();
+	async function getAllSources(): Promise<SourceConfig[]> {
+		if (sources.size === 0) {
+			await loadSources();
 		}
-		return Array.from(this.sources.values());
+		return Array.from(sources.values());
 	}
+
+	return {
+		loadSources,
+		getSource,
+		getAllSources,
+	};
 }

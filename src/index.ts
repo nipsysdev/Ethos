@@ -2,13 +2,13 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
 import { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import { SourceRegistry } from "@/core/SourceRegistry";
+import { createSourceRegistry } from "@/core/SourceRegistry";
 import { ArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
 
 const program = new Command();
 
-const sourceRegistry = new SourceRegistry(
+const sourceRegistry = createSourceRegistry(
 	join(process.cwd(), "src", "config", "sources.yaml"),
 );
 const crawlerRegistry = createCrawlerRegistry();
