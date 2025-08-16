@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
 import { ProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createSourceRegistry } from "@/core/SourceRegistry";
-import { ArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
+import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
 
 const program = new Command();
@@ -14,7 +14,7 @@ const sourceRegistry = createSourceRegistry(
 const crawlerRegistry = createCrawlerRegistry();
 const pipeline = new ProcessingPipeline(crawlerRegistry, "./storage");
 
-crawlerRegistry.register(new ArticleListingCrawler());
+crawlerRegistry.register(createArticleListingCrawler());
 
 program
 	.name("ethos")
