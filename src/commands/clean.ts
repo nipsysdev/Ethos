@@ -1,5 +1,5 @@
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/SourceRegistry";
+import type { SourceRegistry } from "@/core/types";
 import {
 	CLEAN_LABELS,
 	ERROR_MESSAGES,

@@ -1,6 +1,5 @@
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/SourceRegistry";
-import type { CrawlOptions } from "@/core/types";
+import type { CrawlOptions, SourceRegistry } from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -32,7 +31,7 @@ export async function handleCrawl(
 				name: FIELD_NAMES.SELECTED_SOURCE_ID,
 				message: PROMPT_MESSAGES.SELECT_SOURCE_TO_CRAWL,
 				choices: [
-					...sources.map((source) => ({
+					...sources.map((source: { name: string; id: string }) => ({
 						name: `${source.name} (${source.id})`,
 						value: source.id,
 					})),
