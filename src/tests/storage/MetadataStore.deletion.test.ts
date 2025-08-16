@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ContentMetadataStore } from "@/storage/ContentMetadataStore.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
-import { SessionMetadataStore } from "@/storage/SessionMetadataStore.js";
+import { createContentMetadataStore } from "@/storage/ContentMetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
+import { createSessionMetadataStore } from "@/storage/SessionMetadataStore.js";
 
 // Mock the individual stores
 vi.mock("@/storage/ContentMetadataStore.js", () => ({
-	ContentMetadataStore: vi.fn(),
+	createContentMetadataStore: vi.fn(),
 }));
 
 vi.mock("@/storage/SessionMetadataStore.js", () => ({
-	SessionMetadataStore: vi.fn(),
+	createSessionMetadataStore: vi.fn(),
 }));
 
 describe("MetadataStore Deletion", () => {
@@ -37,15 +40,21 @@ describe("MetadataStore Deletion", () => {
 			countSessionsBySource: vi.fn(),
 		};
 
-		// Mock the constructor calls
-		vi.mocked(ContentMetadataStore).mockImplementation(
-			() => mockContentStore as unknown as ContentMetadataStore,
+		// Mock the factory function calls
+		vi.mocked(createContentMetadataStore).mockImplementation(
+			() =>
+				mockContentStore as unknown as ReturnType<
+					typeof createContentMetadataStore
+				>,
 		);
-		vi.mocked(SessionMetadataStore).mockImplementation(
-			() => mockSessionStore as unknown as SessionMetadataStore,
+		vi.mocked(createSessionMetadataStore).mockImplementation(
+			() =>
+				mockSessionStore as unknown as ReturnType<
+					typeof createSessionMetadataStore
+				>,
 		);
 
-		metadataStore = new MetadataStore();
+		metadataStore = createMetadataStore();
 	});
 
 	it("should delete content metadata by source", async () => {

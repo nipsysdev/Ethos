@@ -1,23 +1,16 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MetadataDatabase } from "@/storage/MetadataDatabase.js";
-
-class TestMetadataDatabase extends MetadataDatabase {
-	// Expose protected db property for testing
-	public getDb() {
-		return this.db;
-	}
-}
+import { createMetadataDatabase } from "@/storage/MetadataDatabase.js";
 
 describe("MetadataDatabase", () => {
 	let testDbPath: string;
-	let database: TestMetadataDatabase;
+	let database: ReturnType<typeof createMetadataDatabase>;
 
 	beforeEach(() => {
 		// Use a unique test database for each test
 		testDbPath = join(process.cwd(), `test-metadata-db-${Date.now()}.db`);
-		database = new TestMetadataDatabase({ dbPath: testDbPath });
+		database = createMetadataDatabase({ dbPath: testDbPath });
 	});
 
 	afterEach(async () => {
@@ -35,13 +28,13 @@ describe("MetadataDatabase", () => {
 
 	describe("WAL Mode Configuration", () => {
 		it("should enable WAL mode on database initialization", () => {
-			const db = database.getDb();
+			const db = database.db;
 			const result = db.pragma("journal_mode", { simple: true });
 			expect(result).toBe("wal");
 		});
 
 		it("should configure performance optimizations", () => {
-			const db = database.getDb();
+			const db = database.db;
 
 			// Check synchronous mode
 			const syncMode = db.pragma("synchronous", { simple: true });
@@ -68,7 +61,7 @@ describe("MetadataDatabase", () => {
 		});
 
 		it("should perform PASSIVE checkpoint when called explicitly", () => {
-			const db = database.getDb();
+			const db = database.db;
 			const pragmaSpy = vi.spyOn(db, "pragma");
 
 			database.checkpoint();
@@ -78,7 +71,7 @@ describe("MetadataDatabase", () => {
 		});
 
 		it("should perform TRUNCATE checkpoint on close", () => {
-			const db = database.getDb();
+			const db = database.db;
 			const pragmaSpy = vi.spyOn(db, "pragma");
 			const closeSpy = vi.spyOn(db, "close");
 
@@ -92,7 +85,7 @@ describe("MetadataDatabase", () => {
 		});
 
 		it("should handle checkpoint errors gracefully on close", () => {
-			const db = database.getDb();
+			const db = database.db;
 			const pragmaSpy = vi.spyOn(db, "pragma").mockImplementation(() => {
 				throw new Error("Checkpoint failed");
 			});
@@ -123,7 +116,7 @@ describe("MetadataDatabase", () => {
 
 	describe("Schema Creation", () => {
 		it("should create required tables", () => {
-			const db = database.getDb();
+			const db = database.db;
 
 			// Check if crawled_content table exists
 			const contentTable = db
@@ -151,7 +144,7 @@ describe("MetadataDatabase", () => {
 		});
 
 		it("should create required indexes", () => {
-			const db = database.getDb();
+			const db = database.db;
 
 			// Get all indexes
 			const indexes = db

@@ -2,7 +2,8 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ContentData, CrawledData } from "@/core/types.js";
 import {
-	MetadataStore,
+	createMetadataStore,
+	type MetadataStore,
 	type MetadataStoreOptions,
 } from "@/storage/MetadataStore";
 import { generateStringHash } from "@/utils/hash.js";
@@ -34,7 +35,7 @@ export class ContentStore {
 		this.enableMetadata = options.enableMetadata ?? true;
 
 		if (this.enableMetadata) {
-			this.metadataStore = new MetadataStore(options.metadataOptions);
+			this.metadataStore = createMetadataStore(options.metadataOptions);
 		}
 	}
 

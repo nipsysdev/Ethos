@@ -7,7 +7,10 @@ import type {
 	SourceConfig,
 } from "@/core/types";
 import { createCrawlErrorManager } from "@/crawlers/CrawlErrorManager";
-import { MetadataStore } from "@/storage/MetadataStore";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
 export enum MetadataActionType {
@@ -232,7 +235,7 @@ export function createMetadataTracker(
 	const sessionId = createSessionId(startTime);
 	console.log(`Starting crawl session: ${sessionId}`);
 
-	const store = metadataStore ?? new MetadataStore();
+	const store = metadataStore ?? createMetadataStore();
 	const errorManager = createCrawlErrorManager(store, sessionId);
 
 	let state = createInitialMetadata(config, sessionId);

@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 import type { ContentMetadata } from "@/storage/ContentMetadataStore";
 import {
-	MetadataDatabase,
+	createMetadataDatabase,
 	type MetadataStoreOptions,
 } from "@/storage/MetadataDatabase";
 
@@ -10,8 +10,8 @@ export interface CrawlSession {
 	sourceId: string;
 	sourceName: string;
 	startTime: Date;
-	endTime?: Date; // NULL = session still active
-	metadata: string; // JSON serialized CrawlMetadata (without item duplicates)
+	endTime?: Date;
+	metadata: string; // JSON serialized CrawlMetadata
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -19,7 +19,7 @@ export interface CrawlSession {
 export interface SessionContent {
 	sessionId: string;
 	contentId: number;
-	processedOrder: number; // Track the order items were processed
+	processedOrder: number;
 	hadContentExtractionError?: boolean;
 }
 
@@ -34,8 +34,6 @@ interface SessionRow {
 	updated_at: string;
 }
 
-// Session content data is handled through the join query results
-
 interface DatabaseRow {
 	id: number;
 	hash: string;
@@ -48,353 +46,342 @@ interface DatabaseRow {
 	created_at: string;
 }
 
-/**
- * Handles crawl session management and session-content relationships.
- */
-export class SessionMetadataStore extends MetadataDatabase {
-	// Session-related statements
-	private createSessionStmt!: Database.Statement;
-	private updateSessionStmt!: Database.Statement;
-	private getSessionStmt!: Database.Statement;
-	private getAllSessionsStmt!: Database.Statement;
-	private endSessionStmt!: Database.Statement;
-	private deleteSessionsBySourceStmt!: Database.Statement;
-	private countSessionsBySourceStmt!: Database.Statement;
-
-	// Session-content junction statements
-	private linkContentToSessionStmt!: Database.Statement;
-	private getSessionContentsStmt!: Database.Statement;
-
-	constructor(options: MetadataStoreOptions = {}) {
-		super(options);
-		this.prepareStatements();
-	}
-
-	/**
-	 * Prepare session-related statements
-	 */
-	private prepareStatements(): void {
-		// Session statements
-		this.createSessionStmt = this.db.prepare(`
-			INSERT INTO crawl_sessions (id, source_id, source_name, start_time, metadata)
-			VALUES (?, ?, ?, ?, ?)
-		`);
-
-		this.updateSessionStmt = this.db.prepare(`
-			UPDATE crawl_sessions 
-			SET metadata = ?, updated_at = CURRENT_TIMESTAMP 
-			WHERE id = ?
-		`);
-
-		this.getSessionStmt = this.db.prepare(`
-			SELECT * FROM crawl_sessions WHERE id = ? LIMIT 1
-		`);
-
-		this.getAllSessionsStmt = this.db.prepare(`
-			SELECT * FROM crawl_sessions ORDER BY start_time DESC
-		`);
-
-		this.endSessionStmt = this.db.prepare(`
-			UPDATE crawl_sessions 
-			SET end_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
-			WHERE id = ?
-		`);
-
-		// Session-content junction statements
-		this.linkContentToSessionStmt = this.db.prepare(`
-			INSERT INTO session_content (session_id, content_id, processed_order, had_content_extraction_error)
-			VALUES (?, ?, ?, ?)
-		`);
-
-		this.getSessionContentsStmt = this.db.prepare(`
-			SELECT 
-				cc.*,
-				sc.processed_order,
-				sc.had_content_extraction_error
-			FROM session_content sc
-			JOIN crawled_content cc ON sc.content_id = cc.id
-			WHERE sc.session_id = ?
-			ORDER BY sc.processed_order ASC
-		`);
-
-		this.deleteSessionsBySourceStmt = this.db.prepare(`
-			DELETE FROM crawl_sessions WHERE source_id = ?
-		`);
-
-		this.countSessionsBySourceStmt = this.db.prepare(`
-			SELECT COUNT(*) as count FROM crawl_sessions WHERE source_id = ?
-		`);
-	}
-
-	/**
-	 * Create a new crawl session
-	 */
-	createSession(
+export interface SessionMetadataStore {
+	createSession: (
 		sessionId: string,
 		sourceId: string,
 		sourceName: string,
 		startTime: Date,
 		metadata: object,
-	): CrawlSession {
-		try {
-			this.createSessionStmt.run(
-				sessionId,
-				sourceId,
-				sourceName,
-				startTime.toISOString(),
-				JSON.stringify(metadata),
-			);
-
-			return {
-				id: sessionId,
-				sourceId,
-				sourceName,
-				startTime,
-				endTime: undefined, // Session is active (not ended)
-				metadata: JSON.stringify(metadata),
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			};
-		} catch (error) {
-			throw new Error(
-				`Failed to create crawl session: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Update session metadata
-	 */
-	updateSession(sessionId: string, metadata: object): void {
-		try {
-			const result = this.updateSessionStmt.run(
-				JSON.stringify(metadata),
-				sessionId,
-			);
-			if (result.changes === 0) {
-				throw new Error(`Session not found: ${sessionId}`);
-			}
-		} catch (error) {
-			throw new Error(
-				`Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Get session by ID (active or inactive)
-	 */
-	getSession(sessionId: string): CrawlSession | null {
-		const row = this.getSessionStmt.get(sessionId) as SessionRow | undefined;
-		return row ? this.mapSessionRowToSession(row) : null;
-	}
-
-	/**
-	 * Get all sessions ordered by start time (newest first)
-	 */
-	getAllSessions(): CrawlSession[] {
-		const rows = this.getAllSessionsStmt.all() as SessionRow[];
-		return rows.map((row) => this.mapSessionRowToSession(row));
-	}
-
-	/**
-	 * Check if a session is currently active (not ended)
-	 */
-	isSessionActive(sessionId: string): boolean {
-		const session = this.getSession(sessionId);
-		return session ? !session.endTime : false;
-	}
-
-	/**
-	 * End an active session by setting end_time
-	 */
-	endSession(sessionId: string): void {
-		try {
-			this.endSessionStmt.run(sessionId);
-		} catch (error) {
-			throw new Error(
-				`Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Link content to a session
-	 */
-	linkContentToSession(
+	) => CrawlSession;
+	updateSession: (sessionId: string, metadata: object) => void;
+	getSession: (sessionId: string) => CrawlSession | null;
+	getAllSessions: () => CrawlSession[];
+	isSessionActive: (sessionId: string) => boolean;
+	endSession: (sessionId: string) => void;
+	linkContentToSession: (
 		sessionId: string,
 		contentId: number,
 		processedOrder: number,
-		hadContentExtractionError = false,
-	): void {
-		try {
-			// Validate that session exists
-			const session = this.getSession(sessionId);
-			if (!session) {
-				throw new Error(`Session not found: ${sessionId}`);
-			}
-
-			this.linkContentToSessionStmt.run(
-				sessionId,
-				contentId,
-				processedOrder,
-				hadContentExtractionError ? 1 : 0,
-			);
-		} catch (error) {
-			throw new Error(
-				`Failed to link content to session: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
-
-	/**
-	 * Get content for a session
-	 */
-	getSessionContent(sessionId: string): SessionContent[] {
-		try {
-			const rows = this.getSessionContentsStmt.all(sessionId) as Array<{
-				session_id: string;
-				content_id: number;
-				processed_order: number;
-				had_content_extraction_error: number;
-			}>;
-			return rows.map((row) => ({
-				sessionId: row.session_id,
-				contentId: row.content_id,
-				processedOrder: row.processed_order,
-				hadContentExtractionError: row.had_content_extraction_error === 1,
-			}));
-		} catch (error) {
-			throw new Error(`Failed to get session content: ${error}`);
-		}
-	}
-
-	/**
-	 * Get full content metadata for a session (including session-specific data)
-	 */
-	getSessionContents(sessionId: string): Array<
+		hadContentExtractionError?: boolean,
+	) => void;
+	getSessionContents: (sessionId: string) => Array<
 		ContentMetadata & {
 			processedOrder: number;
 			hadContentExtractionError: boolean;
 		}
-	> {
-		try {
-			const rows = this.getSessionContentsStmt.all(sessionId) as Array<
-				DatabaseRow & {
-					processed_order: number;
-					had_content_extraction_error: number;
-				}
-			>;
-			return rows.map((row) => ({
-				...this.mapRowToMetadata(row),
-				processedOrder: row.processed_order,
-				hadContentExtractionError: row.had_content_extraction_error === 1,
-			}));
-		} catch (error) {
-			throw new Error(`Failed to get session contents: ${error}`);
-		}
-	}
-
-	/**
-	 * Delete all sessions for a specific source
-	 * Returns the number of sessions deleted
-	 */
-	deleteSessionsBySource(sourceId: string): number {
-		const result = this.deleteSessionsBySourceStmt.run(sourceId);
-		return result.changes;
-	}
-
-	/**
-	 * Count sessions for a specific source
-	 */
-	countSessionsBySource(sourceId: string): number {
-		const result = this.countSessionsBySourceStmt.get(sourceId) as {
-			count: number;
-		};
-		return result.count;
-	}
-
-	/**
-	 * Add errors to session metadata directly in database
-	 */
-	addSessionErrors(
+	>;
+	deleteSessionsBySource: (sourceId: string) => number;
+	countSessionsBySource: (sourceId: string) => number;
+	addSessionErrors: (
 		sessionId: string,
 		errorType: "listing" | "content",
 		errors: string[],
-	): void {
-		if (errors.length === 0) {
-			return;
-		}
+	) => void;
+	close: () => void;
+	checkpoint: () => void;
+	getDatabasePath: () => string;
+}
 
-		try {
-			// Use a transaction to ensure atomicity
-			const transaction = this.db.transaction(() => {
-				// Get current session
-				const session = this.getSession(sessionId);
+interface PreparedStatements {
+	createSessionStmt: Database.Statement;
+	updateSessionStmt: Database.Statement;
+	getSessionStmt: Database.Statement;
+	getAllSessionsStmt: Database.Statement;
+	endSessionStmt: Database.Statement;
+	deleteSessionsBySourceStmt: Database.Statement;
+	countSessionsBySourceStmt: Database.Statement;
+	linkContentToSessionStmt: Database.Statement;
+	getSessionContentsStmt: Database.Statement;
+}
+
+function prepareStatements(db: Database.Database): PreparedStatements {
+	// Session statements
+	const createSessionStmt = db.prepare(`
+		INSERT INTO crawl_sessions (id, source_id, source_name, start_time, metadata)
+		VALUES (?, ?, ?, ?, ?)
+	`);
+
+	const updateSessionStmt = db.prepare(`
+		UPDATE crawl_sessions 
+		SET metadata = ?, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ?
+	`);
+
+	const getSessionStmt = db.prepare(`
+		SELECT * FROM crawl_sessions WHERE id = ? LIMIT 1
+	`);
+
+	const getAllSessionsStmt = db.prepare(`
+		SELECT * FROM crawl_sessions ORDER BY start_time DESC
+	`);
+
+	const endSessionStmt = db.prepare(`
+		UPDATE crawl_sessions 
+		SET end_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ?
+	`);
+
+	// Session-content junction statements
+	const linkContentToSessionStmt = db.prepare(`
+		INSERT INTO session_content (session_id, content_id, processed_order, had_content_extraction_error)
+		VALUES (?, ?, ?, ?)
+	`);
+
+	const getSessionContentsStmt = db.prepare(`
+		SELECT 
+			cc.*,
+			sc.processed_order,
+			sc.had_content_extraction_error
+		FROM session_content sc
+		JOIN crawled_content cc ON sc.content_id = cc.id
+		WHERE sc.session_id = ?
+		ORDER BY sc.processed_order ASC
+	`);
+
+	const deleteSessionsBySourceStmt = db.prepare(`
+		DELETE FROM crawl_sessions WHERE source_id = ?
+	`);
+
+	const countSessionsBySourceStmt = db.prepare(`
+		SELECT COUNT(*) as count FROM crawl_sessions WHERE source_id = ?
+	`);
+
+	return {
+		createSessionStmt,
+		updateSessionStmt,
+		getSessionStmt,
+		getAllSessionsStmt,
+		endSessionStmt,
+		deleteSessionsBySourceStmt,
+		countSessionsBySourceStmt,
+		linkContentToSessionStmt,
+		getSessionContentsStmt,
+	};
+}
+
+export function createSessionMetadataStore(
+	options: MetadataStoreOptions = {},
+): SessionMetadataStore {
+	const metadataDb = createMetadataDatabase(options);
+	const stmts = prepareStatements(metadataDb.db);
+
+	const mapSessionRowToSession = (row: SessionRow): CrawlSession => ({
+		id: row.id,
+		sourceId: row.source_id,
+		sourceName: row.source_name,
+		startTime: new Date(row.start_time),
+		endTime: row.end_time ? new Date(row.end_time) : undefined,
+		metadata: row.metadata,
+		createdAt: new Date(row.created_at),
+		updatedAt: new Date(row.updated_at),
+	});
+
+	const mapRowToMetadata = (row: DatabaseRow): ContentMetadata => ({
+		id: row.id,
+		hash: row.hash,
+		source: row.source,
+		url: row.url,
+		title: row.title,
+		author: row.author ? row.author : undefined,
+		publishedDate: row.published_date
+			? new Date(row.published_date)
+			: undefined,
+		crawledAt: new Date(row.crawled_at),
+		createdAt: new Date(row.created_at),
+	});
+
+	return {
+		createSession: (
+			sessionId: string,
+			sourceId: string,
+			sourceName: string,
+			startTime: Date,
+			metadata: object,
+		): CrawlSession => {
+			try {
+				stmts.createSessionStmt.run(
+					sessionId,
+					sourceId,
+					sourceName,
+					startTime.toISOString(),
+					JSON.stringify(metadata),
+				);
+
+				return {
+					id: sessionId,
+					sourceId,
+					sourceName,
+					startTime,
+					endTime: undefined, // Session is active (not ended)
+					metadata: JSON.stringify(metadata),
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				};
+			} catch (error) {
+				throw new Error(
+					`Failed to create crawl session: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
+
+		updateSession: (sessionId: string, metadata: object): void => {
+			try {
+				const result = stmts.updateSessionStmt.run(
+					JSON.stringify(metadata),
+					sessionId,
+				);
+				if (result.changes === 0) {
+					throw new Error(`Session not found: ${sessionId}`);
+				}
+			} catch (error) {
+				throw new Error(
+					`Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
+
+		getSession: (sessionId: string): CrawlSession | null => {
+			const row = stmts.getSessionStmt.get(sessionId) as SessionRow | undefined;
+			return row ? mapSessionRowToSession(row) : null;
+		},
+
+		getAllSessions: (): CrawlSession[] => {
+			const rows = stmts.getAllSessionsStmt.all() as SessionRow[];
+			return rows.map((row) => mapSessionRowToSession(row));
+		},
+
+		isSessionActive: (sessionId: string): boolean => {
+			const row = stmts.getSessionStmt.get(sessionId) as SessionRow | undefined;
+			const session = row ? mapSessionRowToSession(row) : null;
+			return session ? !session.endTime : false;
+		},
+
+		endSession: (sessionId: string): void => {
+			try {
+				stmts.endSessionStmt.run(sessionId);
+			} catch (error) {
+				throw new Error(
+					`Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
+
+		linkContentToSession: (
+			sessionId: string,
+			contentId: number,
+			processedOrder: number,
+			hadContentExtractionError = false,
+		): void => {
+			try {
+				const row = stmts.getSessionStmt.get(sessionId) as
+					| SessionRow
+					| undefined;
+				const session = row ? mapSessionRowToSession(row) : null;
 				if (!session) {
 					throw new Error(`Session not found: ${sessionId}`);
 				}
 
-				// Parse current metadata
-				const metadata = JSON.parse(session.metadata);
+				stmts.linkContentToSessionStmt.run(
+					sessionId,
+					contentId,
+					processedOrder,
+					hadContentExtractionError ? 1 : 0,
+				);
+			} catch (error) {
+				throw new Error(
+					`Failed to link content to session: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
 
-				// Initialize error arrays if they don't exist
-				if (!metadata.listingErrors) metadata.listingErrors = [];
-				if (!metadata.contentErrors) metadata.contentErrors = [];
+		getSessionContents: (
+			sessionId: string,
+		): Array<
+			ContentMetadata & {
+				processedOrder: number;
+				hadContentExtractionError: boolean;
+			}
+		> => {
+			try {
+				const rows = stmts.getSessionContentsStmt.all(sessionId) as Array<
+					DatabaseRow & {
+						processed_order: number;
+						had_content_extraction_error: number;
+					}
+				>;
+				return rows.map((row) => ({
+					...mapRowToMetadata(row),
+					processedOrder: row.processed_order,
+					hadContentExtractionError: row.had_content_extraction_error === 1,
+				}));
+			} catch (error) {
+				throw new Error(`Failed to get session contents: ${error}`);
+			}
+		},
 
-				// Add new errors
-				if (errorType === "listing") {
-					metadata.listingErrors.push(...errors);
-				} else {
-					metadata.contentErrors.push(...errors);
-				}
+		deleteSessionsBySource: (sourceId: string): number => {
+			const result = stmts.deleteSessionsBySourceStmt.run(sourceId);
+			return result.changes;
+		},
 
-				// Update session with new metadata using direct SQL
-				const updatedMetadata = JSON.stringify(metadata);
-				this.updateSessionStmt.run(updatedMetadata, sessionId);
-			});
+		countSessionsBySource: (sourceId: string): number => {
+			const result = stmts.countSessionsBySourceStmt.get(sourceId) as {
+				count: number;
+			};
+			return result.count;
+		},
 
-			// Execute the transaction
-			transaction();
-		} catch (error) {
-			throw new Error(
-				`Failed to add session errors: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
+		addSessionErrors: (
+			sessionId: string,
+			errorType: "listing" | "content",
+			errors: string[],
+		): void => {
+			if (errors.length === 0) {
+				return;
+			}
 
-	/**
-	 * Map database row to ContentMetadata (reused from ContentMetadataStore)
-	 */
-	private mapRowToMetadata(row: DatabaseRow): ContentMetadata {
-		return {
-			id: row.id,
-			hash: row.hash,
-			source: row.source,
-			url: row.url,
-			title: row.title,
-			author: row.author ? row.author : undefined,
-			publishedDate: row.published_date
-				? new Date(row.published_date)
-				: undefined,
-			crawledAt: new Date(row.crawled_at),
-			createdAt: new Date(row.created_at),
-		};
-	}
+			try {
+				// Use a transaction to ensure atomicity
+				const transaction = metadataDb.db.transaction(() => {
+					// Get current session
+					const row = stmts.getSessionStmt.get(sessionId) as
+						| SessionRow
+						| undefined;
+					const session = row ? mapSessionRowToSession(row) : null;
+					if (!session) {
+						throw new Error(`Session not found: ${sessionId}`);
+					}
 
-	/**
-	 * Map session database row to CrawlSession
-	 */
-	private mapSessionRowToSession(row: SessionRow): CrawlSession {
-		return {
-			id: row.id,
-			sourceId: row.source_id,
-			sourceName: row.source_name,
-			startTime: new Date(row.start_time),
-			endTime: row.end_time ? new Date(row.end_time) : undefined,
-			metadata: row.metadata,
-			createdAt: new Date(row.created_at),
-			updatedAt: new Date(row.updated_at),
-		};
-	}
+					// Parse current metadata
+					const metadata = JSON.parse(session.metadata);
+
+					// Initialize error arrays if they don't exist
+					if (!metadata.listingErrors) metadata.listingErrors = [];
+					if (!metadata.contentErrors) metadata.contentErrors = [];
+
+					// Add new errors
+					if (errorType === "listing") {
+						metadata.listingErrors.push(...errors);
+					} else {
+						metadata.contentErrors.push(...errors);
+					}
+
+					// Update session with new metadata using direct SQL
+					const updatedMetadata = JSON.stringify(metadata);
+					stmts.updateSessionStmt.run(updatedMetadata, sessionId);
+				});
+
+				transaction();
+			} catch (error) {
+				throw new Error(
+					`Failed to add session errors: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
+
+		close: () => metadataDb.close(),
+		checkpoint: () => metadataDb.checkpoint(),
+		getDatabasePath: () => metadataDb.getDatabasePath(),
+	};
 }

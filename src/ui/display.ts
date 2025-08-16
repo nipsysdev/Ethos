@@ -2,7 +2,10 @@ import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
-import { MetadataStore } from "@/storage/MetadataStore";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore";
 import { showPostCrawlMenu } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { showExtractedData } from "@/ui/viewer";
@@ -15,7 +18,7 @@ export async function showPostCrawlMenuWithFlow(
 	result: ProcessingSummaryResult,
 	pipeline?: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
-	const metadataStoreFactory = () => new MetadataStore();
+	const metadataStoreFactory = () => createMetadataStore();
 
 	while (true) {
 		const action = await showPostCrawlMenu(result, pipeline);

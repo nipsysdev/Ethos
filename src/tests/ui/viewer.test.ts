@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
-import { MetadataStore } from "@/storage/MetadataStore.js";
+import { createMetadataStore } from "@/storage/MetadataStore.js";
 import { showExtractedData } from "@/ui/viewer.js";
 
 // Mock child_process and inquirer
@@ -17,7 +17,7 @@ const mockGetSessionContents = vi.fn();
 const mockClose = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
-	MetadataStore: vi.fn().mockImplementation(() => ({
+	createMetadataStore: vi.fn().mockImplementation(() => ({
 		getSession: mockGetSession,
 		getSessionContents: mockGetSessionContents,
 		close: mockClose,
@@ -93,7 +93,7 @@ describe("Data Viewer", () => {
 
 	it("should display message when no crawl session available", async () => {
 		const result = createMockResult(false); // Don't create session
-		const metadataStoreFactory = () => new MetadataStore();
+		const metadataStoreFactory = () => createMetadataStore();
 
 		await showExtractedData(result, metadataStoreFactory);
 
@@ -107,7 +107,7 @@ describe("Data Viewer", () => {
 
 	it("should show file selection menu and open file with less", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => new MetadataStore();
+		const metadataStoreFactory = () => createMetadataStore();
 		let actualSelectedFile = "";
 
 		// Capture the actual file path from inquirer choices
@@ -182,7 +182,7 @@ describe("Data Viewer", () => {
 
 	it("should handle when less is not available", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => new MetadataStore();
+		const metadataStoreFactory = () => createMetadataStore();
 		let actualSelectedFile = "";
 
 		mockInquirer.prompt
@@ -225,7 +225,7 @@ describe("Data Viewer", () => {
 
 	it("should handle back option", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => new MetadataStore();
+		const metadataStoreFactory = () => createMetadataStore();
 
 		mockInquirer.prompt.mockResolvedValueOnce({
 			selectedFile: "back",
