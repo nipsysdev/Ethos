@@ -24,7 +24,8 @@ import {
 	type MetadataTracker,
 	StoppedReason,
 } from "@/crawlers/MetadataTracker";
-import { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
+import type { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
+import { createInterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import {
 	filterByExclusion,
 	filterDuplicates,
@@ -286,7 +287,7 @@ async function crawlListing(
 	options?: CrawlOptions,
 ): Promise<CrawlResult> {
 	const startTime = new Date();
-	const interruptionHandler = new InterruptionHandler();
+	const interruptionHandler = createInterruptionHandler();
 	const listingExtractor = createListingPageExtractor();
 	const contentExtractor = createContentPageExtractor();
 
