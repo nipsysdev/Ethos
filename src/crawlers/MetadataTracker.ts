@@ -6,7 +6,10 @@ import type {
 	FieldConfig,
 	SourceConfig,
 } from "@/core/types";
-import { CrawlErrorManager } from "@/crawlers/CrawlErrorManager";
+import {
+	type CrawlErrorManager,
+	createCrawlErrorManager,
+} from "@/crawlers/CrawlErrorManager";
 import { MetadataStore } from "@/storage/MetadataStore";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
@@ -34,7 +37,7 @@ export class MetadataTracker implements ContentSessionLinker {
 		// Initialize metadata store (use provided one for testing, or create new one)
 		this.metadataStore = metadataStore ?? new MetadataStore();
 
-		this.errorManager = new CrawlErrorManager(
+		this.errorManager = createCrawlErrorManager(
 			this.metadataStore,
 			this.sessionId,
 		);

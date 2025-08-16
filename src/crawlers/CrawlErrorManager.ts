@@ -2,6 +2,15 @@ import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 export type CrawlErrorType = "listing" | "content";
 
+export interface CrawlErrorManager {
+	addErrors(type: CrawlErrorType, errors: string[]): void;
+	addErrorsWithCategorization(errors: string[]): void;
+	addListingErrors(errors: string[]): void;
+	addContentErrors(errors: string[]): void;
+	addFieldExtractionWarnings(warnings: string[]): void;
+	getSessionErrors(): { listingErrors: string[]; contentErrors: string[] };
+}
+
 export function categorizeErrors(errors: string[]): {
 	listingErrors: string[];
 	contentErrors: string[];
@@ -25,60 +34,53 @@ export function categorizeErrors(errors: string[]): {
 	return { listingErrors, contentErrors };
 }
 
-/**
- * Centralized error management for crawl sessions
- * Provides a consistent interface for storing and categorizing errors
- */
-export class CrawlErrorManager {
-	private metadataStore: MetadataStore;
-	private sessionId: string;
+export function createCrawlErrorManager(
+	metadataStore: MetadataStore,
+	sessionId: string,
+): CrawlErrorManager {
+	return {
+		addErrors(type: CrawlErrorType, errors: string[]): void {
+			if (errors.length === 0) return;
+			metadataStore.addSessionErrors(sessionId, type, errors);
+		},
 
-	constructor(metadataStore: MetadataStore, sessionId: string) {
-		this.metadataStore = metadataStore;
-		this.sessionId = sessionId;
-	}
+		addErrorsWithCategorization(errors: string[]): void {
+			if (errors.length === 0) return;
 
-	addErrors(type: CrawlErrorType, errors: string[]): void {
-		if (errors.length === 0) return;
-		this.metadataStore.addSessionErrors(this.sessionId, type, errors);
-	}
+			const { listingErrors, contentErrors } = categorizeErrors(errors);
 
-	addErrorsWithCategorization(errors: string[]): void {
-		if (errors.length === 0) return;
+			if (listingErrors.length > 0) {
+				this.addErrors("listing", listingErrors);
+			}
 
-		const { listingErrors, contentErrors } = categorizeErrors(errors);
+			if (contentErrors.length > 0) {
+				this.addErrors("content", contentErrors);
+			}
+		},
 
-		if (listingErrors.length > 0) {
-			this.addErrors("listing", listingErrors);
-		}
+		addListingErrors(errors: string[]): void {
+			this.addErrors("listing", errors);
+		},
 
-		if (contentErrors.length > 0) {
-			this.addErrors("content", contentErrors);
-		}
-	}
+		addContentErrors(errors: string[]): void {
+			this.addErrors("content", errors);
+		},
 
-	addListingErrors(errors: string[]): void {
-		this.addErrors("listing", errors);
-	}
+		addFieldExtractionWarnings(warnings: string[]): void {
+			this.addErrorsWithCategorization(warnings);
+		},
 
-	addContentErrors(errors: string[]): void {
-		this.addErrors("content", errors);
-	}
+		getSessionErrors(): { listingErrors: string[]; contentErrors: string[] } {
+			const session = metadataStore.getSession(sessionId);
+			if (!session) {
+				return { listingErrors: [], contentErrors: [] };
+			}
 
-	addFieldExtractionWarnings(warnings: string[]): void {
-		this.addErrorsWithCategorization(warnings);
-	}
-
-	getSessionErrors(): { listingErrors: string[]; contentErrors: string[] } {
-		const session = this.metadataStore.getSession(this.sessionId);
-		if (!session) {
-			return { listingErrors: [], contentErrors: [] };
-		}
-
-		const sessionMetadata = JSON.parse(session.metadata);
-		return {
-			listingErrors: sessionMetadata.listingErrors || [],
-			contentErrors: sessionMetadata.contentErrors || [],
-		};
-	}
+			const sessionMetadata = JSON.parse(session.metadata);
+			return {
+				listingErrors: sessionMetadata.listingErrors || [],
+				contentErrors: sessionMetadata.contentErrors || [],
+			};
+		},
+	};
 }

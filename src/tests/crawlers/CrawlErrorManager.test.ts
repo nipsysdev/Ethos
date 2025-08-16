@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	CrawlErrorManager,
+	type CrawlErrorManager,
 	categorizeErrors,
+	createCrawlErrorManager,
 } from "@/crawlers/CrawlErrorManager.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
@@ -17,7 +18,7 @@ describe("CrawlErrorManager", () => {
 			getSession: vi.fn(),
 		};
 
-		errorManager = new CrawlErrorManager(
+		errorManager = createCrawlErrorManager(
 			mockMetadataStore as MetadataStore,
 			sessionId,
 		);
