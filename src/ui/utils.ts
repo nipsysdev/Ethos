@@ -21,17 +21,6 @@ export function checkRequiredStores(pipeline: ProcessingPipeline) {
 	return { error: false as const, metadataStore, contentStore };
 }
 
-export function checkMetadataStore(pipeline: ProcessingPipeline) {
-	const metadataStore = pipeline.getMetadataStore();
-
-	if (!metadataStore) {
-		console.log(ERROR_MESSAGES.METADATA_STORE_NOT_AVAILABLE);
-		return { error: true as const, metadataStore: null };
-	}
-
-	return { error: false as const, metadataStore };
-}
-
 export interface EnhancedSource {
 	id: string;
 	name: string;

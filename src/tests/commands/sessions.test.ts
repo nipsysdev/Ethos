@@ -59,17 +59,6 @@ describe("Sessions Command", () => {
 		} as unknown as ProcessingPipeline;
 	});
 
-	it("should show error message when metadata store is not available", async () => {
-		const pipelineWithoutStore = {
-			getMetadataStore: vi.fn().mockReturnValue(null),
-		} as unknown as ProcessingPipeline;
-
-		const result = await handleSessions(pipelineWithoutStore);
-
-		expect(mockLog).toHaveBeenCalledWith("Error: Metadata store not available");
-		expect(result).toBe("main");
-	});
-
 	it("should show message when no sessions are found", async () => {
 		vi.mocked(mockMetadataStore.getAllSessions).mockReturnValue([]);
 

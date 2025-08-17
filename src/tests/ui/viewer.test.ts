@@ -95,7 +95,7 @@ describe("Data Viewer", () => {
 		const result = createMockResult(false); // Don't create session
 		const metadataStoreFactory = () => createMetadataStore();
 
-		await showExtractedData(result, metadataStoreFactory);
+		await showExtractedData(result, metadataStoreFactory());
 
 		expect(mockLog).toHaveBeenCalledWith(
 			"No crawl session available for viewing.",
@@ -146,7 +146,7 @@ describe("Data Viewer", () => {
 			// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
 			.mockReturnValueOnce(mockLessProcess as any); // less command
 
-		await showExtractedData(result, metadataStoreFactory);
+		await showExtractedData(result, metadataStoreFactory());
 
 		// Verify inquirer was called with the correct structure
 		expect(mockInquirer.prompt).toHaveBeenCalledWith([
@@ -210,7 +210,7 @@ describe("Data Viewer", () => {
 		// biome-ignore lint/suspicious/noExplicitAny: vitest mock compatibility
 		mockSpawn.mockReturnValueOnce(mockWhichProcess as any);
 
-		await showExtractedData(result, metadataStoreFactory);
+		await showExtractedData(result, metadataStoreFactory());
 
 		expect(mockLog).toHaveBeenCalledWith(
 			"Less viewer not available. Please install 'less' to view files.",
@@ -231,7 +231,7 @@ describe("Data Viewer", () => {
 			selectedFile: "back",
 		});
 
-		await showExtractedData(result, metadataStoreFactory);
+		await showExtractedData(result, metadataStoreFactory());
 
 		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();

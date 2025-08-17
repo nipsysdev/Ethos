@@ -37,14 +37,12 @@ async function isLessAvailable(): Promise<boolean> {
 
 export async function showExtractedData(
 	result: ProcessingSummaryResult,
-	metadataStoreFactory: () => MetadataStore,
+	metadataStore: MetadataStore,
 ): Promise<void> {
 	if (!result.summary.sessionId) {
 		console.log("No crawl session available for viewing.");
 		return;
 	}
-
-	const metadataStore = metadataStoreFactory();
 
 	interface ViewerItem {
 		title: string;
@@ -79,7 +77,7 @@ export async function showExtractedData(
 		metadataStore.close();
 	}
 
-	await showPaginatedViewer(storedItems, result, metadataStoreFactory);
+	await showPaginatedViewer(storedItems, result, metadataStore);
 }
 
 async function showPaginatedViewer(
@@ -90,7 +88,7 @@ async function showPaginatedViewer(
 		url: string;
 	}>,
 	result: ProcessingSummaryResult,
-	metadataStoreFactory: () => MetadataStore,
+	metadataStore: MetadataStore,
 	currentPage = 0,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
@@ -167,22 +165,12 @@ async function showPaginatedViewer(
 	}
 
 	if (selectedFile === NAV_PREVIOUS) {
-		await showPaginatedViewer(
-			items,
-			result,
-			metadataStoreFactory,
-			currentPage - 1,
-		);
+		await showPaginatedViewer(items, result, metadataStore, currentPage - 1);
 		return;
 	}
 
 	if (selectedFile === NAV_NEXT) {
-		await showPaginatedViewer(
-			items,
-			result,
-			metadataStoreFactory,
-			currentPage + 1,
-		);
+		await showPaginatedViewer(items, result, metadataStore, currentPage + 1);
 		return;
 	}
 
@@ -219,5 +207,5 @@ async function showPaginatedViewer(
 		);
 	}
 
-	await showPaginatedViewer(items, result, metadataStoreFactory, currentPage);
+	await showPaginatedViewer(items, result, metadataStore, currentPage);
 }

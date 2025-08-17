@@ -17,6 +17,44 @@ vi.mock("../../ui/viewer.js", () => ({
 	showExtractedData: vi.fn(),
 }));
 
+// Mock createMetadataStore
+const mockMetadataStoreInstance = {
+	store: vi.fn(),
+	existsByUrl: vi.fn(),
+	getExistingUrls: vi.fn(),
+	existsByHash: vi.fn(),
+	getByHash: vi.fn(),
+	query: vi.fn(),
+	getBySource: vi.fn(),
+	countBySource: vi.fn(),
+	getSources: vi.fn(),
+	deleteContentBySource: vi.fn(),
+	getContentHashesBySource: vi.fn(),
+	createSession: vi.fn(),
+	updateSession: vi.fn(),
+	getSession: vi.fn(),
+	getAllSessions: vi.fn(),
+	isSessionActive: vi.fn(),
+	endSession: vi.fn(),
+	linkContentToSession: vi.fn(),
+	getSessionContents: vi.fn(),
+	deleteSessionsBySource: vi.fn(),
+	countSessionsBySource: vi.fn(),
+	addSessionErrors: vi.fn(),
+	close: vi.fn(),
+	checkpoint: vi.fn(),
+	getDatabasePath: vi.fn(),
+};
+
+vi.mock("@/storage/MetadataStore", async (importOriginal) => {
+	const actual =
+		await importOriginal<typeof import("@/storage/MetadataStore")>();
+	return {
+		...actual,
+		createMetadataStore: vi.fn(() => mockMetadataStoreInstance),
+	};
+});
+
 const mockShowPostCrawlMenu = vi.mocked(
 	(await import("../../ui/menus.js")).showPostCrawlMenu,
 );
@@ -76,7 +114,7 @@ describe("display module", () => {
 			expect(mockShowExtractedData).toHaveBeenCalledTimes(1);
 			expect(mockShowExtractedData).toHaveBeenCalledWith(
 				mockResult,
-				expect.any(Function),
+				mockMetadataStoreInstance,
 			);
 		});
 

@@ -1,11 +1,9 @@
+import { showCrawlErrors } from "@/commands/errors";
 import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
-import {
-	createMetadataStore,
-	type MetadataStore,
-} from "@/storage/MetadataStore";
+import { createMetadataStore } from "@/storage/MetadataStore";
 import { showPostCrawlMenu } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { showExtractedData } from "@/ui/viewer";
@@ -24,13 +22,12 @@ export async function showPostCrawlMenuWithFlow(
 		const action = await showPostCrawlMenu(result, pipeline);
 
 		if (action === "view") {
-			await showExtractedData(result, metadataStoreFactory);
+			await showExtractedData(result, metadataStoreFactory());
 			displayCrawlSummary(result);
 			continue;
 		}
 
 		if (action === "errors") {
-			const { showCrawlErrors } = await import("../commands/errors.js");
 			await showCrawlErrors(result);
 			displayCrawlSummary(result);
 			continue;

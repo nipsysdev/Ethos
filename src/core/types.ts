@@ -187,6 +187,15 @@ export interface ContentSessionLinker {
 	): void;
 }
 
+// Command parameter interfaces
+export interface CrawlOptionsCLI {
+	source: string;
+	maxPages?: number;
+	stopOnAllDuplicates?: boolean;
+	reCrawlExisting?: boolean;
+	output?: "json" | "summary";
+}
+
 // Error types
 export class CrawlerError extends Error {
 	constructor(

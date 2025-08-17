@@ -1,5 +1,9 @@
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { CrawlOptions, SourceRegistry } from "@/core/types";
+import type {
+	CrawlOptions,
+	CrawlOptionsCLI,
+	SourceRegistry,
+} from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -10,6 +14,56 @@ import {
 } from "@/ui/constants";
 import { displayResults, showPostCrawlMenuWithFlow } from "@/ui/display";
 import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
+
+export async function crawlWithOptions(
+	options: CrawlOptionsCLI,
+	sourceRegistry: SourceRegistry,
+	pipeline: ProcessingPipeline,
+): Promise<"main" | "crawl" | "exit"> {
+	try {
+		const selectedSource = await sourceRegistry.getSource(options.source);
+		if (!selectedSource) {
+			console.log(ERROR_MESSAGES.SOURCE_NOT_FOUND);
+			return NAV_VALUES.MAIN;
+		}
+
+		const crawlOptions: CrawlOptions = {};
+		if (options.maxPages !== undefined) {
+			crawlOptions.maxPages = options.maxPages;
+		}
+		if (options.stopOnAllDuplicates !== undefined) {
+			crawlOptions.stopOnAllDuplicates = options.stopOnAllDuplicates;
+		}
+		if (options.reCrawlExisting !== undefined) {
+			crawlOptions.skipExistingUrls = !options.reCrawlExisting;
+		}
+
+		console.log(`${INFO_MESSAGES.CRAWLING} ${selectedSource.name}...`);
+
+		try {
+			const result = await pipeline.processSummary(
+				selectedSource,
+				crawlOptions,
+			);
+			console.log(INFO_MESSAGES.CRAWL_COMPLETED);
+
+			if (options.output === "json") {
+				console.log(JSON.stringify(result, null, 2));
+			} else {
+				displayResults(result);
+			}
+
+			return NAV_VALUES.MAIN;
+		} catch (error) {
+			console.log(ERROR_MESSAGES.CRAWL_FAILED);
+			console.error("Error:", error);
+			return NAV_VALUES.MAIN;
+		}
+	} catch (error) {
+		console.error(`${ERROR_MESSAGES.CRAWL_FAILED}:`, error);
+		return NAV_VALUES.MAIN;
+	}
+}
 
 export async function handleCrawl(
 	sourceRegistry: SourceRegistry,

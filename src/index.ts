@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { Command } from "commander";
+import { crawlWithOptions } from "@/commands/crawl";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
 import { createProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createSourceRegistry } from "@/core/SourceRegistry";
@@ -22,6 +23,32 @@ program
 	.version("1.0.0")
 	.action(async () => {
 		await showMainMenu(sourceRegistry, pipeline);
+	});
+
+program
+	.command("crawl")
+	.description("Crawl a source for content")
+	.argument("<source>", "Source ID to crawl")
+	.option(
+		"-m, --max-pages <number>",
+		"Maximum number of pages to crawl",
+		(val) => parseInt(val, 10),
+	)
+	.option(
+		"--force-full-crawl",
+		"Continue crawling when reached previous crawl session URLs",
+	)
+	.option("--recrawl", "Re-crawl and override existing URLs data")
+	.option("-o, --output <format>", "Output format (json|summary)", "summary")
+	.action(async (source, options) => {
+		const crawlOptions = {
+			source,
+			maxPages: options.maxPages,
+			stopOnAllDuplicates: !options.forceFullCrawl,
+			reCrawlExisting: options.recrawl,
+			output: options.output,
+		};
+		await crawlWithOptions(crawlOptions, sourceRegistry, pipeline);
 	});
 
 program.parseAsync(process.argv).catch(console.error);

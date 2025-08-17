@@ -17,9 +17,9 @@ import {
 } from "@/ui/constants";
 import { createDataViewChoices } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
-import { checkMetadataStore } from "@/ui/utils";
 import { showExtractedData } from "@/ui/viewer";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
+import { showCrawlErrors } from "./errors";
 
 export async function handleSessions(
 	pipeline: ProcessingPipeline,
@@ -27,11 +27,8 @@ export async function handleSessions(
 	const inquirer = (await import("inquirer")).default;
 
 	try {
-		const storeCheck = checkMetadataStore(pipeline);
-		if (storeCheck.error) {
-			return NAV_VALUES.MAIN;
-		}
-		const { metadataStore } = storeCheck;
+		const metadataStore = pipeline.getMetadataStore();
+		if (!metadataStore) return NAV_VALUES.MAIN;
 
 		const allSessions = await getAllSessions(metadataStore);
 
@@ -85,13 +82,12 @@ export async function handleSessions(
 						break;
 					}
 					if (action === "view") {
-						await showExtractedData(sessionResult);
+						await showExtractedData(sessionResult, metadataStore);
 						// After viewing, show the summary again and continue the session menu loop
 						displayCrawlSummary(sessionResult);
 						continue;
 					}
 					if (action === "errors") {
-						const { showCrawlErrors } = await import("./errors.js");
 						await showCrawlErrors(sessionResult);
 						// After viewing errors, show the summary again and continue the session menu loop
 						displayCrawlSummary(sessionResult);

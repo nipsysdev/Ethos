@@ -7,6 +7,7 @@ import type {
 	SourceConfig,
 } from "@/core/types";
 import { CrawlerError } from "@/core/types";
+import type { MetadataStore } from "@/storage";
 import {
 	type ContentStore,
 	type ContentStoreOptions,
@@ -36,7 +37,7 @@ export interface ProcessingPipeline {
 		config: SourceConfig,
 		options?: CrawlOptions,
 	) => Promise<ProcessingSummaryResult>;
-	getMetadataStore: () => any;
+	getMetadataStore: () => MetadataStore | undefined;
 	getContentStore: () => ContentStore;
 }
 
