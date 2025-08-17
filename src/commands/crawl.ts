@@ -13,6 +13,7 @@ import {
 	PROMPT_MESSAGES,
 } from "@/ui/constants";
 import { displayResults, showPostCrawlMenuWithFlow } from "@/ui/display";
+import { displaySources } from "@/ui/formatter";
 import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
 
 export async function crawlWithOptions(
@@ -23,7 +24,11 @@ export async function crawlWithOptions(
 	try {
 		const selectedSource = await sourceRegistry.getSource(options.source);
 		if (!selectedSource) {
+			const sources = await sourceRegistry.getAllSources();
 			console.log(ERROR_MESSAGES.SOURCE_NOT_FOUND);
+			console.log(
+				`${ERROR_MESSAGES.AVAILABLE_SOURCES} ${displaySources(sources)}`,
+			);
 			return NAV_VALUES.MAIN;
 		}
 
@@ -104,6 +109,9 @@ export async function handleCrawl(
 		const selectedSource = await sourceRegistry.getSource(selectedSourceId);
 		if (!selectedSource) {
 			console.log(ERROR_MESSAGES.SOURCE_NOT_FOUND);
+			console.log(
+				`${ERROR_MESSAGES.AVAILABLE_SOURCES} ${displaySources(sources)}`,
+			);
 			return NAV_VALUES.MAIN;
 		}
 

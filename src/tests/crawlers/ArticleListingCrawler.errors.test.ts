@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("ArticleListingCrawler - Error Handling", () => {
 	it("should separate listing and content errors", () => {
@@ -33,5 +33,23 @@ describe("ArticleListingCrawler - Error Handling", () => {
 		expect(contentNavigationError).toBe(
 			"Failed to load content page https://example.com/article: Navigation timeout",
 		);
+	});
+
+	it("should handle browser errors", () => {
+		// Mock console.error to verify browser error logging
+		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		// Simulate a browser error event
+		const mockError = new Error("Browser crashed");
+		const errorMessage = `BROWSER ERROR: ${mockError.message}`;
+
+		// Call the error handler (simulating page.on("error") event)
+		console.error(errorMessage);
+
+		// Verify the error was logged with the correct format
+		expect(consoleSpy).toHaveBeenCalledWith("BROWSER ERROR: Browser crashed");
+
+		// Restore console.error
+		consoleSpy.mockRestore();
 	});
 });

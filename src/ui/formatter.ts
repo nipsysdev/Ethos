@@ -1,4 +1,4 @@
-import type { CrawlSummary, ProcessedData } from "@/core/types";
+import type { CrawlSummary, ProcessedData, SourceConfig } from "@/core/types";
 
 export function formatDataForViewing(
 	data: ProcessedData[],
@@ -62,4 +62,8 @@ export function formatDataForViewing(
 	lines.push("=".repeat(80));
 
 	return lines.join("\n");
+}
+
+export function displaySources(sources: SourceConfig[]) {
+	return sources.map((s) => `${s.id} (${s.name})`).join(", ");
 }

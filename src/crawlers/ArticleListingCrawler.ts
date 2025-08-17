@@ -75,6 +75,11 @@ async function createBrowser() {
 
 async function setupPage(browser: PuppeteerBrowser, url: string) {
 	const page = await browser.newPage();
+
+	page.on("error", (error) => {
+		console.error(`BROWSER ERROR: ${error.message}`);
+	});
+
 	await page.goto(url, { waitUntil: "domcontentloaded" });
 	return page;
 }
@@ -260,13 +265,12 @@ function logPageSummary(
 	const totalItemsOnPage = pageResult.items.length;
 	const filteredOnPage = pageResult.filteredCount;
 
+	const displayPageNumber = pagesProcessed + 1;
 	const progressInfo = maxPages
-		? `${pagesProcessed}/${maxPages}`
-		: `${pagesProcessed}`;
+		? `${displayPageNumber}/${maxPages}`
+		: `${displayPageNumber}`;
 
-	console.log(
-		`Page ${progressInfo}: found ${totalItemsOnPage + filteredOnPage} items`,
-	);
+	console.log(`Page ${progressInfo}: found ${totalItemsOnPage} items`);
 	console.log(`  Processed ${newItemsCount} new items`);
 	if (duplicatesOnPage > 0) {
 		console.log(`  Skipped ${duplicatesOnPage} duplicates`);
@@ -399,15 +403,6 @@ async function extractItemsFromListing(
 			filteredCount: pageResult.filteredCount + excludedCount,
 		};
 
-		logPageSummary(
-			metadata.pagesProcessed,
-			updatedPageResult,
-			itemsToProcess.length,
-			totalDuplicatesOnPage,
-			options?.maxPages,
-			metadata,
-		);
-
 		if (itemsToProcess.length > 0) {
 			await processContentExtraction(
 				page,
@@ -418,6 +413,15 @@ async function extractItemsFromListing(
 				contentExtractor,
 			);
 		}
+
+		logPageSummary(
+			metadata.pagesProcessed,
+			updatedPageResult,
+			itemsToProcess.length,
+			totalDuplicatesOnPage,
+			options?.maxPages,
+			metadataTracker.getMetadata(),
+		);
 
 		const hasNextPage = await navigateToNextPage(page, config);
 

@@ -45,6 +45,7 @@ describe("ListingPageExtractor", () => {
 					},
 					hasRequiredFields: true,
 					missingRequiredFields: [],
+					extractionErrors: [],
 				},
 			]),
 		} as unknown as Page;
@@ -104,6 +105,7 @@ describe("ListingPageExtractor", () => {
 					},
 					hasRequiredFields: true,
 					missingRequiredFields: [],
+					extractionErrors: [],
 				},
 				{
 					item: { title: "Incomplete Article" },
@@ -114,6 +116,7 @@ describe("ListingPageExtractor", () => {
 					},
 					hasRequiredFields: false,
 					missingRequiredFields: ["url"],
+					extractionErrors: [],
 				},
 			]),
 		} as unknown as Page;
@@ -167,5 +170,150 @@ describe("ListingPageExtractor", () => {
 		expect(result.items).toHaveLength(0);
 		expect(result.filteredCount).toBe(0);
 		expect(result.filteredReasons).toHaveLength(0);
+	});
+
+	it("should handle extraction errors and include them in filtered reasons", async () => {
+		const extractor = createListingPageExtractor();
+		const mockPage = {
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Error Article" },
+					fieldResults: {
+						title: { success: true, value: "Error Article" },
+						url: { success: false, value: null, error: "Selector not found" },
+						author: { success: false, value: null, error: "Element missing" },
+					},
+					hasRequiredFields: false,
+					missingRequiredFields: ["url"],
+					extractionErrors: [
+						"Field 'url' extraction failed: Selector not found",
+						"Field 'author' extraction failed: Element missing",
+					],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats = [
+			{
+				fieldName: "title",
+				successCount: 0,
+				totalAttempts: 0,
+				isOptional: false,
+				missingItems: [],
+			},
+			{
+				fieldName: "url",
+				successCount: 0,
+				totalAttempts: 0,
+				isOptional: false,
+				missingItems: [],
+			},
+		];
+
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfig,
+			fieldStats,
+			0,
+		);
+
+		expect(result.items).toHaveLength(0);
+		expect(result.filteredCount).toBe(1);
+		expect(result.filteredReasons).toContain(
+			"Field 'url' extraction failed: Selector not found",
+		);
+		expect(result.filteredReasons).toContain(
+			"Field 'author' extraction failed: Element missing",
+		);
+	});
+
+	it("should handle items with no extractable data", async () => {
+		const extractor = createListingPageExtractor();
+		const mockPage = {
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: {},
+					fieldResults: {},
+					hasRequiredFields: false,
+					missingRequiredFields: ["title", "url"],
+					extractionErrors: [],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats: FieldExtractionStats[] = [];
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfig,
+			fieldStats,
+			0,
+		);
+
+		expect(result.items).toHaveLength(0);
+		expect(result.filteredCount).toBe(1);
+		expect(result.filteredReasons).toContain(
+			"Item contained no extractable data",
+		);
+	});
+
+	it("should handle mixed success and failure cases", async () => {
+		const extractor = createListingPageExtractor();
+		const mockPage = {
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Good Article", url: "/article/1" },
+					fieldResults: {
+						title: { success: true, value: "Good Article" },
+						url: { success: true, value: "/article/1" },
+						author: { success: false, value: null },
+					},
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+				{
+					item: { title: "Bad Article" },
+					fieldResults: {
+						title: { success: true, value: "Bad Article" },
+						url: { success: false, value: null, error: "Network error" },
+						author: { success: false, value: null },
+					},
+					hasRequiredFields: false,
+					missingRequiredFields: ["url"],
+					extractionErrors: ["Field 'url' extraction failed: Network error"],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats = [
+			{
+				fieldName: "title",
+				successCount: 0,
+				totalAttempts: 0,
+				isOptional: false,
+				missingItems: [],
+			},
+			{
+				fieldName: "url",
+				successCount: 0,
+				totalAttempts: 0,
+				isOptional: false,
+				missingItems: [],
+			},
+		];
+
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfig,
+			fieldStats,
+			0,
+		);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("Good Article");
+		expect(result.filteredCount).toBe(1);
+		expect(result.filteredReasons).toContain(
+			"Field 'url' extraction failed: Network error",
+		);
 	});
 });

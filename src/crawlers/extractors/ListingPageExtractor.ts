@@ -16,9 +16,13 @@ export interface ListingExtractionResult {
 
 interface ExtractionResult {
 	item: Record<string, string | null>;
-	fieldResults: Record<string, { success: boolean; value: string | null }>;
+	fieldResults: Record<
+		string,
+		{ success: boolean; value: string | null; error?: string }
+	>;
 	hasRequiredFields: boolean;
 	missingRequiredFields: string[];
+	extractionErrors: string[];
 }
 
 export interface ListingPageExtractor {
@@ -28,61 +32,6 @@ export interface ListingPageExtractor {
 		fieldStats: FieldExtractionStats[],
 		currentItemOffset: number,
 	) => Promise<ListingExtractionResult>;
-}
-
-function resolveUrlAttribute(
-	urlValue: string | null,
-	baseUrl: string,
-): string | null {
-	if (!urlValue) return null;
-
-	try {
-		return new URL(urlValue, baseUrl).href;
-	} catch {
-		return urlValue;
-	}
-}
-
-function extractTextWithExclusions(
-	element: Element,
-	excludeSelectors?: string[],
-): string | null {
-	if (excludeSelectors && excludeSelectors.length > 0) {
-		const cloned = element.cloneNode(true) as Element;
-		for (const selector of excludeSelectors) {
-			const excludedElements = cloned.querySelectorAll(selector);
-			for (const excludedElement of excludedElements) {
-				excludedElement.remove();
-			}
-		}
-		return cloned.textContent?.trim().replace(/\s+/g, " ") || null;
-	} else {
-		return element.textContent?.trim().replace(/\s+/g, " ") || null;
-	}
-}
-
-function extractFieldValue(
-	element: Element | null,
-	fieldConfig: {
-		selector: string;
-		attribute: string;
-		exclude_selectors?: string[];
-		optional?: boolean;
-	},
-): string | null {
-	if (!element) return null;
-
-	if (fieldConfig.attribute === "text") {
-		return extractTextWithExclusions(element, fieldConfig.exclude_selectors);
-	} else if (
-		fieldConfig.attribute === "href" ||
-		fieldConfig.attribute === "src"
-	) {
-		const urlValue = element.getAttribute(fieldConfig.attribute);
-		return resolveUrlAttribute(urlValue, window.location.href);
-	} else {
-		return element.getAttribute(fieldConfig.attribute);
-	}
 }
 
 async function extractItemsFromPage(
@@ -102,6 +51,64 @@ async function extractItemsFromPage(
 	}
 
 	const extractionResult = await page.evaluate((itemsConfig) => {
+		function extractFieldValue(
+			element: Element | null,
+			fieldConfig: {
+				selector: string;
+				attribute: string;
+				exclude_selectors?: string[];
+				optional?: boolean;
+			},
+		): string | null {
+			if (!element) return null;
+
+			if (fieldConfig.attribute === "text") {
+				return extractTextWithExclusions(
+					element,
+					fieldConfig.exclude_selectors,
+				);
+			} else if (
+				fieldConfig.attribute === "href" ||
+				fieldConfig.attribute === "src"
+			) {
+				const urlValue = element.getAttribute(fieldConfig.attribute);
+				return resolveUrlAttribute(urlValue, window.location.href);
+			} else {
+				return element.getAttribute(fieldConfig.attribute);
+			}
+		}
+
+		function resolveUrlAttribute(
+			urlValue: string | null,
+			baseUrl: string,
+		): string | null {
+			if (!urlValue) return null;
+
+			try {
+				return new URL(urlValue, baseUrl).href;
+			} catch {
+				return urlValue;
+			}
+		}
+
+		function extractTextWithExclusions(
+			element: Element,
+			excludeSelectors?: string[],
+		): string | null {
+			if (excludeSelectors && excludeSelectors.length > 0) {
+				const cloned = element.cloneNode(true) as Element;
+				for (const selector of excludeSelectors) {
+					const excludedElements = cloned.querySelectorAll(selector);
+					for (const excludedElement of excludedElements) {
+						excludedElement.remove();
+					}
+				}
+				return cloned.textContent?.trim().replace(/\s+/g, " ") || null;
+			} else {
+				return element.textContent?.trim().replace(/\s+/g, " ") || null;
+			}
+		}
+
 		const containers = document.querySelectorAll(
 			itemsConfig.container_selector,
 		);
@@ -111,16 +118,18 @@ async function extractItemsFromPage(
 			const item: Record<string, string | null> = {};
 			const fieldResults: Record<
 				string,
-				{ success: boolean; value: string | null }
+				{ success: boolean; value: string | null; error?: string }
 			> = {};
 			let hasRequiredFields = true;
 			const missingRequiredFields: string[] = [];
+			const extractionErrors: string[] = [];
 
 			for (const [fieldName, fieldConfig] of Object.entries(
 				itemsConfig.fields,
 			)) {
 				let success = false;
 				let value: string | null = null;
+				let error: string | undefined;
 
 				const typedFieldConfig = fieldConfig as {
 					selector: string;
@@ -131,13 +140,21 @@ async function extractItemsFromPage(
 
 				try {
 					const element = container.querySelector(typedFieldConfig.selector);
-					value = extractFieldValue(element, typedFieldConfig);
+					if (element) {
+						value = extractFieldValue(element, typedFieldConfig);
+					}
 					success = value !== null && value !== "";
-				} catch {
-					// Field extraction failed
+				} catch (err) {
+					error =
+						err instanceof Error
+							? err.message
+							: `Unknown error extracting field ${fieldName}`;
+					extractionErrors.push(
+						`Field '${fieldName}' extraction failed: ${error}`,
+					);
 				}
 
-				fieldResults[fieldName] = { success, value };
+				fieldResults[fieldName] = { success, value, error };
 
 				if (success) {
 					item[fieldName] = value;
@@ -152,6 +169,7 @@ async function extractItemsFromPage(
 				fieldResults,
 				hasRequiredFields,
 				missingRequiredFields,
+				extractionErrors,
 			});
 		});
 
@@ -170,6 +188,13 @@ async function extractItemsFromPage(
 	const filteredReasons: string[] = [];
 
 	filteredItems.forEach((result: ExtractionResult) => {
+		// Add extraction errors first
+		if (result.extractionErrors.length > 0) {
+			result.extractionErrors.forEach((error) => {
+				filteredReasons.push(error);
+			});
+		}
+
 		if (Object.keys(result.item).length === 0) {
 			filteredReasons.push("Item contained no extractable data");
 		} else if (!result.hasRequiredFields) {
@@ -196,6 +221,10 @@ async function extractItemsFromPage(
 					optional?: boolean;
 				};
 				const isOptional = fieldConfig?.optional || false;
+
+				if (fieldResult.error) {
+					return;
+				}
 
 				if (isOptional) {
 					filteredReasons.push(

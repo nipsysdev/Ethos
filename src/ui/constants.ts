@@ -40,6 +40,7 @@ export const ERROR_MESSAGES = {
 	NO_SOURCES_CONFIGURED:
 		"No sources configured. Please add sources to config/sources.yaml",
 	SOURCE_NOT_FOUND: "Source not found",
+	AVAILABLE_SOURCES: "Available sources: ",
 	CRAWL_FAILED: "Crawl failed",
 } as const;
 

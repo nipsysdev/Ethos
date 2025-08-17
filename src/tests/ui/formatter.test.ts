@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CrawlSummary, ProcessedData } from "@/core/types";
-import { formatDataForViewing } from "@/ui/formatter";
+import type { CrawlSummary, ProcessedData, SourceConfig } from "@/core/types";
+import { displaySources, formatDataForViewing } from "@/ui/formatter";
 
 describe("Data Formatter", () => {
 	const createMockSummary = (): CrawlSummary => ({
@@ -105,5 +105,95 @@ describe("Data Formatter", () => {
 		const singleResult = formatDataForViewing([data[0]], summary);
 		expect(singleResult).toContain("--- Item 1 of 1 ---");
 		expect(singleResult).not.toContain("-".repeat(40));
+	});
+});
+
+describe("displaySources", () => {
+	it("should format sources as comma-separated list", () => {
+		const sources: SourceConfig[] = [
+			{
+				id: "source1",
+				name: "Source One",
+				type: "listing",
+				listing: {
+					url: "https://example.com",
+					items: {
+						container_selector: ".item",
+						fields: {},
+					},
+				},
+				content: {
+					container_selector: ".content",
+					fields: {},
+				},
+			},
+			{
+				id: "source2",
+				name: "Source Two",
+				type: "listing",
+				listing: {
+					url: "https://example.com",
+					items: {
+						container_selector: ".item",
+						fields: {},
+					},
+				},
+				content: {
+					container_selector: ".content",
+					fields: {},
+				},
+			},
+			{
+				id: "source3",
+				name: "Source Three",
+				type: "listing",
+				listing: {
+					url: "https://example.com",
+					items: {
+						container_selector: ".item",
+						fields: {},
+					},
+				},
+				content: {
+					container_selector: ".content",
+					fields: {},
+				},
+			},
+		];
+
+		const result = displaySources(sources);
+		expect(result).toBe(
+			"source1 (Source One), source2 (Source Two), source3 (Source Three)",
+		);
+	});
+
+	it("should handle empty array", () => {
+		const sources: SourceConfig[] = [];
+		const result = displaySources(sources);
+		expect(result).toBe("");
+	});
+
+	it("should handle single source", () => {
+		const sources: SourceConfig[] = [
+			{
+				id: "single-source",
+				name: "Single Source",
+				type: "listing",
+				listing: {
+					url: "https://example.com",
+					items: {
+						container_selector: ".item",
+						fields: {},
+					},
+				},
+				content: {
+					container_selector: ".content",
+					fields: {},
+				},
+			},
+		];
+
+		const result = displaySources(sources);
+		expect(result).toBe("single-source (Single Source)");
 	});
 });
