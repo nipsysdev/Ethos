@@ -1,9 +1,6 @@
 import type Database from "better-sqlite3";
 import type { CrawledData } from "@/core/types.js";
-import {
-	MetadataDatabase,
-	type MetadataStoreOptions,
-} from "./MetadataDatabase.js";
+import type { MetadataDatabase } from "./MetadataDatabase";
 
 export interface ContentMetadata {
 	id?: number;
@@ -37,282 +34,266 @@ interface DatabaseRow {
 	created_at: string;
 }
 
-/**
- * Handles content metadata operations - storing, querying, and retrieving crawled content.
- */
-export class ContentMetadataStore extends MetadataDatabase {
-	// Prepared statements for performance
-	private insertStmt!: Database.Statement;
-	private existsByUrlStmt!: Database.Statement;
-	private existsByHashStmt!: Database.Statement;
-	private getByHashStmt!: Database.Statement;
-	private getBySourceStmt!: Database.Statement;
-	private countBySourceStmt!: Database.Statement;
-	private deleteBySourceStmt!: Database.Statement;
-	private getHashesBySourceStmt!: Database.Statement;
+export interface ContentMetadataStore {
+	store: (data: CrawledData, hash: string) => Promise<ContentMetadata>;
+	existsByUrl: (url: string) => boolean;
+	getExistingUrls: (urls: string[]) => Set<string>;
+	existsByHash: (hash: string) => boolean;
+	getByHash: (hash: string) => ContentMetadata | null;
+	query: (options: MetadataQueryOptions) => ContentMetadata[];
+	getBySource: (
+		source: string,
+		limit?: number,
+		offset?: number,
+	) => ContentMetadata[];
+	countBySource: (source: string) => number;
+	getSources: () => Array<{ source: string; count: number }>;
+	deleteBySource: (source: string) => number;
+	getHashesBySource: (source: string) => string[];
+	close: () => void;
+	checkpoint: () => void;
+	getDatabasePath: () => string;
+}
 
-	constructor(options: MetadataStoreOptions = {}) {
-		super(options);
-		this.prepareStatements();
-	}
+interface PreparedStatements {
+	insertStmt: Database.Statement;
+	existsByUrlStmt: Database.Statement;
+	existsByHashStmt: Database.Statement;
+	getByHashStmt: Database.Statement;
+	getBySourceStmt: Database.Statement;
+	countBySourceStmt: Database.Statement;
+	deleteBySourceStmt: Database.Statement;
+	getHashesBySourceStmt: Database.Statement;
+}
 
-	/**
-	 * Prepare frequently used statements
-	 */
-	private prepareStatements(): void {
-		this.insertStmt = this.db.prepare(`
+function prepareStatements(db: Database.Database): PreparedStatements {
+	return {
+		insertStmt: db.prepare(`
 			INSERT INTO crawled_content (hash, source, url, title, author, published_date, crawled_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
-		`);
+		`),
 
-		this.existsByUrlStmt = this.db.prepare(`
+		existsByUrlStmt: db.prepare(`
 			SELECT 1 FROM crawled_content WHERE url = ? LIMIT 1
-		`);
+		`),
 
-		this.existsByHashStmt = this.db.prepare(`
+		existsByHashStmt: db.prepare(`
 			SELECT 1 FROM crawled_content WHERE hash = ? LIMIT 1
-		`);
+		`),
 
-		this.getByHashStmt = this.db.prepare(`
+		getByHashStmt: db.prepare(`
 			SELECT * FROM crawled_content WHERE hash = ? LIMIT 1
-		`);
+		`),
 
-		this.getBySourceStmt = this.db.prepare(`
+		getBySourceStmt: db.prepare(`
 			SELECT * FROM crawled_content 
 			WHERE source = ? 
 			ORDER BY crawled_at DESC 
 			LIMIT ? OFFSET ?
-		`);
+		`),
 
-		this.countBySourceStmt = this.db.prepare(`
+		countBySourceStmt: db.prepare(`
 			SELECT COUNT(*) as count FROM crawled_content WHERE source = ?
-		`);
+		`),
 
-		this.deleteBySourceStmt = this.db.prepare(`
+		deleteBySourceStmt: db.prepare(`
 			DELETE FROM crawled_content WHERE source = ?
-		`);
+		`),
 
-		this.getHashesBySourceStmt = this.db.prepare(`
+		getHashesBySourceStmt: db.prepare(`
 			SELECT hash FROM crawled_content WHERE source = ?
-		`);
-	}
+		`),
+	};
+}
 
-	/**
-	 * Store metadata for crawled content
-	 */
-	async store(data: CrawledData, hash: string): Promise<ContentMetadata> {
-		try {
-			// Convert publishedDate string to Date object if present
-			let publishedDate: Date | null = null;
-			if (data.publishedDate) {
-				publishedDate = new Date(data.publishedDate);
-				// Validate the Date object is parseable
-				if (!publishedDate || Number.isNaN(publishedDate.getTime())) {
-					throw new Error(`Invalid date format: ${data.publishedDate}`);
+export function createContentMetadataStore(
+	metadataDb: MetadataDatabase,
+): ContentMetadataStore {
+	const stmts = prepareStatements(metadataDb.db);
+
+	const mapRowToMetadata = (row: DatabaseRow): ContentMetadata => ({
+		id: row.id,
+		hash: row.hash,
+		source: row.source,
+		url: row.url,
+		title: row.title,
+		author: row.author ? row.author : undefined,
+		publishedDate: row.published_date
+			? new Date(row.published_date)
+			: undefined,
+		crawledAt: new Date(row.crawled_at),
+		createdAt: new Date(row.created_at),
+	});
+
+	return {
+		store: async (
+			data: CrawledData,
+			hash: string,
+		): Promise<ContentMetadata> => {
+			try {
+				let publishedDate: Date | null = null;
+				if (data.publishedDate) {
+					publishedDate = new Date(data.publishedDate);
+					if (!publishedDate || Number.isNaN(publishedDate.getTime())) {
+						throw new Error(`Invalid date format: ${data.publishedDate}`);
+					}
+				}
+
+				const result = stmts.insertStmt.run(
+					hash,
+					data.source,
+					data.url,
+					data.title,
+					data.author || null,
+					publishedDate ? publishedDate.toISOString() : null,
+					data.timestamp.toISOString(),
+				);
+
+				return {
+					id: result.lastInsertRowid as number,
+					hash,
+					source: data.source,
+					url: data.url,
+					title: data.title,
+					author: data.author || undefined,
+					publishedDate: publishedDate || undefined,
+					crawledAt: data.timestamp,
+					createdAt: new Date(),
+				};
+			} catch (error) {
+				if (
+					error instanceof Error &&
+					error.message.includes("UNIQUE constraint failed")
+				) {
+					if (error.message.includes("url")) {
+						throw new Error(`Content with URL already exists: ${data.url}`);
+					}
+					if (error.message.includes("hash")) {
+						throw new Error(`Content with hash already exists: ${hash}`);
+					}
+				}
+				throw new Error(
+					`Failed to store metadata: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		},
+
+		existsByUrl: (url: string): boolean => {
+			return stmts.existsByUrlStmt.get(url) !== undefined;
+		},
+
+		getExistingUrls: (urls: string[]): Set<string> => {
+			if (urls.length === 0) return new Set();
+
+			const BATCH_SIZE = 900;
+			const existingUrls = new Set<string>();
+
+			for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+				const batch = urls.slice(i, i + BATCH_SIZE);
+				const placeholders = batch.map(() => "?").join(",");
+
+				const stmt = metadataDb.db.prepare(`
+					SELECT url FROM crawled_content WHERE url IN (${placeholders})
+				`);
+
+				const rows = stmt.all(...batch) as Array<{ url: string }>;
+				for (const row of rows) {
+					existingUrls.add(row.url);
 				}
 			}
 
-			const result = this.insertStmt.run(
-				hash,
-				data.source,
-				data.url,
-				data.title,
-				data.author || null,
-				publishedDate ? publishedDate.toISOString() : null,
-				data.timestamp.toISOString(),
-			);
+			return existingUrls;
+		},
 
-			return {
-				id: result.lastInsertRowid as number,
-				hash,
-				source: data.source,
-				url: data.url,
-				title: data.title,
-				author: data.author || undefined,
-				publishedDate: publishedDate || undefined,
-				crawledAt: data.timestamp,
-				createdAt: new Date(),
-			};
-		} catch (error) {
-			// Handle unique constraint violations gracefully
-			if (
-				error instanceof Error &&
-				error.message.includes("UNIQUE constraint failed")
-			) {
-				if (error.message.includes("url")) {
-					throw new Error(`Content with URL already exists: ${data.url}`);
-				}
-				if (error.message.includes("hash")) {
-					throw new Error(`Content with hash already exists: ${hash}`);
-				}
+		existsByHash: (hash: string): boolean => {
+			return stmts.existsByHashStmt.get(hash) !== undefined;
+		},
+
+		getByHash: (hash: string): ContentMetadata | null => {
+			const row = stmts.getByHashStmt.get(hash) as DatabaseRow | undefined;
+			return row ? mapRowToMetadata(row) : null;
+		},
+
+		query: (options: MetadataQueryOptions = {}): ContentMetadata[] => {
+			let sql = "SELECT * FROM crawled_content WHERE 1=1";
+			const params: (string | number)[] = [];
+
+			if (options.source) {
+				sql += " AND source = ?";
+				params.push(options.source);
 			}
-			throw new Error(
-				`Failed to store metadata: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}
 
-	/**
-	 * Check if content exists by URL
-	 */
-	existsByUrl(url: string): boolean {
-		return this.existsByUrlStmt.get(url) !== undefined;
-	}
+			if (options.startDate) {
+				sql += " AND crawled_at >= ?";
+				params.push(options.startDate.toISOString());
+			}
 
-	/**
-	 * Check if multiple URLs exist in the database. Returns a Set of existing URLs.
-	 * This is much more efficient than calling existsByUrl() in a loop.
-	 */
-	getExistingUrls(urls: string[]): Set<string> {
-		if (urls.length === 0) return new Set();
+			if (options.endDate) {
+				sql += " AND crawled_at <= ?";
+				params.push(options.endDate.toISOString());
+			}
 
-		// SQLite has a limit on the number of parameters in a query (usually 999)
-		// So we'll batch the queries if needed
-		const BATCH_SIZE = 900;
-		const existingUrls = new Set<string>();
+			sql += " ORDER BY crawled_at DESC";
 
-		for (let i = 0; i < urls.length; i += BATCH_SIZE) {
-			const batch = urls.slice(i, i + BATCH_SIZE);
-			const placeholders = batch.map(() => "?").join(",");
+			if (options.limit) {
+				sql += " LIMIT ?";
+				params.push(options.limit);
+			}
 
-			const stmt = this.db.prepare(`
-				SELECT url FROM crawled_content WHERE url IN (${placeholders})
+			if (options.offset) {
+				sql += " OFFSET ?";
+				params.push(options.offset);
+			}
+
+			const stmt = metadataDb.db.prepare(sql);
+			const rows = stmt.all(...params) as DatabaseRow[];
+
+			return rows.map((row) => mapRowToMetadata(row));
+		},
+
+		getBySource: (
+			source: string,
+			limit = 50,
+			offset = 0,
+		): ContentMetadata[] => {
+			const rows = stmts.getBySourceStmt.all(
+				source,
+				limit,
+				offset,
+			) as DatabaseRow[];
+			return rows.map((row) => mapRowToMetadata(row));
+		},
+
+		countBySource: (source: string): number => {
+			const result = stmts.countBySourceStmt.get(source) as { count: number };
+			return result.count;
+		},
+
+		getSources: (): Array<{ source: string; count: number }> => {
+			const stmt = metadataDb.db.prepare(`
+				SELECT source, COUNT(*) as count 
+				FROM crawled_content 
+				GROUP BY source 
+				ORDER BY count DESC
 			`);
 
-			const rows = stmt.all(...batch) as Array<{ url: string }>;
-			for (const row of rows) {
-				existingUrls.add(row.url);
-			}
-		}
+			return stmt.all() as Array<{ source: string; count: number }>;
+		},
 
-		return existingUrls;
-	}
+		deleteBySource: (source: string): number => {
+			const result = stmts.deleteBySourceStmt.run(source);
+			return result.changes;
+		},
 
-	/**
-	 * Check if content exists by hash
-	 */
-	existsByHash(hash: string): boolean {
-		return this.existsByHashStmt.get(hash) !== undefined;
-	}
+		getHashesBySource: (source: string): string[] => {
+			const rows = stmts.getHashesBySourceStmt.all(source) as Array<{
+				hash: string;
+			}>;
+			return rows.map((row) => row.hash);
+		},
 
-	/**
-	 * Get metadata by hash
-	 */
-	getByHash(hash: string): ContentMetadata | null {
-		const row = this.getByHashStmt.get(hash) as DatabaseRow | undefined;
-		return row ? this.mapRowToMetadata(row) : null;
-	}
-
-	/**
-	 * Query content by various criteria
-	 */
-	query(options: MetadataQueryOptions = {}): ContentMetadata[] {
-		let sql = "SELECT * FROM crawled_content WHERE 1=1";
-		const params: (string | number)[] = [];
-
-		if (options.source) {
-			sql += " AND source = ?";
-			params.push(options.source);
-		}
-
-		if (options.startDate) {
-			sql += " AND crawled_at >= ?";
-			params.push(options.startDate.toISOString());
-		}
-
-		if (options.endDate) {
-			sql += " AND crawled_at <= ?";
-			params.push(options.endDate.toISOString());
-		}
-
-		sql += " ORDER BY crawled_at DESC";
-
-		if (options.limit) {
-			sql += " LIMIT ?";
-			params.push(options.limit);
-		}
-
-		if (options.offset) {
-			sql += " OFFSET ?";
-			params.push(options.offset);
-		}
-
-		const stmt = this.db.prepare(sql);
-		const rows = stmt.all(...params) as DatabaseRow[];
-
-		return rows.map((row) => this.mapRowToMetadata(row));
-	}
-
-	/**
-	 * Get content by source with pagination
-	 */
-	getBySource(source: string, limit = 50, offset = 0): ContentMetadata[] {
-		const rows = this.getBySourceStmt.all(
-			source,
-			limit,
-			offset,
-		) as DatabaseRow[];
-		return rows.map((row) => this.mapRowToMetadata(row));
-	}
-
-	/**
-	 * Count content by source
-	 */
-	countBySource(source: string): number {
-		const result = this.countBySourceStmt.get(source) as { count: number };
-		return result.count;
-	}
-
-	/**
-	 * Get all sources with content counts
-	 */
-	getSources(): Array<{ source: string; count: number }> {
-		const stmt = this.db.prepare(`
-			SELECT source, COUNT(*) as count 
-			FROM crawled_content 
-			GROUP BY source 
-			ORDER BY count DESC
-		`);
-
-		return stmt.all() as Array<{ source: string; count: number }>;
-	}
-
-	/**
-	 * Delete all content for a specific source
-	 * Returns the number of rows deleted
-	 */
-	deleteBySource(source: string): number {
-		const result = this.deleteBySourceStmt.run(source);
-		return result.changes;
-	}
-
-	/**
-	 * Get all content hashes for a specific source
-	 * Used for file cleanup before database deletion
-	 */
-	getHashesBySource(source: string): string[] {
-		const rows = this.getHashesBySourceStmt.all(source) as Array<{
-			hash: string;
-		}>;
-		return rows.map((row) => row.hash);
-	}
-
-	/**
-	 * Map database row to ContentMetadata
-	 */
-	private mapRowToMetadata(row: DatabaseRow): ContentMetadata {
-		return {
-			id: row.id,
-			hash: row.hash,
-			source: row.source,
-			url: row.url,
-			title: row.title,
-			author: row.author ? row.author : undefined,
-			publishedDate: row.published_date
-				? new Date(row.published_date)
-				: undefined,
-			crawledAt: new Date(row.crawled_at),
-			createdAt: new Date(row.created_at),
-		};
-	}
+		close: () => metadataDb.close(),
+		checkpoint: () => metadataDb.checkpoint(),
+		getDatabasePath: () => metadataDb.getDatabasePath(),
+	};
 }

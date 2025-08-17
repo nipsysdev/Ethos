@@ -145,4 +145,4 @@ jobs:
         run: pnpm build
 
       - name: Test CLI
-        run: pnpm cli --help
+        run: pnpm start --help

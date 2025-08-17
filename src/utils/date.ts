@@ -1,8 +1,3 @@
-/**
- * Date parsing utilities for handling various date formats from crawled content
- */
-
-// Month name to zero-based index mapping for consistent date parsing
 const MONTH_MAP: Record<string, number> = {
 	january: 0,
 	february: 1,
@@ -29,18 +24,6 @@ const MONTH_MAP: Record<string, number> = {
 	dec: 11,
 };
 
-/**
- * Attempts to parse a date string from various formats commonly found in web content
- * Returns ISO 8601 string (same as Date.toISOString())
- * Throws error if the date cannot be parsed - this indicates source format changes
- *
- * Handles formats like:
- * - "July 10, 2025"
- * - "May 30, 2025"
- * - "2025-07-10"
- * - "10/07/2025"
- * - And other common variations
- */
 export function parsePublishedDate(
 	dateString: string | null | undefined,
 ): string {
@@ -50,18 +33,15 @@ export function parsePublishedDate(
 		);
 	}
 
-	// Clean up the string - remove extra whitespace and common prefixes
 	const cleaned = dateString
 		.trim()
 		.replace(/^(published|posted(\s+on)?|on)\s*/i, "")
 		.replace(/\s+/g, " ");
 
 	try {
-		// For "Month DD, YYYY" format, parse explicitly as UTC to avoid timezone issues
 		const monthDayYear = cleaned.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/);
 		if (monthDayYear) {
 			const [, monthName, day, year] = monthDayYear;
-
 			const monthIndex = MONTH_MAP[monthName.toLowerCase()];
 			if (monthIndex !== undefined) {
 				const parsed = new Date(
@@ -73,11 +53,9 @@ export function parsePublishedDate(
 			}
 		}
 
-		// For "DD Month YYYY" format
 		const dayMonthYear = cleaned.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/);
 		if (dayMonthYear) {
 			const [, day, monthName, year] = dayMonthYear;
-
 			const monthIndex = MONTH_MAP[monthName.toLowerCase()];
 			if (monthIndex !== undefined) {
 				const parsed = new Date(
@@ -89,7 +67,6 @@ export function parsePublishedDate(
 			}
 		}
 
-		// For ISO format or other standard formats that Date can handle directly
 		const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
 		if (isoMatch) {
 			const [, year, month, day] = isoMatch;
@@ -101,8 +78,6 @@ export function parsePublishedDate(
 			}
 		}
 
-		// Handle full ISO datetime formats (with or without timezone)
-		// Examples: "2025-07-25T12:00:00-07:00", "2025-07-25T12:00:00Z", "2025-07-25T12:00:00.000Z"
 		if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(cleaned)) {
 			const parsed = new Date(cleaned);
 			if (isValidDate(parsed)) {
@@ -110,13 +85,11 @@ export function parsePublishedDate(
 			}
 		}
 
-		// If all else fails, try parsing as-is
 		const fallbackDate = new Date(cleaned);
 		if (isValidDate(fallbackDate)) {
 			return fallbackDate.toISOString();
 		}
 
-		// If all parsing attempts fail, throw error - source format has likely changed
 		throw new Error(
 			`Unable to parse date format: "${dateString}". Source format may have changed and requires code update.`,
 		);
@@ -125,7 +98,7 @@ export function parsePublishedDate(
 			error instanceof Error &&
 			error.message.includes("Unable to parse date format")
 		) {
-			throw error; // Re-throw our custom parsing errors
+			throw error;
 		}
 		throw new Error(
 			`Error parsing date "${dateString}": ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -133,33 +106,23 @@ export function parsePublishedDate(
 	}
 }
 
-/**
- * Checks if a Date object represents a valid, reasonable date
- */
 function isValidDate(date: Date): boolean {
-	// Check if it's a valid date object
 	if (Number.isNaN(date.getTime())) {
 		return false;
 	}
 
-	// Check if it's within a reasonable range (not too far in past/future)
 	const year = date.getFullYear();
 	const currentYear = new Date().getFullYear();
-
-	// Allow dates from 1990 to 5 years in the future
 	return year >= 1990 && year <= currentYear + 5;
 }
 
-/**
- * Formats a date for display purposes (keeps original behavior for UI)
- */
 export function formatDateForDisplay(isoString: string): string {
 	try {
 		const date = new Date(isoString);
 		if (Number.isNaN(date.getTime())) {
-			return isoString; // Return original if invalid
+			return isoString;
 		}
-		// Use UTC methods to avoid timezone conversion issues
+
 		return date.toLocaleDateString("en-US", {
 			year: "numeric",
 			month: "long",
@@ -167,6 +130,6 @@ export function formatDateForDisplay(isoString: string): string {
 			timeZone: "UTC",
 		});
 	} catch {
-		return isoString; // Fallback to original
+		return isoString;
 	}
 }

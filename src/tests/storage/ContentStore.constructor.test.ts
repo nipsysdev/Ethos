@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ContentStore } from "@/storage/ContentStore.js";
+import { createContentStore } from "@/storage/ContentStore.js";
 
 describe("ContentStore - Constructor", () => {
 	let testStorageDir: string;
@@ -38,28 +38,35 @@ describe("ContentStore - Constructor", () => {
 	});
 
 	it("should create ContentStore with default settings", () => {
-		const store = new ContentStore({
+		const store = createContentStore({
 			metadataOptions: {
 				dbPath: resolve(tempDbPath, "metadata.db"),
 			},
 		});
-		expect(store).toBeInstanceOf(ContentStore);
+		expect(store).toBeDefined();
+		expect(store.getStorageDirectory).toBeDefined();
+		expect(store.getMetadataStore).toBeDefined();
+		expect(store.store).toBeDefined();
+		expect(store.retrieve).toBeDefined();
+		expect(store.exists).toBeDefined();
 	});
 
 	it("should create ContentStore with custom storage directory", () => {
-		const customStore = new ContentStore({
+		const customStore = createContentStore({
 			storageDir: testStorageDir,
 			metadataOptions: {
 				dbPath: resolve(tempDbPath, "metadata2.db"),
 			},
 		});
-		expect(customStore).toBeInstanceOf(ContentStore);
+		expect(customStore).toBeDefined();
+		expect(customStore.getStorageDirectory()).toBe(resolve(testStorageDir));
 	});
 
 	it("should create ContentStore with metadata disabled", () => {
-		const store = new ContentStore({
+		const store = createContentStore({
 			enableMetadata: false,
 		});
-		expect(store).toBeInstanceOf(ContentStore);
+		expect(store).toBeDefined();
+		expect(store.getMetadataStore()).toBeUndefined();
 	});
 });

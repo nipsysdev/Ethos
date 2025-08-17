@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SourceRegistry } from "@/core/SourceRegistry.js";
+import { createSourceRegistry } from "@/core/SourceRegistry.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 
 describe("SourceRegistry", () => {
@@ -54,7 +54,7 @@ describe("SourceRegistry", () => {
 
 		await writeFile(configPath, testConfig);
 
-		const registry = new SourceRegistry(configPath);
+		const registry = createSourceRegistry(configPath);
 		const sources = await registry.loadSources();
 
 		// Validate that it loaded correctly
@@ -74,7 +74,7 @@ describe("SourceRegistry", () => {
 	});
 
 	it("should handle file not found", async () => {
-		const registry = new SourceRegistry("/nonexistent/path/sources.yaml");
+		const registry = createSourceRegistry("/nonexistent/path/sources.yaml");
 		await expect(registry.loadSources()).rejects.toThrow(
 			/Failed to load sources/,
 		);
@@ -88,7 +88,7 @@ describe("SourceRegistry", () => {
 		const invalidConfig = `not_sources: []`;
 
 		await writeFile(configPath, invalidConfig);
-		const registry = new SourceRegistry(configPath);
+		const registry = createSourceRegistry(configPath);
 		await expect(registry.loadSources()).rejects.toThrow(
 			"Invalid config: 'sources' must be an array",
 		);
@@ -109,7 +109,7 @@ describe("SourceRegistry", () => {
 
 		await writeFile(configPath, invalidConfig);
 
-		const registry = new SourceRegistry(configPath);
+		const registry = createSourceRegistry(configPath);
 		await expect(registry.loadSources()).rejects.toThrow();
 	});
 
@@ -155,7 +155,7 @@ describe("SourceRegistry", () => {
           attribute: "text"`;
 
 		await writeFile(configPath, testConfig);
-		const registry = new SourceRegistry(configPath);
+		const registry = createSourceRegistry(configPath);
 
 		const allSources = await registry.getAllSources();
 		expect(allSources).toHaveLength(2);
@@ -171,7 +171,7 @@ describe("SourceRegistry", () => {
 		const testConfig = `sources: []`;
 
 		await writeFile(configPath, testConfig);
-		const registry = new SourceRegistry(configPath);
+		const registry = createSourceRegistry(configPath);
 
 		const sources = await registry.loadSources();
 		expect(sources).toHaveLength(0);

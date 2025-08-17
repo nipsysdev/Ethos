@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	CrawlErrorManager,
-	PatternBasedErrorCategorizer,
+	type CrawlErrorManager,
+	categorizeErrors,
+	createCrawlErrorManager,
 } from "@/crawlers/CrawlErrorManager.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
@@ -17,7 +18,7 @@ describe("CrawlErrorManager", () => {
 			getSession: vi.fn(),
 		};
 
-		errorManager = new CrawlErrorManager(
+		errorManager = createCrawlErrorManager(
 			mockMetadataStore as MetadataStore,
 			sessionId,
 		);
@@ -134,13 +135,7 @@ describe("CrawlErrorManager", () => {
 	});
 });
 
-describe("PatternBasedErrorCategorizer", () => {
-	let categorizer: PatternBasedErrorCategorizer;
-
-	beforeEach(() => {
-		categorizer = new PatternBasedErrorCategorizer();
-	});
-
+describe("categorizeErrors", () => {
 	it("should categorize listing errors correctly", () => {
 		const errors = [
 			"Optional field 'author' not found",
@@ -149,7 +144,7 @@ describe("PatternBasedErrorCategorizer", () => {
 			"Item contained no extractable data",
 		];
 
-		const result = categorizer.categorizeErrors(errors);
+		const result = categorizeErrors(errors);
 
 		expect(result.listingErrors).toEqual(errors);
 		expect(result.contentErrors).toEqual([]);
@@ -162,7 +157,7 @@ describe("PatternBasedErrorCategorizer", () => {
 			"Content parsing error occurred",
 		];
 
-		const result = categorizer.categorizeErrors(errors);
+		const result = categorizeErrors(errors);
 
 		expect(result.listingErrors).toEqual([]);
 		expect(result.contentErrors).toEqual(errors);
@@ -176,7 +171,7 @@ describe("PatternBasedErrorCategorizer", () => {
 			"Content parsing error",
 		];
 
-		const result = categorizer.categorizeErrors(errors);
+		const result = categorizeErrors(errors);
 
 		expect(result.listingErrors).toEqual([
 			"Required field 'title' not found",

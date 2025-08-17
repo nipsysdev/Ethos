@@ -2,7 +2,10 @@ import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
 
 describe("MetadataStore - Queries", () => {
 	let tempDbPath: string;
@@ -15,7 +18,7 @@ describe("MetadataStore - Queries", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = new MetadataStore({
+		store = createMetadataStore({
 			dbPath: resolve(tempDbPath, "metadata.db"),
 		});
 
@@ -110,7 +113,7 @@ describe("MetadataStore - Queries", () => {
 	it("should filter content by author", async () => {
 		// Since author filtering is not available via query options,
 		// we'll get all content and filter manually for this test
-		const allContent = store.query();
+		const allContent = store.query({});
 		const authorAContent = allContent.filter((c) => c.author === "Author A");
 		expect(authorAContent).toHaveLength(2);
 		expect(authorAContent.map((c) => c.title)).toEqual(
@@ -123,7 +126,7 @@ describe("MetadataStore - Queries", () => {
 	});
 
 	it("should return empty array for non-existent author", async () => {
-		const allContent = store.query();
+		const allContent = store.query({});
 		const content = allContent.filter(
 			(c) => c.author === "Non-existent Author",
 		);
@@ -131,7 +134,7 @@ describe("MetadataStore - Queries", () => {
 	});
 
 	it("should get all content", async () => {
-		const allContent = store.query();
+		const allContent = store.query({});
 		expect(allContent).toHaveLength(3);
 		expect(allContent.map((c) => c.title)).toEqual(
 			expect.arrayContaining([
@@ -143,7 +146,7 @@ describe("MetadataStore - Queries", () => {
 	});
 
 	it("should get content count", async () => {
-		const allContent = store.query();
+		const allContent = store.query({});
 		const count = allContent.length;
 		expect(count).toBe(3);
 	});

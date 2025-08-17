@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { CRAWLER_TYPES, type SourceConfig } from "@/core/types.js";
-import { ArticleListingCrawler } from "@/crawlers/ArticleListingCrawler.js";
+import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler.js";
 
 describe("ArticleListingCrawler - Basic Functionality", () => {
 	it("should have correct type", () => {
-		const crawler = new ArticleListingCrawler();
+		const crawler = createArticleListingCrawler();
 		expect(crawler.type).toBe(CRAWLER_TYPES.LISTING);
 	});
 
 	it("should reject non-listing config types", async () => {
-		const crawler = new ArticleListingCrawler();
+		const crawler = createArticleListingCrawler();
 		const nonListingConfig = {
 			id: "test",
 			name: "Test",

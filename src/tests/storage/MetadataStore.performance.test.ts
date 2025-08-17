@@ -2,7 +2,10 @@ import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
-import { MetadataStore } from "@/storage/MetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
 
 describe("MetadataStore - Performance", () => {
 	let tempDbPath: string;
@@ -15,7 +18,7 @@ describe("MetadataStore - Performance", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = new MetadataStore({
+		store = createMetadataStore({
 			dbPath: resolve(tempDbPath, "metadata.db"),
 		});
 	});
@@ -54,7 +57,7 @@ describe("MetadataStore - Performance", () => {
 		const totalTime = endTime - startTime;
 
 		// Verify all content was stored
-		const allResults = store.query();
+		const allResults = store.query({});
 		expect(allResults).toHaveLength(bulkSize);
 
 		// Performance assertion (should complete within reasonable time)
@@ -151,7 +154,7 @@ describe("MetadataStore - Performance", () => {
 
 		// Test retrieving all content
 		const startTime = Date.now();
-		const allContent = store.query();
+		const allContent = store.query({});
 		const endTime = Date.now();
 
 		expect(allContent).toHaveLength(largeDataSize);

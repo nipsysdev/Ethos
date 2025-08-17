@@ -1,0 +1,138 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { displayResults, showPostCrawlMenuWithFlow } from "@/ui/display";
+
+// Mock inquirer and other dependencies
+vi.mock("inquirer", () => ({
+	default: {
+		prompt: vi.fn(),
+	},
+}));
+
+vi.mock("../../ui/menus.js", () => ({
+	showPostCrawlMenu: vi.fn(),
+}));
+
+vi.mock("../../ui/viewer.js", () => ({
+	showExtractedData: vi.fn(),
+}));
+
+// Mock createMetadataStore
+const mockMetadataStoreInstance = {
+	store: vi.fn(),
+	existsByUrl: vi.fn(),
+	getExistingUrls: vi.fn(),
+	existsByHash: vi.fn(),
+	getByHash: vi.fn(),
+	query: vi.fn(),
+	getBySource: vi.fn(),
+	countBySource: vi.fn(),
+	getSources: vi.fn(),
+	deleteContentBySource: vi.fn(),
+	getContentHashesBySource: vi.fn(),
+	createSession: vi.fn(),
+	updateSession: vi.fn(),
+	getSession: vi.fn(),
+	getAllSessions: vi.fn(),
+	isSessionActive: vi.fn(),
+	endSession: vi.fn(),
+	linkContentToSession: vi.fn(),
+	getSessionContents: vi.fn(),
+	deleteSessionsBySource: vi.fn(),
+	countSessionsBySource: vi.fn(),
+	addSessionErrors: vi.fn(),
+	close: vi.fn(),
+	checkpoint: vi.fn(),
+	getDatabasePath: vi.fn(),
+};
+
+vi.mock("@/storage/MetadataStore", async (importOriginal) => {
+	const actual =
+		await importOriginal<typeof import("@/storage/MetadataStore")>();
+	return {
+		...actual,
+		createMetadataStore: vi.fn(() => mockMetadataStoreInstance),
+	};
+});
+
+const mockShowPostCrawlMenu = vi.mocked(
+	(await import("../../ui/menus.js")).showPostCrawlMenu,
+);
+const mockShowExtractedData = vi.mocked(
+	(await import("../../ui/viewer.js")).showExtractedData,
+);
+
+describe("display module", () => {
+	const mockResult: ProcessingSummaryResult = {
+		summary: {
+			sourceName: "test",
+			sourceId: "test-id",
+			startTime: new Date(),
+			endTime: new Date(),
+			itemsFound: 0,
+			itemsProcessed: 0,
+			itemsWithErrors: 0,
+			fieldStats: [],
+			contentFieldStats: [],
+			listingErrors: [],
+		},
+	};
+
+	it("should call displayResults without throwing", () => {
+		// Mock console.log to avoid noise in test output
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		expect(() => displayResults(mockResult)).not.toThrow();
+
+		consoleSpy.mockRestore();
+	});
+
+	describe("showPostCrawlMenuWithFlow", () => {
+		beforeEach(() => {
+			vi.clearAllMocks();
+		});
+
+		it("should return action directly when not viewing", async () => {
+			mockShowPostCrawlMenu.mockResolvedValue("exit");
+
+			const result = await showPostCrawlMenuWithFlow(mockResult);
+
+			expect(result).toBe("exit");
+			expect(mockShowPostCrawlMenu).toHaveBeenCalledTimes(1);
+			expect(mockShowExtractedData).not.toHaveBeenCalled();
+		});
+
+		it("should show viewer and loop back to menu when view is selected", async () => {
+			mockShowPostCrawlMenu
+				.mockResolvedValueOnce("view")
+				.mockResolvedValueOnce("main");
+
+			const result = await showPostCrawlMenuWithFlow(mockResult);
+
+			expect(result).toBe("main");
+			expect(mockShowPostCrawlMenu).toHaveBeenCalledTimes(2);
+			expect(mockShowExtractedData).toHaveBeenCalledTimes(1);
+			expect(mockShowExtractedData).toHaveBeenCalledWith(
+				mockResult,
+				mockMetadataStoreInstance,
+			);
+		});
+
+		it("should handle user selection to exit", async () => {
+			mockShowPostCrawlMenu.mockResolvedValue("exit");
+
+			const result = await showPostCrawlMenuWithFlow(mockResult);
+
+			expect(result).toBe("exit");
+			expect(mockShowPostCrawlMenu).toHaveBeenCalledTimes(1);
+		});
+
+		it("should handle errors in post-crawl menu flow", async () => {
+			mockShowPostCrawlMenu.mockRejectedValue(new Error("Test error"));
+
+			await expect(showPostCrawlMenuWithFlow(mockResult)).rejects.toThrow(
+				"Test error",
+			);
+		});
+	});
+});

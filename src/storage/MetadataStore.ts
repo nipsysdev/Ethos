@@ -1,175 +1,196 @@
 import type { CrawledData } from "@/core/types.js";
 import {
 	type ContentMetadata,
-	ContentMetadataStore,
+	createContentMetadataStore,
 	type MetadataQueryOptions,
-} from "./ContentMetadataStore.js";
-import type { MetadataStoreOptions } from "./MetadataDatabase.js";
+} from "@/storage/ContentMetadataStore";
+import {
+	createMetadataDatabase,
+	type MetadataStoreOptions,
+} from "@/storage/MetadataDatabase";
 import {
 	type CrawlSession,
+	createSessionMetadataStore,
 	type SessionContent,
-	SessionMetadataStore,
-} from "./SessionMetadataStore.js";
+} from "@/storage/SessionMetadataStore";
 
-/**
- * Unified interface that provides both content and session metadata operations.
- * This maintains backward compatibility while keeping the implementation clean.
- * Both stores share the same database file but manage their own connections.
- */
-export class MetadataStore {
-	private contentStore: ContentMetadataStore;
-	private sessionStore: SessionMetadataStore;
+export interface MetadataStore {
+	// Content operations
+	store: (data: CrawledData, hash: string) => Promise<ContentMetadata>;
+	existsByUrl: (url: string) => boolean;
+	getExistingUrls: (urls: string[]) => Set<string>;
+	existsByHash: (hash: string) => boolean;
+	getByHash: (hash: string) => ContentMetadata | null;
+	query: (options: MetadataQueryOptions) => ContentMetadata[];
+	getBySource: (
+		source: string,
+		limit?: number,
+		offset?: number,
+	) => ContentMetadata[];
+	countBySource: (source: string) => number;
+	getSources: () => Array<{ source: string; count: number }>;
+	deleteContentBySource: (source: string) => number;
+	getContentHashesBySource: (source: string) => string[];
 
-	constructor(options: MetadataStoreOptions = {}) {
-		// Both stores will connect to the same database file
-		this.contentStore = new ContentMetadataStore(options);
-		this.sessionStore = new SessionMetadataStore(options);
-	}
-
-	// Content operations - delegate to ContentMetadataStore
-	async store(data: CrawledData, hash: string): Promise<ContentMetadata> {
-		return this.contentStore.store(data, hash);
-	}
-
-	existsByUrl(url: string): boolean {
-		return this.contentStore.existsByUrl(url);
-	}
-
-	getExistingUrls(urls: string[]): Set<string> {
-		return this.contentStore.getExistingUrls(urls);
-	}
-
-	existsByHash(hash: string): boolean {
-		return this.contentStore.existsByHash(hash);
-	}
-
-	getByHash(hash: string): ContentMetadata | null {
-		return this.contentStore.getByHash(hash);
-	}
-
-	query(options: MetadataQueryOptions = {}): ContentMetadata[] {
-		return this.contentStore.query(options);
-	}
-
-	getBySource(source: string, limit = 50, offset = 0): ContentMetadata[] {
-		return this.contentStore.getBySource(source, limit, offset);
-	}
-
-	countBySource(source: string): number {
-		return this.contentStore.countBySource(source);
-	}
-
-	getSources(): Array<{ source: string; count: number }> {
-		return this.contentStore.getSources();
-	}
-
-	// Content deletion operations
-	deleteContentBySource(source: string): number {
-		return this.contentStore.deleteBySource(source);
-	}
-
-	getContentHashesBySource(source: string): string[] {
-		return this.contentStore.getHashesBySource(source);
-	}
-
-	// Session operations - delegate to SessionMetadataStore
-	createSession(
+	// Session operations
+	createSession: (
 		sessionId: string,
 		sourceId: string,
 		sourceName: string,
 		startTime: Date,
 		metadata: object,
-	): CrawlSession {
-		return this.sessionStore.createSession(
-			sessionId,
-			sourceId,
-			sourceName,
-			startTime,
-			metadata,
-		);
-	}
-
-	updateSession(sessionId: string, metadata: object): void {
-		this.sessionStore.updateSession(sessionId, metadata);
-	}
-
-	getSession(sessionId: string): CrawlSession | null {
-		return this.sessionStore.getSession(sessionId);
-	}
-
-	getAllSessions(): CrawlSession[] {
-		return this.sessionStore.getAllSessions();
-	}
-
-	isSessionActive(sessionId: string): boolean {
-		return this.sessionStore.isSessionActive(sessionId);
-	}
-
-	endSession(sessionId: string): void {
-		this.sessionStore.endSession(sessionId);
-	}
-
-	linkContentToSession(
+	) => CrawlSession;
+	updateSession: (sessionId: string, metadata: object) => void;
+	getSession: (sessionId: string) => CrawlSession | null;
+	getAllSessions: () => CrawlSession[];
+	isSessionActive: (sessionId: string) => boolean;
+	endSession: (sessionId: string) => void;
+	linkContentToSession: (
 		sessionId: string,
 		contentId: number,
 		processedOrder: number,
-		hadContentExtractionError = false,
-	): void {
-		this.sessionStore.linkContentToSession(
-			sessionId,
-			contentId,
-			processedOrder,
-			hadContentExtractionError,
-		);
-	}
-
-	getSessionContents(sessionId: string): Array<
+		hadContentExtractionError?: boolean,
+	) => void;
+	getSessionContents: (sessionId: string) => Array<
 		ContentMetadata & {
 			processedOrder: number;
 			hadContentExtractionError: boolean;
 		}
-	> {
-		return this.sessionStore.getSessionContents(sessionId);
-	}
-
-	// Session deletion operations
-	deleteSessionsBySource(sourceId: string): number {
-		return this.sessionStore.deleteSessionsBySource(sourceId);
-	}
-
-	countSessionsBySource(sourceId: string): number {
-		return this.sessionStore.countSessionsBySource(sourceId);
-	}
-
-	addSessionErrors(
+	>;
+	deleteSessionsBySource: (sourceId: string) => number;
+	countSessionsBySource: (sourceId: string) => number;
+	addSessionErrors: (
 		sessionId: string,
 		errorType: "listing" | "content",
 		errors: string[],
-	): void {
-		this.sessionStore.addSessionErrors(sessionId, errorType, errors);
-	}
+	) => void;
 
 	// Database management
-	close(): void {
-		this.contentStore.close();
-		this.sessionStore.close();
-	}
-
-	/**
-	 * Checkpoint WAL files to prevent them from growing too large.
-	 * Call this periodically during long-running crawl operations.
-	 */
-	checkpoint(): void {
-		this.contentStore.checkpoint();
-		this.sessionStore.checkpoint();
-	}
-
-	getDatabasePath(): string {
-		return this.contentStore.getDatabasePath();
-	}
+	close: () => void;
+	checkpoint: () => void;
+	getDatabasePath: () => string;
 }
 
-// Re-export types for convenience
+export function createMetadataStore(
+	options: MetadataStoreOptions = {},
+): MetadataStore {
+	const metadataDb = createMetadataDatabase(options);
+	const contentStore = createContentMetadataStore(metadataDb);
+	const sessionStore = createSessionMetadataStore(metadataDb);
+
+	return {
+		// Content operations - delegate to ContentMetadataStore
+		store: (data: CrawledData, hash: string): Promise<ContentMetadata> =>
+			contentStore.store(data, hash),
+
+		existsByUrl: (url: string): boolean => contentStore.existsByUrl(url),
+
+		getExistingUrls: (urls: string[]): Set<string> =>
+			contentStore.getExistingUrls(urls),
+
+		existsByHash: (hash: string): boolean => contentStore.existsByHash(hash),
+
+		getByHash: (hash: string): ContentMetadata | null =>
+			contentStore.getByHash(hash),
+
+		query: (options: MetadataQueryOptions = {}): ContentMetadata[] =>
+			contentStore.query(options),
+
+		getBySource: (source: string, limit = 50, offset = 0): ContentMetadata[] =>
+			contentStore.getBySource(source, limit, offset),
+
+		countBySource: (source: string): number =>
+			contentStore.countBySource(source),
+
+		getSources: (): Array<{ source: string; count: number }> =>
+			contentStore.getSources(),
+
+		// Content deletion operations
+		deleteContentBySource: (source: string): number =>
+			contentStore.deleteBySource(source),
+
+		getContentHashesBySource: (source: string): string[] =>
+			contentStore.getHashesBySource(source),
+
+		// Session operations - delegate to SessionMetadataStore
+		createSession: (
+			sessionId: string,
+			sourceId: string,
+			sourceName: string,
+			startTime: Date,
+			metadata: object,
+		): CrawlSession =>
+			sessionStore.createSession(
+				sessionId,
+				sourceId,
+				sourceName,
+				startTime,
+				metadata,
+			),
+
+		updateSession: (sessionId: string, metadata: object): void =>
+			sessionStore.updateSession(sessionId, metadata),
+
+		getSession: (sessionId: string): CrawlSession | null =>
+			sessionStore.getSession(sessionId),
+
+		getAllSessions: (): CrawlSession[] => sessionStore.getAllSessions(),
+
+		isSessionActive: (sessionId: string): boolean =>
+			sessionStore.isSessionActive(sessionId),
+
+		endSession: (sessionId: string): void => sessionStore.endSession(sessionId),
+
+		linkContentToSession: (
+			sessionId: string,
+			contentId: number,
+			processedOrder: number,
+			hadContentExtractionError = false,
+		): void =>
+			sessionStore.linkContentToSession(
+				sessionId,
+				contentId,
+				processedOrder,
+				hadContentExtractionError,
+			),
+
+		getSessionContents: (
+			sessionId: string,
+		): Array<
+			ContentMetadata & {
+				processedOrder: number;
+				hadContentExtractionError: boolean;
+			}
+		> => sessionStore.getSessionContents(sessionId),
+
+		// Session deletion operations
+		deleteSessionsBySource: (sourceId: string): number =>
+			sessionStore.deleteSessionsBySource(sourceId),
+
+		countSessionsBySource: (sourceId: string): number =>
+			sessionStore.countSessionsBySource(sourceId),
+
+		addSessionErrors: (
+			sessionId: string,
+			errorType: "listing" | "content",
+			errors: string[],
+		): void => sessionStore.addSessionErrors(sessionId, errorType, errors),
+
+		// Database management
+		close: (): void => {
+			contentStore.close();
+			sessionStore.close();
+		},
+
+		checkpoint: (): void => {
+			contentStore.checkpoint();
+			sessionStore.checkpoint();
+		},
+
+		getDatabasePath: (): string => contentStore.getDatabasePath(),
+	};
+}
+
 export type {
 	ContentMetadata,
 	CrawlSession,

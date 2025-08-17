@@ -1,13 +1,14 @@
-/**
- * URL utility functions for crawlers and other components
- */
-
-/**
- * Resolves a URL to an absolute URL using the provided base URL
- * @param url - The URL to resolve (can be relative or absolute)
- * @param baseUrl - The base URL to resolve against
- * @returns The absolute URL
- */
 export function resolveAbsoluteUrl(url: string, baseUrl: string): string {
-	return url.startsWith("http") ? url : new URL(url, baseUrl).href;
+	if (url.startsWith("http://") || url.startsWith("https://")) {
+		return url;
+	}
+
+	try {
+		const resolved = new URL(url, baseUrl).href;
+		return resolved;
+	} catch (error) {
+		throw new Error(
+			`Failed to resolve URL "${url}" against base "${baseUrl}": ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
+	}
 }

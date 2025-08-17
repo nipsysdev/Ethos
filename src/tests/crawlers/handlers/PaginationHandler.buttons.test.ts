@@ -2,7 +2,7 @@ import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
-import { PaginationHandler } from "@/crawlers/handlers/PaginationHandler.js";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Button Detection", () => {
 	// Mock timers for all tests to avoid real delays
@@ -51,12 +51,11 @@ describe("PaginationHandler - Button Detection", () => {
 	};
 
 	it("should return false when next button doesn't exist", async () => {
-		const handler = new PaginationHandler();
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(null), // Button doesn't exist
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -64,14 +63,13 @@ describe("PaginationHandler - Button Detection", () => {
 	});
 
 	it("should return false when button has disabled attribute", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
 			evaluate: vi.fn().mockResolvedValue(true), // Button is disabled
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -80,7 +78,6 @@ describe("PaginationHandler - Button Detection", () => {
 	});
 
 	it("should detect disabled button through various methods", async () => {
-		const handler = new PaginationHandler();
 		const mockButton = { click: vi.fn() };
 
 		// Test the evaluate function that checks for disabled states
@@ -92,7 +89,7 @@ describe("PaginationHandler - Button Detection", () => {
 			}),
 		});
 
-		const promise = handler.navigateToNextPage(mockPage, mockConfig);
+		const promise = navigateToNextPage(mockPage, mockConfig);
 		await vi.runAllTimersAsync();
 		const result = await promise;
 
@@ -105,7 +102,6 @@ describe("PaginationHandler - Button Detection", () => {
 	});
 
 	it("should return false when no pagination config is provided", async () => {
-		const handler = new PaginationHandler();
 		const configWithoutPagination: SourceConfig = {
 			...mockConfig,
 			listing: {
@@ -116,10 +112,7 @@ describe("PaginationHandler - Button Detection", () => {
 
 		const mockPage = createMockPage();
 
-		const result = await handler.navigateToNextPage(
-			mockPage,
-			configWithoutPagination,
-		);
+		const result = await navigateToNextPage(mockPage, configWithoutPagination);
 
 		expect(result).toBe(false);
 	});
