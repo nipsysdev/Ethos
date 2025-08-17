@@ -73,8 +73,6 @@ export async function showExtractedData(
 		console.log("Could not read crawl session data.");
 		console.error("Error:", error instanceof Error ? error.message : error);
 		return;
-	} finally {
-		metadataStore.close();
 	}
 
 	await showPaginatedViewer(storedItems, result, metadataStore);

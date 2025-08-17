@@ -14,13 +14,11 @@ vi.mock("inquirer", () => ({
 // Mock MetadataStore
 const mockGetSession = vi.fn();
 const mockGetSessionContents = vi.fn();
-const mockClose = vi.fn();
 
 vi.mock("@/storage/MetadataStore.js", () => ({
 	createMetadataStore: vi.fn().mockImplementation(() => ({
 		getSession: mockGetSession,
 		getSessionContents: mockGetSessionContents,
-		close: mockClose,
 	})),
 }));
 
@@ -34,7 +32,6 @@ describe("Data Viewer", () => {
 		// Reset mock implementations
 		mockGetSession.mockReset();
 		mockGetSessionContents.mockReset();
-		mockClose.mockImplementation(() => {});
 	});
 
 	const createMockResult = (withSession = true): ProcessingSummaryResult => {
@@ -101,8 +98,6 @@ describe("Data Viewer", () => {
 			"No crawl session available for viewing.",
 		);
 		expect(mockInquirer.prompt).not.toHaveBeenCalled();
-		// mockClose should not be called because we return early before creating MetadataStore
-		expect(mockClose).not.toHaveBeenCalled();
 	});
 
 	it("should show file selection menu and open file with less", async () => {
@@ -175,9 +170,6 @@ describe("Data Viewer", () => {
 		expect(mockSpawn).toHaveBeenCalledWith("less", ["-R", actualSelectedFile], {
 			stdio: "inherit",
 		});
-
-		// Verify MetadataStore was closed
-		expect(mockClose).toHaveBeenCalled();
 	});
 
 	it("should handle when less is not available", async () => {
@@ -218,9 +210,6 @@ describe("Data Viewer", () => {
 		expect(mockLog).toHaveBeenCalledWith(
 			`File location: ${actualSelectedFile}`,
 		);
-
-		// Verify MetadataStore was closed
-		expect(mockClose).toHaveBeenCalled();
 	});
 
 	it("should handle back option", async () => {
@@ -235,8 +224,5 @@ describe("Data Viewer", () => {
 
 		expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
 		expect(mockSpawn).not.toHaveBeenCalled();
-
-		// Verify MetadataStore was closed
-		expect(mockClose).toHaveBeenCalled();
 	});
 });

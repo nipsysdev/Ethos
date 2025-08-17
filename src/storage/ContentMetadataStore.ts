@@ -1,9 +1,6 @@
 import type Database from "better-sqlite3";
 import type { CrawledData } from "@/core/types.js";
-import {
-	createMetadataDatabase,
-	type MetadataStoreOptions,
-} from "@/storage/MetadataDatabase";
+import type { MetadataDatabase } from "./MetadataDatabase";
 
 export interface ContentMetadata {
 	id?: number;
@@ -110,9 +107,8 @@ function prepareStatements(db: Database.Database): PreparedStatements {
 }
 
 export function createContentMetadataStore(
-	options: MetadataStoreOptions = {},
+	metadataDb: MetadataDatabase,
 ): ContentMetadataStore {
-	const metadataDb = createMetadataDatabase(options);
 	const stmts = prepareStatements(metadataDb.db);
 
 	const mapRowToMetadata = (row: DatabaseRow): ContentMetadata => ({

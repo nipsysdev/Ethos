@@ -1,9 +1,6 @@
 import type Database from "better-sqlite3";
 import type { ContentMetadata } from "@/storage/ContentMetadataStore";
-import {
-	createMetadataDatabase,
-	type MetadataStoreOptions,
-} from "@/storage/MetadataDatabase";
+import type { MetadataDatabase } from "./MetadataDatabase";
 
 export interface CrawlSession {
 	id?: string;
@@ -161,9 +158,8 @@ function prepareStatements(db: Database.Database): PreparedStatements {
 }
 
 export function createSessionMetadataStore(
-	options: MetadataStoreOptions = {},
+	metadataDb: MetadataDatabase,
 ): SessionMetadataStore {
-	const metadataDb = createMetadataDatabase(options);
 	const stmts = prepareStatements(metadataDb.db);
 
 	const mapSessionRowToSession = (row: SessionRow): CrawlSession => ({
