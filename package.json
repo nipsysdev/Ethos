@@ -13,6 +13,7 @@
 		"watch": "tsc --watch",
 		"build": "vite build",
 		"start": "node dist/index.js",
+		"crawl": "node dist/index.js crawl",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest --watch",
