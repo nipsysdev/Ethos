@@ -42,9 +42,10 @@ export async function extractFromContentPage(
 				await page.waitForSelector(config.content.container_selector, {
 					timeout: DYNAMIC_CONTENT_TIMEOUT,
 				});
-			} catch {
+			} catch (error) {
 				console.warn(
 					`Warning: Content container selector "${config.content.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds for ${absoluteUrl}`,
+					error,
 				);
 			}
 		}

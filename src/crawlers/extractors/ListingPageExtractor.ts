@@ -44,9 +44,10 @@ async function extractItemsFromPage(
 		await page.waitForSelector(config.listing.items.container_selector, {
 			timeout: DYNAMIC_CONTENT_TIMEOUT,
 		});
-	} catch {
+	} catch (error) {
 		console.warn(
 			`Warning: Container selector "${config.listing.items.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds`,
+			error,
 		);
 	}
 

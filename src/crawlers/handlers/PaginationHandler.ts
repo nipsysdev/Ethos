@@ -62,7 +62,11 @@ async function attemptPagination(
 		await page.waitForSelector(config.listing.items.container_selector, {
 			timeout: PAGINATION_TIMEOUTS.CONTAINER_WAIT_MS,
 		});
-	} catch {
+	} catch (error) {
+		console.error(
+			"PaginationHandler: Failed to wait for container selector during pagination.",
+			error,
+		);
 		return false;
 	}
 

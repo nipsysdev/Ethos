@@ -6,6 +6,7 @@ import { createProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createSourceRegistry } from "@/core/SourceRegistry";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
+import { NAV_VALUES } from "./ui/constants";
 
 const program = new Command();
 
@@ -48,7 +49,15 @@ program
 			reCrawlExisting: options.recrawl,
 			output: options.output,
 		};
-		await crawlWithOptions(crawlOptions, sourceRegistry, pipeline);
+		const result = await crawlWithOptions(
+			crawlOptions,
+			sourceRegistry,
+			pipeline,
+		);
+
+		if (result === NAV_VALUES.EXIT) {
+			process.exit(0);
+		}
 	});
 
 program.parseAsync(process.argv).catch(console.error);
