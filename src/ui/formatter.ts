@@ -22,7 +22,7 @@ export function formatDataForViewing(
 		if (item.publishedDate) {
 			lines.push(`Published: ${item.publishedDate}`);
 		} else {
-			lines.push(`Crawled: ${item.timestamp.toLocaleString()}`);
+			lines.push(`Crawled: ${item.crawledAt.toLocaleString()}`);
 		}
 
 		if (item.author) {

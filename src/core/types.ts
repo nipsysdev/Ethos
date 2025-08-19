@@ -73,7 +73,7 @@ export interface ContentData {
 }
 
 export interface CrawledData extends ContentData {
-	timestamp: Date;
+	crawledAt: Date;
 	source: string;
 	metadata: Record<string, unknown>;
 }

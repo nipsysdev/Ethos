@@ -10,7 +10,7 @@ describe("ContentStore - Store Operations", () => {
 	// Sample crawled data for testing
 	const sampleData: CrawledData = {
 		url: "https://example.com/article1",
-		timestamp: new Date("2024-01-01T12:00:00Z"),
+		crawledAt: new Date("2024-01-01T12:00:00Z"),
 		source: "test-source",
 		title: "Test Article",
 		content: "This is test content",
@@ -81,8 +81,8 @@ describe("ContentStore - Store Operations", () => {
 		expect(parsedContent.content).toBe(sampleData.content);
 		expect(parsedContent.author).toBe(sampleData.author);
 		expect(parsedContent.publishedDate).toBe(sampleData.publishedDate);
-		// Check that tracking metadata is not in JSON (timestamp, source, metadata)
-		expect("timestamp" in parsedContent).toBe(false);
+		// Check that tracking metadata is not in JSON (crawledAt, source, metadata)
+		expect("crawledAt" in parsedContent).toBe(false);
 		expect("source" in parsedContent).toBe(false);
 		expect("metadata" in parsedContent).toBe(false);
 	});

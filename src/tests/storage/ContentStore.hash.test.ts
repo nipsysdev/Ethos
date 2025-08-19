@@ -35,7 +35,7 @@ describe("ContentStore - Hash Generation", () => {
 	it("should use SHA-1 for shorter hashes", async () => {
 		const sampleData: CrawledData = {
 			url: "https://example.com/article1",
-			timestamp: new Date("2024-01-01T12:00:00Z"),
+			crawledAt: new Date("2024-01-01T12:00:00Z"),
 			source: "test-source",
 			title: "Test Article",
 			content: "This is test content",
@@ -51,7 +51,7 @@ describe("ContentStore - Hash Generation", () => {
 	it("should compute hash only from URL", async () => {
 		const data1: CrawledData = {
 			url: "https://example.com/same-url",
-			timestamp: new Date("2024-01-01T12:00:00Z"),
+			crawledAt: new Date("2024-01-01T12:00:00Z"),
 			source: "test-source",
 			title: "First Title",
 			content: "First content",
@@ -62,7 +62,7 @@ describe("ContentStore - Hash Generation", () => {
 
 		const data2: CrawledData = {
 			url: "https://example.com/same-url", // Same URL
-			timestamp: new Date("2024-01-02T15:30:00Z"), // Different timestamp
+			crawledAt: new Date("2024-01-02T15:30:00Z"), // Different timestamp
 			source: "different-source", // Different source
 			title: "Completely Different Title", // Different title
 			content: "Totally different content with more text", // Different content
@@ -82,7 +82,7 @@ describe("ContentStore - Hash Generation", () => {
 	it("should generate different hashes for different URLs", async () => {
 		const data1: CrawledData = {
 			url: "https://example.com/article-1",
-			timestamp: new Date("2024-01-01T12:00:00Z"),
+			crawledAt: new Date("2024-01-01T12:00:00Z"),
 			source: "test-source",
 			title: "Same Title",
 			content: "Same content",
@@ -91,7 +91,7 @@ describe("ContentStore - Hash Generation", () => {
 
 		const data2: CrawledData = {
 			url: "https://example.com/article-2", // Different URL
-			timestamp: new Date("2024-01-01T12:00:00Z"), // Same timestamp
+			crawledAt: new Date("2024-01-01T12:00:00Z"), // Same crawledAt timestamp
 			source: "test-source", // Same source
 			title: "Same Title", // Same title
 			content: "Same content", // Same content
@@ -109,7 +109,7 @@ describe("ContentStore - Hash Generation", () => {
 	it("should ignore URL fragments and query parameters for consistent hashing", async () => {
 		const data1: CrawledData = {
 			url: "https://example.com/article?utm_source=google#section1",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			title: "Test Article",
 			content: "Test content",
@@ -118,7 +118,7 @@ describe("ContentStore - Hash Generation", () => {
 
 		const data2: CrawledData = {
 			url: "https://example.com/article?utm_source=facebook#section2",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			title: "Test Article",
 			content: "Test content",

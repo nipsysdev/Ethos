@@ -73,7 +73,7 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 				const data = [
 					{
 						url: "https://example.com/1",
-						timestamp: new Date(),
+						crawledAt: new Date(),
 						source: "test",
 						title: "Test Article",
 						content: "Test content",

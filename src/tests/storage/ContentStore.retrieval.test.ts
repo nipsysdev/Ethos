@@ -12,7 +12,7 @@ describe("ContentStore - Retrieval & Existence", () => {
 	// Sample crawled data for testing
 	const sampleData: CrawledData = {
 		url: "https://example.com/article1",
-		timestamp: new Date("2024-01-01T12:00:00Z"),
+		crawledAt: new Date("2024-01-01T12:00:00Z"),
 		source: "test-source",
 		title: "Test Article",
 		content: "This is test content",

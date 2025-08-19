@@ -16,8 +16,10 @@ export interface ContentMetadata {
 
 export interface MetadataQueryOptions {
 	source?: string;
-	startDate?: Date;
-	endDate?: Date;
+	startCrawledAt?: Date;
+	endCrawledAt?: Date;
+	startPublishedDate?: Date;
+	endPublishedDate?: Date;
 	limit?: number;
 	offset?: number;
 }
@@ -40,6 +42,7 @@ export interface ContentMetadataStore {
 	getExistingUrls: (urls: string[]) => Set<string>;
 	existsByHash: (hash: string) => boolean;
 	getByHash: (hash: string) => ContentMetadata | null;
+	countQuery: (options: MetadataQueryOptions) => number;
 	query: (options: MetadataQueryOptions) => ContentMetadata[];
 	getBySource: (
 		source: string,
@@ -146,7 +149,7 @@ export function createContentMetadataStore(
 					data.title,
 					data.author || null,
 					publishedDate ? publishedDate.toISOString() : null,
-					data.timestamp.toISOString(),
+					data.crawledAt.toISOString(),
 				);
 
 				return {
@@ -157,7 +160,7 @@ export function createContentMetadataStore(
 					title: data.title,
 					author: data.author || undefined,
 					publishedDate: publishedDate || undefined,
-					crawledAt: data.timestamp,
+					crawledAt: data.crawledAt,
 					createdAt: new Date(),
 				};
 			} catch (error) {
@@ -214,6 +217,40 @@ export function createContentMetadataStore(
 			return row ? mapRowToMetadata(row) : null;
 		},
 
+		countQuery: (options: MetadataQueryOptions = {}): number => {
+			let sql = "SELECT COUNT(*) as count FROM crawled_content WHERE 1=1";
+			const params: (string | number)[] = [];
+
+			if (options.source) {
+				sql += " AND source = ?";
+				params.push(options.source);
+			}
+
+			if (options.startCrawledAt) {
+				sql += " AND crawled_at >= ?";
+				params.push(options.startCrawledAt.toISOString());
+			}
+
+			if (options.endCrawledAt) {
+				sql += " AND crawled_at <= ?";
+				params.push(options.endCrawledAt.toISOString());
+			}
+
+			if (options.startPublishedDate) {
+				sql += " AND published_date >= ?";
+				params.push(options.startPublishedDate.toISOString());
+			}
+
+			if (options.endPublishedDate) {
+				sql += " AND published_date <= ?";
+				params.push(options.endPublishedDate.toISOString());
+			}
+
+			const stmt = metadataDb.db.prepare(sql);
+			const result = stmt.get(...params) as { count: number };
+			return result.count;
+		},
+
 		query: (options: MetadataQueryOptions = {}): ContentMetadata[] => {
 			let sql = "SELECT * FROM crawled_content WHERE 1=1";
 			const params: (string | number)[] = [];
@@ -223,14 +260,24 @@ export function createContentMetadataStore(
 				params.push(options.source);
 			}
 
-			if (options.startDate) {
+			if (options.startCrawledAt) {
 				sql += " AND crawled_at >= ?";
-				params.push(options.startDate.toISOString());
+				params.push(options.startCrawledAt.toISOString());
 			}
 
-			if (options.endDate) {
+			if (options.endCrawledAt) {
 				sql += " AND crawled_at <= ?";
-				params.push(options.endDate.toISOString());
+				params.push(options.endCrawledAt.toISOString());
+			}
+
+			if (options.startPublishedDate) {
+				sql += " AND published_date >= ?";
+				params.push(options.startPublishedDate.toISOString());
+			}
+
+			if (options.endPublishedDate) {
+				sql += " AND published_date <= ?";
+				params.push(options.endPublishedDate.toISOString());
 			}
 
 			sql += " ORDER BY crawled_at DESC";

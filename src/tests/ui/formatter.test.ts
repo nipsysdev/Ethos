@@ -19,7 +19,7 @@ describe("Data Formatter", () => {
 	const createMockData = (): ProcessedData[] => [
 		{
 			url: "https://example.com/article1",
-			timestamp: new Date("2025-01-01T10:00:01Z"),
+			crawledAt: new Date("2025-01-01T10:00:01Z"),
 			source: "test-source",
 			title: "First Article",
 			content: "This is the first article content.",
@@ -31,7 +31,7 @@ describe("Data Formatter", () => {
 		},
 		{
 			url: "https://example.com/article2",
-			timestamp: new Date("2025-01-01T10:00:02Z"),
+			crawledAt: new Date("2025-01-01T10:00:02Z"),
 			source: "test-source",
 			title: "Second Article",
 			content: "This is the second article content.",
@@ -62,7 +62,7 @@ describe("Data Formatter", () => {
 		const dataWithNulls: ProcessedData[] = [
 			{
 				url: "",
-				timestamp: new Date("2025-01-01T10:00:01Z"),
+				crawledAt: new Date("2025-01-01T10:00:01Z"),
 				source: "test-source",
 				title: "",
 				content: "",

@@ -37,7 +37,7 @@ describe("MetadataStore - Content Operations", () => {
 			content: "This is test content",
 			author: "Test Author",
 			publishedDate: "2025-01-01T00:00:00.000Z",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			metadata: {},
 		};
@@ -57,7 +57,7 @@ describe("MetadataStore - Content Operations", () => {
 			url: "https://example.com/minimal",
 			title: "Minimal Article",
 			content: "Basic content",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			metadata: {},
 		};
@@ -78,7 +78,7 @@ describe("MetadataStore - Content Operations", () => {
 			title: "Article with Invalid Date",
 			content: "Content with bad date",
 			publishedDate: "invalid-date-format",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			metadata: {},
 		};
@@ -95,7 +95,7 @@ describe("MetadataStore - Content Operations", () => {
 			url: "https://example.com/duplicate",
 			title: "First Article",
 			content: "First content",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			metadata: {},
 		};
@@ -104,7 +104,7 @@ describe("MetadataStore - Content Operations", () => {
 			url: "https://example.com/duplicate",
 			title: "Second Article",
 			content: "Second content",
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "test-source",
 			metadata: {},
 		};

@@ -267,7 +267,7 @@ async function extractItemsFromPage(
 
 			return {
 				url: result.item.url || "",
-				timestamp: new Date(),
+				crawledAt: new Date(),
 				source: config.id,
 				title: result.item.title || "",
 				content: result.item.excerpt || "",
