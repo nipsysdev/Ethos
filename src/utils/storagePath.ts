@@ -11,7 +11,7 @@ export function getStoragePath(): string {
 			arg.includes("npx") ||
 			process.env.npm_lifecycle_event === "npx" ||
 			process.env._?.includes("npx") ||
-			import.meta.url?.includes("node_modules"),
+			import.meta.url.includes("node_modules"),
 	);
 
 	if (isNpxContext) {
