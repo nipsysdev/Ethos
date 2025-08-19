@@ -47,7 +47,6 @@ export const getContentHandler = (
 
 			const query = {
 				...queryOptions,
-				source: source,
 				startPublishedDate: queryOptions.startPublishedDate
 					? new Date(queryOptions.startPublishedDate)
 					: undefined,
