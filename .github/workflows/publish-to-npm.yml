@@ -15,28 +15,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js using mise
-        uses: jdx/mise-action@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          cache: true
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
 
-      - name: Cache dependencies
-        id: cache-deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.local/share/pnpm/store
-            node_modules
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
+
+      - name: Configure pnpm settings
+        run: |
+          echo "publish-branch=main" >> .npmrc
+          echo "git-tag-version=false" >> .npmrc
+          echo "allow-publish-version-tag=true" >> .npmrc
 
       - name: Publish to NPM
         run: pnpm publish --no-git-checks
