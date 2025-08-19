@@ -60,7 +60,8 @@ export interface ContentMetadataStore {
 
 interface PreparedStatements {
 	insertStmt: Database.Statement;
-	getByUrlStmt: Database.Statement;
+	existsByUrlStmt: Database.Statement;
+	existsByHashStmt: Database.Statement;
 	getByHashStmt: Database.Statement;
 	getBySourceStmt: Database.Statement;
 	countBySourceStmt: Database.Statement;
@@ -75,8 +76,12 @@ function prepareStatements(db: Database.Database): PreparedStatements {
 			VALUES (?, ?, ?, ?, ?, ?, ?)
 		`),
 
-		getByUrlStmt: db.prepare(`
-			SELECT * FROM crawled_content WHERE url = ? LIMIT 1
+		existsByUrlStmt: db.prepare(`
+			SELECT 1 FROM crawled_content WHERE url = ? LIMIT 1
+		`),
+
+		existsByHashStmt: db.prepare(`
+			SELECT 1 FROM crawled_content WHERE hash = ? LIMIT 1
 		`),
 
 		getByHashStmt: db.prepare(`
@@ -177,7 +182,7 @@ export function createContentMetadataStore(
 		},
 
 		existsByUrl: (url: string): boolean => {
-			return stmts.getByUrlStmt.get(url) !== undefined;
+			return stmts.existsByUrlStmt.get(url) !== undefined;
 		},
 
 		getExistingUrls: (urls: string[]): Set<string> => {
@@ -204,7 +209,7 @@ export function createContentMetadataStore(
 		},
 
 		existsByHash: (hash: string): boolean => {
-			return stmts.getByHashStmt.get(hash) !== undefined;
+			return stmts.existsByHashStmt.get(hash) !== undefined;
 		},
 
 		getByHash: (hash: string): ContentMetadata | null => {
