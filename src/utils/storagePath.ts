@@ -6,13 +6,7 @@ export const CONTENT_DIR_NAME = "content";
 export const METADATA_DB_NAME = "metadata.db";
 
 export function getStoragePath(): string {
-	const isNpxContext = process.argv.some(
-		(arg) =>
-			arg.includes("npx") ||
-			process.env.npm_lifecycle_event === "npx" ||
-			process.env._?.includes("npx") ||
-			import.meta.url.includes("node_modules"),
-	);
+	const isNpxContext = process.env.npm_config_user_agent !== undefined;
 
 	if (isNpxContext) {
 		return path.join(os.homedir(), ETHOS_DIR_NAME);
