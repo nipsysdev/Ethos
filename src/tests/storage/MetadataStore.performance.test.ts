@@ -42,7 +42,7 @@ describe("MetadataStore - Performance", () => {
 				content: `Content for article ${i}`,
 				author: `Author ${i % 50}`, // 50 different authors
 				publishedDate: new Date(2025, 0, (i % 31) + 1).toISOString(),
-				timestamp: new Date(),
+				crawledAt: new Date(),
 				source: `source-${i % 10}`, // 10 different sources
 				metadata: {},
 			}),
@@ -75,7 +75,7 @@ describe("MetadataStore - Performance", () => {
 			content: `Content for concurrent article ${i}`,
 			author: "Test Author",
 			publishedDate: new Date().toISOString(),
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "concurrent-source",
 			metadata: {},
 		}));
@@ -108,7 +108,7 @@ describe("MetadataStore - Performance", () => {
 			content: `Content for indexed article ${i}`,
 			author: "Indexed Author",
 			publishedDate: new Date().toISOString(),
-			timestamp: new Date(),
+			crawledAt: new Date(),
 			source: "indexed-source",
 			metadata: {},
 		}));
@@ -142,7 +142,7 @@ describe("MetadataStore - Performance", () => {
 				content: `Content for large article ${i}`,
 				author: `Author ${i % 100}`,
 				publishedDate: new Date().toISOString(),
-				timestamp: new Date(),
+				crawledAt: new Date(),
 				source: "large-source",
 				metadata: {},
 			}),

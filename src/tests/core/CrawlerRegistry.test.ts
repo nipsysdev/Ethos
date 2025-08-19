@@ -11,7 +11,7 @@ describe("CrawlerRegistry", () => {
 				data: [
 					{
 						url: "test",
-						timestamp: new Date(),
+						crawledAt: new Date(),
 						source: "test",
 						title: "test",
 						content: "test",

@@ -1,0 +1,48 @@
+import { createServer, startServer } from "@/server/index";
+import type { ServerConfig } from "@/server/types";
+import { createContentStore } from "@/storage/ContentStore";
+
+export async function startServerCommand(): Promise<void> {
+	const config: ServerConfig = {
+		port: parseInt(process.env.PORT || "3000", 10),
+		host: process.env.HOST || "localhost",
+		pagination: {
+			defaultLimit: 10,
+			maxLimit: 100,
+		},
+	};
+
+	try {
+		const contentStore = createContentStore();
+		const metadataStore = contentStore.getMetadataStore();
+
+		if (!metadataStore) {
+			console.error("Metadata store not available");
+			process.exit(1);
+		}
+
+		const app = createServer(metadataStore, contentStore, config);
+		const server = await startServer(app, config);
+
+		process.on("SIGTERM", () => {
+			console.log("Received SIGTERM, shutting down gracefully...");
+			server.close(() => {
+				console.log("Server closed");
+				contentStore.close();
+				process.exit(0);
+			});
+		});
+
+		process.on("SIGINT", () => {
+			console.log("Received SIGINT, shutting down gracefully...");
+			server.close(() => {
+				console.log("Server closed");
+				contentStore.close();
+				process.exit(0);
+			});
+		});
+	} catch (error) {
+		console.error("Failed to start server:", error);
+		process.exit(1);
+	}
+}

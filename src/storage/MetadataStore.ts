@@ -21,6 +21,7 @@ export interface MetadataStore {
 	getExistingUrls: (urls: string[]) => Set<string>;
 	existsByHash: (hash: string) => boolean;
 	getByHash: (hash: string) => ContentMetadata | null;
+	countQuery: (options: MetadataQueryOptions) => number;
 	query: (options: MetadataQueryOptions) => ContentMetadata[];
 	getBySource: (
 		source: string,
@@ -92,6 +93,9 @@ export function createMetadataStore(
 
 		getByHash: (hash: string): ContentMetadata | null =>
 			contentStore.getByHash(hash),
+
+		countQuery: (options: MetadataQueryOptions = {}): number =>
+			contentStore.countQuery(options),
 
 		query: (options: MetadataQueryOptions = {}): ContentMetadata[] =>
 			contentStore.query(options),

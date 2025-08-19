@@ -16,8 +16,10 @@ export interface ContentMetadata {
 
 export interface MetadataQueryOptions {
 	source?: string;
-	startDate?: Date;
-	endDate?: Date;
+	startCrawledAt?: Date;
+	endCrawledAt?: Date;
+	startPublishedDate?: Date;
+	endPublishedDate?: Date;
 	limit?: number;
 	offset?: number;
 }
@@ -40,6 +42,7 @@ export interface ContentMetadataStore {
 	getExistingUrls: (urls: string[]) => Set<string>;
 	existsByHash: (hash: string) => boolean;
 	getByHash: (hash: string) => ContentMetadata | null;
+	countQuery: (options: MetadataQueryOptions) => number;
 	query: (options: MetadataQueryOptions) => ContentMetadata[];
 	getBySource: (
 		source: string,
@@ -57,8 +60,7 @@ export interface ContentMetadataStore {
 
 interface PreparedStatements {
 	insertStmt: Database.Statement;
-	existsByUrlStmt: Database.Statement;
-	existsByHashStmt: Database.Statement;
+	getByUrlStmt: Database.Statement;
 	getByHashStmt: Database.Statement;
 	getBySourceStmt: Database.Statement;
 	countBySourceStmt: Database.Statement;
@@ -73,12 +75,8 @@ function prepareStatements(db: Database.Database): PreparedStatements {
 			VALUES (?, ?, ?, ?, ?, ?, ?)
 		`),
 
-		existsByUrlStmt: db.prepare(`
-			SELECT 1 FROM crawled_content WHERE url = ? LIMIT 1
-		`),
-
-		existsByHashStmt: db.prepare(`
-			SELECT 1 FROM crawled_content WHERE hash = ? LIMIT 1
+		getByUrlStmt: db.prepare(`
+			SELECT * FROM crawled_content WHERE url = ? LIMIT 1
 		`),
 
 		getByHashStmt: db.prepare(`
@@ -146,7 +144,7 @@ export function createContentMetadataStore(
 					data.title,
 					data.author || null,
 					publishedDate ? publishedDate.toISOString() : null,
-					data.timestamp.toISOString(),
+					data.crawledAt.toISOString(),
 				);
 
 				return {
@@ -157,7 +155,7 @@ export function createContentMetadataStore(
 					title: data.title,
 					author: data.author || undefined,
 					publishedDate: publishedDate || undefined,
-					crawledAt: data.timestamp,
+					crawledAt: data.crawledAt,
 					createdAt: new Date(),
 				};
 			} catch (error) {
@@ -179,7 +177,7 @@ export function createContentMetadataStore(
 		},
 
 		existsByUrl: (url: string): boolean => {
-			return stmts.existsByUrlStmt.get(url) !== undefined;
+			return stmts.getByUrlStmt.get(url) !== undefined;
 		},
 
 		getExistingUrls: (urls: string[]): Set<string> => {
@@ -206,12 +204,46 @@ export function createContentMetadataStore(
 		},
 
 		existsByHash: (hash: string): boolean => {
-			return stmts.existsByHashStmt.get(hash) !== undefined;
+			return stmts.getByHashStmt.get(hash) !== undefined;
 		},
 
 		getByHash: (hash: string): ContentMetadata | null => {
 			const row = stmts.getByHashStmt.get(hash) as DatabaseRow | undefined;
 			return row ? mapRowToMetadata(row) : null;
+		},
+
+		countQuery: (options: MetadataQueryOptions = {}): number => {
+			let sql = "SELECT COUNT(*) as count FROM crawled_content WHERE 1=1";
+			const params: (string | number)[] = [];
+
+			if (options.source) {
+				sql += " AND source = ?";
+				params.push(options.source);
+			}
+
+			if (options.startCrawledAt) {
+				sql += " AND crawled_at >= ?";
+				params.push(options.startCrawledAt.toISOString());
+			}
+
+			if (options.endCrawledAt) {
+				sql += " AND crawled_at <= ?";
+				params.push(options.endCrawledAt.toISOString());
+			}
+
+			if (options.startPublishedDate) {
+				sql += " AND published_date >= ?";
+				params.push(options.startPublishedDate.toISOString());
+			}
+
+			if (options.endPublishedDate) {
+				sql += " AND published_date <= ?";
+				params.push(options.endPublishedDate.toISOString());
+			}
+
+			const stmt = metadataDb.db.prepare(sql);
+			const result = stmt.get(...params) as { count: number };
+			return result.count;
 		},
 
 		query: (options: MetadataQueryOptions = {}): ContentMetadata[] => {
@@ -223,14 +255,24 @@ export function createContentMetadataStore(
 				params.push(options.source);
 			}
 
-			if (options.startDate) {
+			if (options.startCrawledAt) {
 				sql += " AND crawled_at >= ?";
-				params.push(options.startDate.toISOString());
+				params.push(options.startCrawledAt.toISOString());
 			}
 
-			if (options.endDate) {
+			if (options.endCrawledAt) {
 				sql += " AND crawled_at <= ?";
-				params.push(options.endDate.toISOString());
+				params.push(options.endCrawledAt.toISOString());
+			}
+
+			if (options.startPublishedDate) {
+				sql += " AND published_date >= ?";
+				params.push(options.startPublishedDate.toISOString());
+			}
+
+			if (options.endPublishedDate) {
+				sql += " AND published_date <= ?";
+				params.push(options.endPublishedDate.toISOString());
 			}
 
 			sql += " ORDER BY crawled_at DESC";
