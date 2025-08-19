@@ -11,6 +11,7 @@ import {
 	createMetadataStore,
 	type MetadataStore,
 } from "@/storage/MetadataStore";
+import { getStoragePath } from "@/utils";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
 export enum MetadataActionType {
@@ -235,7 +236,7 @@ export function createMetadataTracker(
 	const sessionId = createSessionId(startTime);
 	console.log(`Starting crawl session: ${sessionId}`);
 
-	const store = metadataStore ?? createMetadataStore();
+	const store = metadataStore ?? createMetadataStore(getStoragePath());
 	const errorManager = createCrawlErrorManager(store, sessionId);
 
 	let state = createInitialMetadata(config, sessionId);

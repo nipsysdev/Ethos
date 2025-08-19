@@ -80,10 +80,11 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = createProcessingPipeline(registry, {
-			storageBasePath: "./test-storage",
-			contentStoreOptions: { enableMetadata: false },
-		});
+		const pipeline = createProcessingPipeline(
+			registry,
+			"./test-storage",
+			false,
+		);
 
 		const options: CrawlOptions = { maxPages: 5 };
 		await pipeline.process(testConfig, options);
@@ -125,10 +126,11 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = createProcessingPipeline(registry, {
-			storageBasePath: "./test-storage",
-			contentStoreOptions: { enableMetadata: false },
-		});
+		const pipeline = createProcessingPipeline(
+			registry,
+			"./test-storage",
+			false,
+		);
 
 		const options: CrawlOptions = { maxPages: 3, contentConcurrency: 10 };
 		const result = await pipeline.process(testConfig, options);

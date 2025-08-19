@@ -12,10 +12,7 @@ describe("ContentStore - Deletion Operations", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		contentStore = createContentStore({
-			storageDir: "/test/storage",
-			enableMetadata: false,
-		});
+		contentStore = createContentStore("/test/storage", false);
 	});
 
 	it("should delete content files by hash successfully", async () => {

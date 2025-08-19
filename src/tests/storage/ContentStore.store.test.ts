@@ -24,10 +24,7 @@ describe("ContentStore - Store Operations", () => {
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
 		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-		contentStore = createContentStore({
-			storageDir: testStorageDir,
-			enableMetadata: false,
-		});
+		contentStore = createContentStore(testStorageDir, false);
 
 		// Ensure clean state by removing directory if it exists
 		try {

@@ -4,10 +4,7 @@ import {
 	createContentMetadataStore,
 	type MetadataQueryOptions,
 } from "@/storage/ContentMetadataStore";
-import {
-	createMetadataDatabase,
-	type MetadataStoreOptions,
-} from "@/storage/MetadataDatabase";
+import { createMetadataDatabase } from "@/storage/MetadataDatabase";
 import {
 	type CrawlSession,
 	createSessionMetadataStore,
@@ -72,15 +69,12 @@ export interface MetadataStore {
 	getDatabasePath: () => string;
 }
 
-export function createMetadataStore(
-	options: MetadataStoreOptions = {},
-): MetadataStore {
-	const metadataDb = createMetadataDatabase(options);
+export function createMetadataStore(storageDirPath: string): MetadataStore {
+	const metadataDb = createMetadataDatabase(storageDirPath);
 	const contentStore = createContentMetadataStore(metadataDb);
 	const sessionStore = createSessionMetadataStore(metadataDb);
 
 	return {
-		// Content operations - delegate to ContentMetadataStore
 		store: (data: CrawledData, hash: string): Promise<ContentMetadata> =>
 			contentStore.store(data, hash),
 
@@ -200,5 +194,4 @@ export type {
 	CrawlSession,
 	SessionContent,
 	MetadataQueryOptions,
-	MetadataStoreOptions,
 };

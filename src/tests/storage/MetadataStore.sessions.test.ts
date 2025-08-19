@@ -18,9 +18,7 @@ describe("MetadataStore - Sessions", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = createMetadataStore({
-			dbPath: resolve(tempDbPath, "metadata.db"),
-		});
+		store = createMetadataStore(tempDbPath);
 	});
 
 	afterEach(() => {

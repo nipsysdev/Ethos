@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdirSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createContentMetadataStore } from "@/storage/ContentMetadataStore.js";
 import {
 	createMetadataStore,
@@ -16,14 +18,17 @@ vi.mock("@/storage/SessionMetadataStore.js", () => ({
 }));
 
 describe("MetadataStore Deletion", () => {
+	let tempStoragePath: string;
 	let metadataStore: MetadataStore;
 	let mockContentStore: {
 		deleteBySource: ReturnType<typeof vi.fn>;
 		getHashesBySource: ReturnType<typeof vi.fn>;
+		close: ReturnType<typeof vi.fn>;
 	};
 	let mockSessionStore: {
 		deleteSessionsBySource: ReturnType<typeof vi.fn>;
 		countSessionsBySource: ReturnType<typeof vi.fn>;
+		close: ReturnType<typeof vi.fn>;
 	};
 
 	beforeEach(() => {
@@ -33,11 +38,13 @@ describe("MetadataStore Deletion", () => {
 		mockContentStore = {
 			deleteBySource: vi.fn(),
 			getHashesBySource: vi.fn(),
+			close: vi.fn(),
 		};
 
 		mockSessionStore = {
 			deleteSessionsBySource: vi.fn(),
 			countSessionsBySource: vi.fn(),
+			close: vi.fn(),
 		};
 
 		// Mock the factory function calls
@@ -54,7 +61,20 @@ describe("MetadataStore Deletion", () => {
 				>,
 		);
 
-		metadataStore = createMetadataStore();
+		tempStoragePath = resolve(
+			process.cwd(),
+			`test-storage-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+		);
+		mkdirSync(tempStoragePath, { recursive: true });
+
+		metadataStore = createMetadataStore(tempStoragePath);
+	});
+
+	afterEach(() => {
+		metadataStore?.close();
+		if (tempStoragePath) {
+			rmSync(tempStoragePath, { recursive: true, force: true });
+		}
 	});
 
 	it("should delete content metadata by source", async () => {
