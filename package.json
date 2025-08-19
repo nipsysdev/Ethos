@@ -1,6 +1,6 @@
 {
 	"name": "ethos-crawler",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Ethos crawls then serves digital rights organizations' publications through its API.",
 	"bin": {
 		"ethos": "dist/index.js"
@@ -49,7 +49,7 @@
 	},
 	"homepage": "https://github.com/nipsysdev/Ethos#readme",
 	"engines": {
-		"node": "^22.0.0"
+		"node": ">=22.0.0"
 	},
 	"dependencies": {
 		"better-sqlite3": "^12.2.0",
