@@ -1,10 +1,28 @@
 {
 	"name": "ethos",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Ethos crawls then serves digital rights organizations' publications through its API.",
 	"bin": {
 		"ethos": "dist/index.js"
 	},
+	"main": "dist/index.js",
+	"files": [
+		"dist",
+		"src/config",
+		"README.md",
+		"LICENSE"
+	],
+	"keywords": [
+		"web-crawler",
+		"web-scraping",
+		"cli",
+		"api",
+		"content-extraction",
+		"digital-rights",
+		"puppeteer",
+		"typescript"
+	],
+	"preferGlobal": true,
 	"scripts": {
 		"lint": "biome check .",
 		"format": "biome format --write .",
@@ -67,6 +85,9 @@
 		"overrides": {
 			"whatwg-url": "^14.0.0"
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"config": {
 		"commitizen": {
