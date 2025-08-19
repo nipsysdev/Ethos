@@ -1,6 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
-import { createMetadataStore } from "@/storage/MetadataStore.js";
+import {
+	createMetadataStore,
+	type MetadataStore,
+} from "@/storage/MetadataStore.js";
 import { showExtractedData } from "@/ui/viewer.js";
 
 // Mock child_process and inquirer
@@ -27,11 +32,27 @@ const mockInquirer = vi.mocked((await import("inquirer")).default);
 const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
 
 describe("Data Viewer", () => {
+	let tempStoragePath: string;
+	let metadataStoreFactory: () => MetadataStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Reset mock implementations
 		mockGetSession.mockReset();
 		mockGetSessionContents.mockReset();
+		tempStoragePath = resolve(
+			process.cwd(),
+			`test-storage-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+		);
+		metadataStoreFactory = () => createMetadataStore(tempStoragePath);
+	});
+
+	afterEach(() => {
+		try {
+			rmSync(tempStoragePath, { recursive: true, force: true });
+		} catch {
+			// Ignore cleanup errors
+		}
 	});
 
 	const createMockResult = (withSession = true): ProcessingSummaryResult => {
@@ -90,7 +111,6 @@ describe("Data Viewer", () => {
 
 	it("should display message when no crawl session available", async () => {
 		const result = createMockResult(false); // Don't create session
-		const metadataStoreFactory = () => createMetadataStore();
 
 		await showExtractedData(result, metadataStoreFactory());
 
@@ -102,7 +122,6 @@ describe("Data Viewer", () => {
 
 	it("should show file selection menu and open file with less", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => createMetadataStore();
 		let actualSelectedFile = "";
 
 		// Capture the actual file path from inquirer choices
@@ -174,7 +193,6 @@ describe("Data Viewer", () => {
 
 	it("should handle when less is not available", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => createMetadataStore();
 		let actualSelectedFile = "";
 
 		mockInquirer.prompt
@@ -214,7 +232,6 @@ describe("Data Viewer", () => {
 
 	it("should handle back option", async () => {
 		const result = createMockResult();
-		const metadataStoreFactory = () => createMetadataStore();
 
 		mockInquirer.prompt.mockResolvedValueOnce({
 			selectedFile: "back",

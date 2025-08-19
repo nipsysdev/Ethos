@@ -1,6 +1,7 @@
 import { createServer, startServer } from "@/server/index";
 import type { ServerConfig } from "@/server/types";
 import { createContentStore } from "@/storage/ContentStore";
+import { getStoragePath } from "@/utils";
 
 export async function startServerCommand(): Promise<void> {
 	const config: ServerConfig = {
@@ -13,7 +14,7 @@ export async function startServerCommand(): Promise<void> {
 	};
 
 	try {
-		const contentStore = createContentStore();
+		const contentStore = createContentStore(getStoragePath());
 		const metadataStore = contentStore.getMetadataStore();
 
 		if (!metadataStore) {

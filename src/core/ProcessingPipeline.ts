@@ -10,8 +10,7 @@ import { CrawlerError } from "@/core/types";
 import type { MetadataStore } from "@/storage";
 import {
 	type ContentStore,
-	type ContentStoreOptions,
-	createContentStore as createContentStoreFromModule,
+	createContentStore,
 } from "@/storage/ContentStore.js";
 
 export interface ProcessingResult {
@@ -21,11 +20,6 @@ export interface ProcessingResult {
 
 export interface ProcessingSummaryResult {
 	summary: CrawlSummary;
-}
-
-export interface ProcessingPipelineOptions {
-	storageBasePath?: string;
-	contentStoreOptions?: ContentStoreOptions;
 }
 
 export interface ProcessingPipeline {
@@ -39,23 +33,6 @@ export interface ProcessingPipeline {
 	) => Promise<ProcessingSummaryResult>;
 	getMetadataStore: () => MetadataStore | undefined;
 	getContentStore: () => ContentStore;
-}
-
-function createContentStore(
-	optionsOrPath: ProcessingPipelineOptions | string = {},
-): ContentStore {
-	// Support backward compatibility: if string is passed, treat it as storageBasePath
-	const options =
-		typeof optionsOrPath === "string"
-			? { storageBasePath: optionsOrPath }
-			: optionsOrPath;
-
-	const { storageBasePath = "./storage", contentStoreOptions = {} } = options;
-
-	return createContentStoreFromModule({
-		storageDir: `${storageBasePath}/content`,
-		...contentStoreOptions,
-	});
 }
 
 async function handleItemStorage(
@@ -132,9 +109,10 @@ function createStorageSummary(
 
 export function createProcessingPipeline(
 	crawlerRegistry: CrawlerRegistry,
-	optionsOrPath: ProcessingPipelineOptions | string = {},
+	storageBasePath: string,
+	enableMetadata = true,
 ): ProcessingPipeline {
-	const contentStore = createContentStore(optionsOrPath);
+	const contentStore = createContentStore(storageBasePath, enableMetadata);
 
 	async function process(
 		config: SourceConfig,

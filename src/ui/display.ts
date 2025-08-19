@@ -7,6 +7,7 @@ import { createMetadataStore } from "@/storage/MetadataStore";
 import { showPostCrawlMenu } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { showExtractedData } from "@/ui/viewer";
+import { getStoragePath } from "@/utils";
 
 export function displayResults(result: ProcessingSummaryResult): void {
 	displayCrawlSummary(result);
@@ -16,7 +17,7 @@ export async function showPostCrawlMenuWithFlow(
 	result: ProcessingSummaryResult,
 	pipeline?: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
-	const metadataStoreFactory = () => createMetadataStore();
+	const metadataStoreFactory = () => createMetadataStore(getStoragePath());
 
 	while (true) {
 		const action = await showPostCrawlMenu(result, pipeline);

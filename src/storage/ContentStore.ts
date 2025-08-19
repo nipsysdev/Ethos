@@ -4,8 +4,8 @@ import type { ContentData, CrawledData } from "@/core/types.js";
 import {
 	createMetadataStore,
 	type MetadataStore,
-	type MetadataStoreOptions,
 } from "@/storage/MetadataStore";
+import { CONTENT_DIR_NAME } from "@/utils";
 import { generateStringHash } from "@/utils/hash.js";
 
 export interface StorageResult {
@@ -17,12 +17,6 @@ export interface StorageResult {
 		id: number;
 		stored: boolean;
 	};
-}
-
-export interface ContentStoreOptions {
-	storageDir?: string;
-	enableMetadata?: boolean;
-	metadataOptions?: MetadataStoreOptions;
 }
 
 export interface ContentStore {
@@ -107,7 +101,7 @@ async function ensureDirectoryExists(dirPath: string): Promise<void> {
 
 async function storeContent(
 	data: CrawledData,
-	storageDir: string,
+	contentDirPath: string,
 	metadataStore?: MetadataStore,
 ): Promise<StorageResult> {
 	const hash = generateHash(data.url);
@@ -115,14 +109,14 @@ async function storeContent(
 	const contentData = extractContentData(data);
 	const serialized = JSON.stringify(contentData, null, 2);
 	const filename = `${hash}.json`;
-	const filePath = join(storageDir, filename);
+	const filePath = join(contentDirPath, filename);
 
 	try {
 		const existed = await fileExists(filePath);
 
 		let metadataResult: { id: number; stored: boolean } | undefined;
 		if (!existed) {
-			await ensureDirectoryExists(storageDir);
+			await ensureDirectoryExists(contentDirPath);
 
 			await writeFile(filePath, serialized, "utf8");
 
@@ -242,29 +236,29 @@ async function deleteContentFiles(
 }
 
 export function createContentStore(
-	options: ContentStoreOptions = {},
+	storageDirPath: string,
+	enableMetadata = true,
 ): ContentStore {
-	const storageDir = resolve(options.storageDir ?? "./storage/content");
-	const enableMetadata = options.enableMetadata ?? true;
+	const contentDirPath = resolve(storageDirPath, CONTENT_DIR_NAME);
 	const metadataStore = enableMetadata
-		? createMetadataStore(options.metadataOptions)
+		? createMetadataStore(storageDirPath)
 		: undefined;
 
 	return {
 		async store(data: CrawledData): Promise<StorageResult> {
-			return storeContent(data, storageDir, metadataStore);
+			return storeContent(data, contentDirPath, metadataStore);
 		},
 
 		async retrieve(url: string): Promise<ContentData | null> {
-			return retrieveContent(url, storageDir);
+			return retrieveContent(url, contentDirPath);
 		},
 
 		async exists(url: string): Promise<boolean> {
-			return contentExists(url, storageDir, metadataStore);
+			return contentExists(url, contentDirPath, metadataStore);
 		},
 
 		getStorageDirectory(): string {
-			return storageDir;
+			return contentDirPath;
 		},
 
 		getMetadataStore(): MetadataStore | undefined {
@@ -274,7 +268,7 @@ export function createContentStore(
 		async deleteContentFiles(
 			hashes: string[],
 		): Promise<{ deleted: number; errors: string[] }> {
-			return deleteContentFiles(hashes, storageDir);
+			return deleteContentFiles(hashes, contentDirPath);
 		},
 
 		close(): void {

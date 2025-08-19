@@ -52,10 +52,11 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 
 	it("should throw error when no crawler found", async () => {
 		const registry = createCrawlerRegistry();
-		const pipeline = createProcessingPipeline(registry, {
-			storageBasePath: "./test-storage",
-			contentStoreOptions: { enableMetadata: false },
-		});
+		const pipeline = createProcessingPipeline(
+			registry,
+			"./test-storage",
+			false,
+		);
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(CrawlerError);
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
@@ -107,10 +108,11 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(mockCrawler);
-		const pipeline = createProcessingPipeline(registry, {
-			storageBasePath: "./test-storage",
-			contentStoreOptions: { enableMetadata: false },
-		});
+		const pipeline = createProcessingPipeline(
+			registry,
+			"./test-storage",
+			false,
+		);
 
 		const result = await pipeline.process(testConfig);
 
@@ -135,10 +137,11 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 
 		const registry = createCrawlerRegistry();
 		registry.register(failingCrawler);
-		const pipeline = createProcessingPipeline(registry, {
-			storageBasePath: "./test-storage",
-			contentStoreOptions: { enableMetadata: false },
-		});
+		const pipeline = createProcessingPipeline(
+			registry,
+			"./test-storage",
+			false,
+		);
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
 			"Network failure",

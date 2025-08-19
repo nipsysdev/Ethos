@@ -8,6 +8,7 @@ import { createSourceRegistry } from "@/core/SourceRegistry";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
 import { NAV_VALUES } from "./ui/constants";
+import { getStoragePath } from "./utils";
 
 const program = new Command();
 
@@ -15,7 +16,7 @@ const sourceRegistry = createSourceRegistry(
 	join(process.cwd(), "src", "config", "sources.yaml"),
 );
 const crawlerRegistry = createCrawlerRegistry();
-const pipeline = createProcessingPipeline(crawlerRegistry, "./storage");
+const pipeline = createProcessingPipeline(crawlerRegistry, getStoragePath());
 
 crawlerRegistry.register(createArticleListingCrawler());
 

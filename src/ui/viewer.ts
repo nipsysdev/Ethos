@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
-import { createContentStore } from "@/storage/ContentStore";
 import type { MetadataStore } from "@/storage/MetadataStore";
 import { MENU_LABELS, NAV_VALUES } from "@/ui/constants";
+import { getContentDirPath } from "@/utils";
 
 const ITEMS_PER_PAGE = 50;
 const MAX_VISIBLE_MENU_OPTIONS = 20;
@@ -96,11 +96,6 @@ async function showPaginatedViewer(
 	const endIndex = Math.min(startIndex + pageSize, items.length);
 	const currentItems = items.slice(startIndex, endIndex);
 
-	const contentStoreFactory = () =>
-		createContentStore({ enableMetadata: false });
-	const contentStore = contentStoreFactory();
-	const storageDir = contentStore.getStorageDirectory();
-
 	const choices = currentItems.map((item, index) => {
 		const globalIndex = startIndex + index + 1;
 		const publishedInfo = item.publishedDate
@@ -108,7 +103,7 @@ async function showPaginatedViewer(
 			: "";
 		return {
 			name: `${globalIndex}. ${item.title}${publishedInfo}`,
-			value: join(storageDir, `${item.hash}.json`),
+			value: join(getContentDirPath(), `${item.hash}.json`),
 			short: item.title,
 		};
 	});

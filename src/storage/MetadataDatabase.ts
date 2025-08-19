@@ -1,10 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import Database from "better-sqlite3";
-
-export interface MetadataStoreOptions {
-	dbPath?: string;
-}
+import { METADATA_DB_NAME } from "@/utils";
 
 export interface MetadataDatabase {
 	db: Database.Database;
@@ -92,9 +89,9 @@ function configureDatabase(db: Database.Database): void {
 }
 
 export function createMetadataDatabase(
-	options: MetadataStoreOptions = {},
+	storageDirPath: string,
 ): MetadataDatabase {
-	const dbPath = resolve(options.dbPath ?? "./storage/metadata.db");
+	const dbPath = resolve(storageDirPath, METADATA_DB_NAME);
 
 	ensureDbDirectoryExists(dbPath);
 

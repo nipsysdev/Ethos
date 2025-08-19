@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { createContentStore } from "@/storage/ContentStore.js";
+import { CONTENT_DIR_NAME } from "@/utils";
 import { generateStringHash } from "@/utils/hash.js";
 
 describe("ContentStore - Retrieval & Existence", () => {
@@ -26,10 +27,7 @@ describe("ContentStore - Retrieval & Existence", () => {
 	beforeEach(async () => {
 		// Create unique directory for each test run to avoid conflicts
 		testStorageDir = `./test-storage-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-		contentStore = createContentStore({
-			storageDir: testStorageDir,
-			enableMetadata: false,
-		});
+		contentStore = createContentStore(testStorageDir, false);
 
 		// Ensure clean state by removing directory if it exists
 		try {
@@ -81,7 +79,7 @@ describe("ContentStore - Retrieval & Existence", () => {
 			// Now corrupt the file by writing invalid JSON
 			// Generate hash the same way ContentStore does
 			const hash = generateStringHash(sampleData.url);
-			const filePath = join(testStorageDir, `${hash}.json`);
+			const filePath = join(testStorageDir, CONTENT_DIR_NAME, `${hash}.json`);
 			await writeFile(filePath, "invalid json content", "utf8");
 
 			await expect(contentStore.retrieve(sampleData.url)).rejects.toThrow(

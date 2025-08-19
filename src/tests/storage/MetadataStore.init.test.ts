@@ -6,6 +6,7 @@ import {
 	createMetadataStore,
 	type MetadataStore,
 } from "@/storage/MetadataStore.js";
+import { METADATA_DB_NAME } from "@/utils";
 
 describe("MetadataStore - Database Initialization", () => {
 	let tempDbPath: string;
@@ -19,9 +20,7 @@ describe("MetadataStore - Database Initialization", () => {
 		);
 		mkdirSync(tempDbPath, { recursive: true });
 
-		store = createMetadataStore({
-			dbPath: resolve(tempDbPath, "metadata.db"),
-		});
+		store = createMetadataStore(tempDbPath);
 	});
 
 	afterEach(() => {
@@ -34,14 +33,12 @@ describe("MetadataStore - Database Initialization", () => {
 	it("should create database and tables automatically", () => {
 		expect(store).toBeDefined();
 		// The fact that we can create a store instance means tables were created successfully
-		expect(store.getDatabasePath()).toContain("metadata.db");
+		expect(store.getDatabasePath()).toContain(METADATA_DB_NAME);
 	});
 
 	it("should handle existing database gracefully", () => {
 		// Create another store with the same path
-		const store2 = createMetadataStore({
-			dbPath: resolve(tempDbPath, "metadata.db"),
-		});
+		const store2 = createMetadataStore(tempDbPath);
 
 		expect(store2).toBeDefined();
 		store2.close();

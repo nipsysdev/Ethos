@@ -1,26 +1,27 @@
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMetadataDatabase } from "@/storage/MetadataDatabase.js";
+import { METADATA_DB_NAME } from "@/utils";
 
 describe("MetadataDatabase", () => {
-	let testDbPath: string;
+	let tempStoragePath: string;
 	let database: ReturnType<typeof createMetadataDatabase>;
 
 	beforeEach(() => {
 		// Use a unique test database for each test
-		testDbPath = join(process.cwd(), `test-metadata-db-${Date.now()}.db`);
-		database = createMetadataDatabase({ dbPath: testDbPath });
+		tempStoragePath = resolve(
+			process.cwd(),
+			`test-storage-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+		);
+		database = createMetadataDatabase(tempStoragePath);
 	});
 
-	afterEach(async () => {
+	afterEach(() => {
 		// Clean up test database
 		database.close();
 		try {
-			await rm(testDbPath);
-			// Also remove WAL and SHM files
-			await rm(`${testDbPath}-wal`).catch(() => {});
-			await rm(`${testDbPath}-shm`).catch(() => {});
+			rmSync(tempStoragePath, { recursive: true, force: true });
 		} catch {
 			// Ignore cleanup errors
 		}
@@ -110,7 +111,9 @@ describe("MetadataDatabase", () => {
 
 	describe("Database Path", () => {
 		it("should return the correct database path", () => {
-			expect(database.getDatabasePath()).toBe(testDbPath);
+			expect(database.getDatabasePath()).toBe(
+				`${tempStoragePath}/${METADATA_DB_NAME}`,
+			);
 		});
 	});
 
