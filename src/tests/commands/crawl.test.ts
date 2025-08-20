@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { crawlWithOptions } from "@/commands/crawl";
-import type { SourceConfig } from "@/core/types";
+import { sources } from "@/config/sources/index.js";
 import { ERROR_MESSAGES } from "@/ui/constants";
 import { displaySources } from "@/ui/formatter";
 import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
@@ -95,45 +95,6 @@ describe("Crawl Command Validation", () => {
 
 describe("crawlWithOptions", () => {
 	it("should display available sources when source not found", async () => {
-		// Mock source registry
-		const mockSourceRegistry = {
-			getSource: vi.fn().mockResolvedValue(null),
-			getAllSources: vi.fn().mockResolvedValue([
-				{
-					id: "source1",
-					name: "Source One",
-					type: "listing",
-					listing: {
-						url: "https://example.com",
-						items: {
-							container_selector: ".item",
-							fields: {},
-						},
-					},
-					content: {
-						container_selector: ".content",
-						fields: {},
-					},
-				},
-				{
-					id: "source2",
-					name: "Source Two",
-					type: "listing",
-					listing: {
-						url: "https://example.com",
-						items: {
-							container_selector: ".item",
-							fields: {},
-						},
-					},
-					content: {
-						container_selector: ".content",
-						fields: {},
-					},
-				},
-			] as SourceConfig[]),
-		};
-
 		// Mock pipeline
 		const mockPipeline = {
 			processSummary: vi.fn(),
@@ -145,14 +106,13 @@ describe("crawlWithOptions", () => {
 		// Call crawlWithOptions with non-existent source
 		const result = await crawlWithOptions(
 			{ source: "non-existent-source" },
-			mockSourceRegistry as any,
 			mockPipeline as any,
 		);
 
 		// Verify the error message and available sources are displayed
 		expect(consoleSpy).toHaveBeenCalledWith(ERROR_MESSAGES.SOURCE_NOT_FOUND);
 		expect(consoleSpy).toHaveBeenCalledWith(
-			`${ERROR_MESSAGES.AVAILABLE_SOURCES} ${displaySources(await mockSourceRegistry.getAllSources())}`,
+			`${ERROR_MESSAGES.AVAILABLE_SOURCES} ${displaySources(sources)}`,
 		);
 
 		// Verify it returns to main menu

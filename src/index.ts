@@ -1,10 +1,8 @@
-import { join } from "node:path";
 import { Command } from "commander";
 import { crawlWithOptions } from "@/commands/crawl";
 import { startServerCommand } from "@/commands/server";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
 import { createProcessingPipeline } from "@/core/ProcessingPipeline";
-import { createSourceRegistry } from "@/core/SourceRegistry";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
 import { NAV_VALUES } from "./ui/constants";
@@ -12,9 +10,6 @@ import { getStoragePath } from "./utils";
 
 const program = new Command();
 
-const sourceRegistry = createSourceRegistry(
-	join(process.cwd(), "src", "config", "sources.yaml"),
-);
 const crawlerRegistry = createCrawlerRegistry();
 const pipeline = createProcessingPipeline(crawlerRegistry, getStoragePath());
 
@@ -25,7 +20,7 @@ program
 	.description("Ethos web crawling command line interface")
 	.version("1.0.0")
 	.action(async () => {
-		await showMainMenu(sourceRegistry, pipeline);
+		await showMainMenu(pipeline);
 	});
 
 program
@@ -51,11 +46,7 @@ program
 			reCrawlExisting: options.recrawl,
 			output: options.output,
 		};
-		const result = await crawlWithOptions(
-			crawlOptions,
-			sourceRegistry,
-			pipeline,
-		);
+		const result = await crawlWithOptions(crawlOptions, pipeline);
 
 		if (result === NAV_VALUES.EXIT) {
 			process.exit(0);

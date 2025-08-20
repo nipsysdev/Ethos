@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleClean } from "@/commands/clean.js";
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/SourceRegistry";
 
 // Mock inquirer
 const mockPrompt = vi.fn();
@@ -10,14 +9,6 @@ vi.doMock("inquirer", () => ({
 }));
 
 describe("Clean Command", () => {
-	// Mock source registry
-	const mockSourceRegistry = {
-		getSource: vi.fn().mockResolvedValue({
-			id: "test-source",
-			name: "Test Source Name",
-		}),
-	} as unknown as SourceRegistry;
-
 	afterEach(() => {
 		vi.clearAllMocks();
 	});
@@ -31,7 +22,7 @@ describe("Clean Command", () => {
 			getContentStore: () => null,
 		} as unknown as ProcessingPipeline;
 
-		const result = await handleClean(mockSourceRegistry, mockPipeline);
+		const result = await handleClean(mockPipeline);
 
 		expect(result).toBe("main");
 		expect(consoleSpy).toHaveBeenCalledWith("Error: Storage not available");
@@ -53,7 +44,7 @@ describe("Clean Command", () => {
 			getContentStore: () => mockContentStore,
 		} as unknown as ProcessingPipeline;
 
-		const result = await handleClean(mockSourceRegistry, mockPipeline);
+		const result = await handleClean(mockPipeline);
 
 		expect(result).toBe("main");
 		expect(consoleSpy).toHaveBeenCalledWith(
@@ -78,7 +69,7 @@ describe("Clean Command", () => {
 			getContentStore: () => mockContentStore,
 		} as unknown as ProcessingPipeline;
 
-		const result = await handleClean(mockSourceRegistry, mockPipeline);
+		const result = await handleClean(mockPipeline);
 
 		expect(result).toBe("main");
 		expect(mockPrompt).toHaveBeenCalledTimes(1);
@@ -104,7 +95,7 @@ describe("Clean Command", () => {
 			getContentStore: () => mockContentStore,
 		} as unknown as ProcessingPipeline;
 
-		const result = await handleClean(mockSourceRegistry, mockPipeline);
+		const result = await handleClean(mockPipeline);
 
 		expect(result).toBe("main");
 		// The function should call prompt until it gets to the end
@@ -135,7 +126,7 @@ describe("Clean Command", () => {
 			getContentStore: () => mockContentStore,
 		} as unknown as ProcessingPipeline;
 
-		const result = await handleClean(mockSourceRegistry, mockPipeline);
+		const result = await handleClean(mockPipeline);
 
 		expect(result).toBe("main");
 		expect(consoleSpy).toHaveBeenCalledWith("Cleaning cancelled.");

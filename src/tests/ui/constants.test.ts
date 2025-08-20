@@ -7,7 +7,7 @@ describe("UI Constants", () => {
 		expect(ERROR_MESSAGES.AVAILABLE_SOURCES).toBe("Available sources: ");
 		expect(ERROR_MESSAGES.CRAWL_FAILED).toBe("Crawl failed");
 		expect(ERROR_MESSAGES.NO_SOURCES_CONFIGURED).toBe(
-			"No sources configured. Please add sources to config/sources.yaml",
+			"No sources configured. Please add sources to src/config/sources/",
 		);
 	});
 
@@ -22,7 +22,7 @@ describe("UI Constants", () => {
 		expect(ERROR_MESSAGES.SOURCE_NOT_FOUND).toBe("Source not found");
 		expect(ERROR_MESSAGES.CRAWL_FAILED).toBe("Crawl failed");
 		expect(ERROR_MESSAGES.NO_SOURCES_CONFIGURED).toBe(
-			"No sources configured. Please add sources to config/sources.yaml",
+			"No sources configured. Please add sources to src/config/sources/",
 		);
 	});
 });

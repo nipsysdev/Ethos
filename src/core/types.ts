@@ -18,12 +18,6 @@ export interface CrawlerRegistry {
 	getSupportedTypes(): string[];
 }
 
-export interface SourceRegistry {
-	loadSources(): Promise<SourceConfig[]>;
-	getSource(id: string): Promise<SourceConfig | undefined>;
-	getAllSources(): Promise<SourceConfig[]>;
-}
-
 // Configuration types
 export interface FieldConfig {
 	selector: string;

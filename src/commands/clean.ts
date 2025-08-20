@@ -1,5 +1,4 @@
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/types";
 import {
 	CLEAN_LABELS,
 	ERROR_MESSAGES,
@@ -11,12 +10,12 @@ import {
 } from "@/ui/constants";
 import {
 	checkRequiredStores,
-	createEnhancedSourceList,
+	createSourceListWithStats,
+	getSourceName,
 	promptSourceSelection,
 } from "@/ui/utils";
 
 export async function handleClean(
-	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "exit"> {
 	try {
@@ -33,16 +32,13 @@ export async function handleClean(
 			return NAV_VALUES.MAIN;
 		}
 
-		const sourcesWithNames = await createEnhancedSourceList(
-			sources,
-			sourceRegistry,
-		);
+		const sourcesWithStats = createSourceListWithStats(sources);
 
 		while (true) {
 			const inquirer = (await import("inquirer")).default;
 			const selectedSource = await promptSourceSelection(
 				inquirer,
-				sourcesWithNames,
+				sourcesWithStats,
 				PROMPT_MESSAGES.SELECT_SOURCE_TO_CLEAN,
 			);
 
@@ -50,10 +46,7 @@ export async function handleClean(
 				return NAV_VALUES.MAIN;
 			}
 
-			const selectedSourceData = sourcesWithNames.find(
-				(source) => source.id === selectedSource,
-			);
-			const sourceName = selectedSourceData?.name || selectedSource;
+			const sourceName = getSourceName(selectedSource);
 
 			const sessionCount = metadataStore.countSessionsBySource(selectedSource);
 			const contentCount = metadataStore.countBySource(selectedSource);

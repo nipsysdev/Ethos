@@ -8,7 +8,6 @@
 	"main": "dist/index.js",
 	"files": [
 		"dist",
-		"src/config",
 		"README.md",
 		"LICENSE"
 	],
@@ -59,8 +58,7 @@
 		"puppeteer": "^24.11.2",
 		"puppeteer-extra": "^3.3.6",
 		"puppeteer-extra-plugin-adblocker": "^2.13.6",
-		"puppeteer-extra-plugin-stealth": "^2.11.2",
-		"yaml": "^2.6.1"
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.6",
