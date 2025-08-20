@@ -11,7 +11,7 @@ import {
 	createMetadataStore,
 	type MetadataStore,
 } from "@/storage/MetadataStore";
-import { getStoragePath } from "@/utils";
+import { getStoragePath } from "@/utils/storagePath.js";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
 
 export enum MetadataActionType {

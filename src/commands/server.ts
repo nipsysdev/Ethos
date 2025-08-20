@@ -1,7 +1,7 @@
 import { createServer, startServer } from "@/server/index";
 import type { ServerConfig } from "@/server/types";
 import { createContentStore } from "@/storage/ContentStore";
-import { getStoragePath } from "@/utils";
+import { getStoragePath } from "@/utils/storagePath.js";
 
 export async function startServerCommand(): Promise<void> {
 	const config: ServerConfig = {

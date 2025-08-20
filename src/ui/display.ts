@@ -7,7 +7,7 @@ import { createMetadataStore } from "@/storage/MetadataStore";
 import { showPostCrawlMenu } from "@/ui/menus";
 import { displayCrawlSummary } from "@/ui/summary";
 import { showExtractedData } from "@/ui/viewer";
-import { getStoragePath } from "@/utils";
+import { getStoragePath } from "@/utils/storagePath.js";
 
 export function displayResults(result: ProcessingSummaryResult): void {
 	displayCrawlSummary(result);

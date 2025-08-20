@@ -6,7 +6,7 @@ import { createProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
 import { showMainMenu } from "@/ui/menus";
 import { NAV_VALUES } from "./ui/constants";
-import { getStoragePath } from "./utils";
+import { getStoragePath } from "./utils/storagePath.js";
 
 const program = new Command();
 

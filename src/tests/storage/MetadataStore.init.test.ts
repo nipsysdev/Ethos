@@ -6,7 +6,7 @@ import {
 	createMetadataStore,
 	type MetadataStore,
 } from "@/storage/MetadataStore.js";
-import { METADATA_DB_NAME } from "@/utils";
+import { METADATA_DB_NAME } from "@/utils/storagePath.js";
 
 describe("MetadataStore - Database Initialization", () => {
 	let tempDbPath: string;

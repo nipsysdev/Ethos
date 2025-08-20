@@ -3,7 +3,7 @@ import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createContentStore } from "@/storage/ContentStore.js";
-import { CONTENT_DIR_NAME } from "@/utils";
+import { CONTENT_DIR_NAME } from "@/utils/storagePath.js";
 
 describe("ContentStore - Constructor", () => {
 	let testStorageDir: string;

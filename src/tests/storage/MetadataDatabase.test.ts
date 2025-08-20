@@ -2,7 +2,7 @@ import { rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMetadataDatabase } from "@/storage/MetadataDatabase.js";
-import { METADATA_DB_NAME } from "@/utils";
+import { METADATA_DB_NAME } from "@/utils/storagePath.js";
 
 describe("MetadataDatabase", () => {
 	let tempStoragePath: string;
