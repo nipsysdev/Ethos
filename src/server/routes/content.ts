@@ -1,18 +1,21 @@
 import type { Request, Response } from "express";
+import { ApiError } from "@/server/middleware/error.js";
 import type {
-	ContentMetadata,
-	ContentStore,
-	MetadataStore,
-} from "../../storage/index.js";
-import { ApiError } from "../middleware/error.js";
-import type { ContentItemResponse, ContentQueryParams } from "../types.js";
-import { ApiErrorType } from "../types.js";
+	ApiListResponse,
+	ContentItemResponse,
+	ContentQueryParams,
+} from "@/server/types.js";
+import { ApiErrorType } from "@/server/types.js";
 import {
 	calculatePagination,
 	parseQueryParams,
 	validateLimit,
-} from "../utils/pagination.js";
-import { success } from "../utils/response.js";
+} from "@/server/utils/pagination.js";
+import type { ContentStore } from "@/storage/ContentStore.js";
+import type {
+	ContentMetadata,
+	MetadataStore,
+} from "@/storage/MetadataStore.js";
 
 export const getContentHandler = (
 	metadataStore: MetadataStore,
@@ -83,7 +86,10 @@ export const getContentHandler = (
 				}
 			}
 
-			const response = success(contentItems, paginationMeta);
+			const response: ApiListResponse<ContentItemResponse> = {
+				results: contentItems,
+				meta: paginationMeta,
+			};
 			res.json(response);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -135,8 +141,7 @@ export const getContentByHashHandler = (
 				hash: metadata.hash,
 			};
 
-			const response = success(contentItem);
-			res.json(response);
+			res.json(contentItem);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				throw error;

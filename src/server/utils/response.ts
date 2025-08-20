@@ -1,15 +1,5 @@
-import type { ApiResponse, ErrorResponse } from "../types.js";
+import type { ErrorResponse } from "../types.js";
 import { ApiErrorType } from "../types.js";
-
-export const success = <T>(
-	data: T,
-	meta?: ApiResponse<T>["meta"],
-): ApiResponse<T> => {
-	return {
-		meta,
-		data,
-	};
-};
 
 export const error = (type: ApiErrorType, message: string): ErrorResponse => {
 	return {

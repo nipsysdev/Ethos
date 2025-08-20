@@ -5,7 +5,6 @@ import {
 	getContentHandler,
 } from "@/server/routes/content.js";
 import { ApiErrorType } from "@/server/types.js";
-import { success } from "@/server/utils/response.js";
 
 // Mock storage
 const mockMetadataStore = {
@@ -109,29 +108,27 @@ describe("Content Handlers", () => {
 			expect(mockContentStore.retrieve).toHaveBeenCalledWith(
 				"https://example.com/1",
 			);
-			expect(mockRes.json).toHaveBeenCalledWith(
-				success(
-					[
-						{
-							url: "https://example.com/1",
-							title: "Test Title 1",
-							content: "Test content 1",
-							author: "Test Author",
-							publishedDate: new Date("2023-01-01").toISOString(),
-							image: "https://example.com/image1.jpg",
-							source: "test-source",
-							crawledAt: mockMetadata[0].crawledAt,
-							hash: "hash1",
-						},
-					],
+			expect(mockRes.json).toHaveBeenCalledWith({
+				results: [
 					{
-						total: 1,
-						page: 1,
-						limit: 10,
-						totalPages: 1,
+						url: "https://example.com/1",
+						title: "Test Title 1",
+						content: "Test content 1",
+						author: "Test Author",
+						publishedDate: new Date("2023-01-01").toISOString(),
+						image: "https://example.com/image1.jpg",
+						source: "test-source",
+						crawledAt: mockMetadata[0].crawledAt,
+						hash: "hash1",
 					},
-				),
-			);
+				],
+				meta: {
+					total: 1,
+					page: 1,
+					limit: 10,
+					totalPages: 1,
+				},
+			});
 		});
 
 		it("should handle empty results", async () => {
@@ -159,14 +156,15 @@ describe("Content Handlers", () => {
 				limit: 10,
 				offset: 0,
 			});
-			expect(mockRes.json).toHaveBeenCalledWith(
-				success([], {
+			expect(mockRes.json).toHaveBeenCalledWith({
+				results: [],
+				meta: {
 					total: 0,
 					page: 1,
 					limit: 10,
 					totalPages: 0,
-				}),
-			);
+				},
+			});
 		});
 
 		it("should use query method when no source specified", async () => {
@@ -256,19 +254,17 @@ describe("Content Handlers", () => {
 			expect(mockContentStore.retrieve).toHaveBeenCalledWith(
 				"https://example.com/1",
 			);
-			expect(mockRes.json).toHaveBeenCalledWith(
-				success({
-					url: "https://example.com/1",
-					title: "Test Title 1",
-					content: "Test content 1",
-					author: "Test Author",
-					publishedDate: new Date("2023-01-01").toISOString(),
-					image: "https://example.com/image1.jpg",
-					source: "test-source",
-					crawledAt: mockMetadata.crawledAt,
-					hash: "hash1",
-				}),
-			);
+			expect(mockRes.json).toHaveBeenCalledWith({
+				url: "https://example.com/1",
+				title: "Test Title 1",
+				content: "Test content 1",
+				author: "Test Author",
+				publishedDate: new Date("2023-01-01").toISOString(),
+				image: "https://example.com/image1.jpg",
+				source: "test-source",
+				crawledAt: mockMetadata.crawledAt,
+				hash: "hash1",
+			});
 		});
 
 		it("should throw validation error for invalid hash", async () => {
