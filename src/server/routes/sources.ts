@@ -18,7 +18,7 @@ export const getSourcesHandler = () => {
 			}
 			throw new ApiError(
 				ApiErrorType.INTERNAL_ERROR,
-				"Failed to fetch content",
+				"Failed to fetch sources",
 			);
 		}
 	};
