@@ -3,10 +3,13 @@ import type { ServerConfig } from "@/server/types";
 import { createContentStore } from "@/storage/ContentStore";
 import { getStoragePath } from "@/utils/storagePath.js";
 
-export async function serveApi(): Promise<void> {
+export async function serveApi(
+	port = "3000",
+	host = "localhost",
+): Promise<void> {
 	const config: ServerConfig = {
-		port: parseInt(process.env.PORT || "3000", 10),
-		host: process.env.HOST || "localhost",
+		port: parseInt(port, 10),
+		host,
 		pagination: {
 			defaultLimit: 10,
 			maxLimit: 100,

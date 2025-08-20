@@ -61,13 +61,7 @@ program
 	)
 	.option("-h, --host <string>", "Host to bind the server to")
 	.action(async (options) => {
-		if (options.port) {
-			process.env.PORT = options.port.toString();
-		}
-		if (options.host) {
-			process.env.HOST = options.host;
-		}
-		await serveApi();
+		await serveApi(options.port, options.host);
 	});
 
 program.parseAsync(process.argv).catch(console.error);
