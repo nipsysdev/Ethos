@@ -3,7 +3,7 @@ import type { ServerConfig } from "@/server/types";
 import { createContentStore } from "@/storage/ContentStore";
 import { getStoragePath } from "@/utils/storagePath.js";
 
-export async function startServerCommand(): Promise<void> {
+export async function serveApi(): Promise<void> {
 	const config: ServerConfig = {
 		port: parseInt(process.env.PORT || "3000", 10),
 		host: process.env.HOST || "localhost",
