@@ -1,119 +1,205 @@
 # Ethos
 
-Tracking digital freedom threats through automated crawling. Part of the [Logos](https://logos.co) ecosystem.
+This project is part of the [Logos](https://logos.co/) ecosystem. Let's protect freedom.
 
 ## What is Ethos?
 
-Ethos crawls websites from digital rights organizations to track threats to online freedom. We're building YAML-driven web scrapers that automatically collect data about censorship, surveillance, and policy changes - then store it in a decentralized network for analysis and alerts.
+In its current state, Ethos is a web crawler designed to browse specific sources in order to retrieve their publications. It has a built-in API serving the content, enabling the crawled data to be used for data analysis, notifications, etc...
 
-## End-Goal Architecture Overview
+## The censorship-resistant archiving mission
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   TypeScript    │    │   Network       │    │   Client Apps   │
-│    Library      │    │    Nodes        │    │  (Discord Bot,  │
-│ (Core Logic for │────│ (Continuous     │────│   Research UI,  │
-│  Crawl/Storage/ │    │  Operations +   │    │   Alerting)     │
-│   Analysis)     │    │  Waku Comms)    │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+The goal behind the development of Ethos is to build a tool which retrieves publications about civil liberties (currently mostly focused on digital rights), and preserve those in [Codex](https://codex.storage/), an incorruptible and persistent archive.
 
-**How it works:**
+Why? Because centralized freedom organisations are [too often](https://press.logos.co/article/save-the-songs) the target of powerful actors who feel threatened by their noble missions.
 
-- **Library**: Core crawling, storage, and analysis logic
-- **Nodes**: Run continuous operations using the library
-- **Client Apps**: Discord bots, research UIs that request data via Waku
+Reports about human rights must, too, be protected and kept forever accessible.
 
-## Development Phases
+## Current supported sources
 
-### Phase 1: Listing crawler ✓
+- Electronic Frontier Foundation (EFF): https://www.eff.org/updates
+- Freedom of the Press Foundation (FPF): https://freedom.press/issues
+- Logos Press Engine (LPE): https://press.logos.co/search?type=article
 
-### Phase 2: Simulating decentralized Storage (current)
+## Running Ethos locally
 
-### Phase 3: Data analysis strategies
+### Installing Ethos
 
-### Phase 4: Feature-complete CLI interface
+#### As global package
 
-### TBD...
+`npm i -g ethos-crawler`
 
-## Components
+#### Or, run directly using NPX
 
-### [@ethos/lib](./packages/lib/)
+`npx ethos-crawler`
 
-The core TypeScript library containing all the logic for crawling, storage access, and running analysis strategies.
+### Interactive Menu
 
-This library is intended to be used by network nodes to perform all operations.
-
-It also features a CLI for testing purposes.
-
-See the [library README](./packages/lib/README.md) for detailed documentation.
-
-### [@ethos/node](./packages/node/) _(To be implemented)_
-
-Network nodes that use the library for continuous operations:
-
-- Continuous crawling and storage using the library
-- On-demand and daemonized analysis algorithms
-- Waku messaging for client communication
-- Codex storage coordination
-
-### [@ethos/notifier](./packages/notifier/) _(To be implemented)_
-
-Client application that communicates with nodes via Waku to query stored events and notify users:
-
-- Query stored events from network nodes
-- Send notifications through Discord, Telegram, and other channels
-- Real-time alerts for critical events
-- Multi-channel notification support
-
-## Pipeline
+Ethos can be used interactively. By using the menu, you will be able to crawl, access past sessions summaries and data, as well as cleaning the database and storage.
 
 ```
-Sources → Crawl → Store → Processing (Query/Analyze/Notify/Display)
+$ ethos
+? Select a command: (Use arrow keys)
+❯ crawl - Start crawling a source
+  sessions - Browse previous crawl sessions
+  clean - Clean stored data
+  exit - Exit the program
 ```
 
-## Quick Start
+### Commands
 
-1. **Install dependencies**:
+#### Crawl - Executing a crawl operation
 
-   ```bash
-   git clone https://github.com/logos-co/ethos.git
-   cd ethos
+```
+$ ethos crawl --help
+Usage: ethos crawl [options] <source>
 
-   # Install Node.js 22+ (using asdf or manually)
-   asdf install  # or ensure Node.js 22+
-   pnpm install
-   ```
+Crawl a source for content
 
-2. **Try the library through the CLI**:
+Arguments:
+  source                    Source ID to crawl
 
-   ```bash
-   cd packages/lib
-   pnpm run build
-   node dist/cli/index.js
-   ```
-
-## Development
-
-This is a monorepo using Lerna and PNPM:
-
-```bash
-pnpm run build    # Build all packages
-pnpm run lint     # Lint all packages
-pnpm run test     # Test all packages
-pnpm run watch    # Watch mode for development
+Options:
+  -m, --max-pages <number>  Maximum number of pages to crawl
+  --force-full-crawl        Continue crawling when reached previous crawl session URLs
+  --recrawl                 Re-crawl and override existing URLs data
+  -o, --output <format>     Output format (json|summary) (default: "summary")
+  -h, --help                display help for command
 ```
 
-The system uses local simulation during development with SQLite and JSON files that mirror the production architecture (Smart Contract + Codex).
+#### Serve - Starting the API server
 
-## Contributing
+```
+$ ethos serve --help
+Usage: ethos serve [options]
 
-Please read our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
+Start the REST API server
 
-### Code of Conduct
+Options:
+  -p, --port <number>  Port to run the server on
+  -h, --host <string>  Host to bind the server to
+  --help               display help for command
+```
 
-This project follows our [Code of Conduct](./CODE_OF_CONDUCT.md). Please read it to understand the expectations for participation in our community.
+## Consuming the API
+
+### Prerequisite
+
+- Running the Ethos API locally
+- Or, querying an existing API instance
+
+### Endpoints
+
+#### GET `/health`
+
+Health check endpoint to verify the API is running.
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2023-12-01T10:30:00.000Z"
+}
+```
+
+#### GET `/sources`
+
+Get list of available sources for crawling.
+
+**Response:**
+
+```json
+[
+  {
+    "id": "eff",
+    "name": "Electronic Frontier Foundation"
+  },
+  {
+    "id": "fpf",
+    "name": "Freedom of the Press Foundation"
+  },
+  {
+    "id": "lpe",
+    "name": "Logos Press Engine"
+  }
+]
+```
+
+#### GET `/content`
+
+Retrieve crawled content with filtering and pagination.
+
+**Query Parameters:**
+
+- `page` (number, default: 1) - Page number for pagination
+- `limit` (number, default: 10, max: 100) - Items per page
+- `source` (string) - Filter by source ID (eff, fpf, lpe)
+- `startPublishedDate` (string) - Filter by start date (ISO 8601 format)
+- `endPublishedDate` (string) - Filter by end date (ISO 8601 format)
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "url": "https://eff.org/deeplinks/2023/12/example-article",
+      "title": "Example Article Title",
+      "content": "Full article content text extracted from the source...",
+      "author": "By Author Name",
+      "publishedDate": "2023-12-01T00:00:00.000Z",
+      "image": "https://eff.org/sites/default/files/example-image.jpg",
+      "source": "eff",
+      "crawledAt": "2023-12-01T10:30:00.000Z",
+      "hash": "a1b2c3d4e5f6..."
+    }
+  ],
+  "meta": {
+    "total": 150,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 15
+  }
+}
+```
+
+#### GET `/content/:hash`
+
+Retrieve a specific article by its hash.
+
+**Parameters:**
+
+- `hash` (string, required) - The unique hash identifier of the content
+
+**Response:**
+
+```json
+{
+  "url": "https://eff.org/deeplinks/2023/12/example-article",
+  "title": "Example Article Title",
+  "content": "Full article content text extracted from the source...",
+  "author": "By Author Name",
+  "publishedDate": "2023-12-01T00:00:00.000Z",
+  "image": "https://eff.org/sites/default/files/example-image.jpg",
+  "source": "eff",
+  "crawledAt": "2023-12-01T10:30:00.000Z",
+  "hash": "a1b2c3d4e5f6..."
+}
+```
+
+#### Error responses
+
+All endpoints return appropriate HTTP status codes and error objects:
+
+```json
+{
+  "error": {
+    "type": "NOT_FOUND|VALIDATION_ERROR|INTERNAL_ERROR",
+    "message": "Human-readable error description"
+  }
+}
+```
 
 ## License
 
-Apache License 2.0
+MIT
