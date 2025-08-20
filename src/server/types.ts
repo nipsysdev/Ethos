@@ -1,11 +1,11 @@
-export interface ApiResponse<T> {
-	meta?: {
+export interface ApiListResponse<T> {
+	meta: {
 		total: number;
 		page: number;
 		limit: number;
 		totalPages: number;
 	};
-	data: T;
+	results: T[];
 }
 
 export interface ContentItemResponse {

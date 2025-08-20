@@ -1,12 +1,13 @@
 import express from "express";
+import { errorHandler, notFoundHandler } from "@/server/middleware/error.js";
+import { getSourcesHandler } from "@/server/routes/sources.js";
+import type { ServerConfig } from "@/server/types.js";
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import {
 	getContentByHashHandler,
 	getContentHandler,
 } from "./routes/content.js";
-import type { ServerConfig } from "./types.js";
 
 export function createServer(
 	metadataStore: MetadataStore,
@@ -20,6 +21,8 @@ export function createServer(
 	app.get("/health", (_req, res) => {
 		res.json({ status: "ok", timestamp: new Date().toISOString() });
 	});
+
+	app.get("/sources", getSourcesHandler());
 
 	app.get("/content", getContentHandler(metadataStore, contentStore));
 	app.get(

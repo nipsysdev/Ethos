@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { crawlWithOptions } from "@/commands/crawl";
-import { startServerCommand } from "@/commands/server";
+import { serveApi } from "@/commands/serve";
 import { createCrawlerRegistry } from "@/core/CrawlerRegistry";
 import { createProcessingPipeline } from "@/core/ProcessingPipeline";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler";
@@ -54,20 +54,14 @@ program
 	});
 
 program
-	.command("server")
+	.command("serve")
 	.description("Start the REST API server")
 	.option("-p, --port <number>", "Port to run the server on", (val) =>
 		parseInt(val, 10),
 	)
 	.option("-h, --host <string>", "Host to bind the server to")
 	.action(async (options) => {
-		if (options.port) {
-			process.env.PORT = options.port.toString();
-		}
-		if (options.host) {
-			process.env.HOST = options.host;
-		}
-		await startServerCommand();
+		await serveApi(options.port, options.host);
 	});
 
 program.parseAsync(process.argv).catch(console.error);
