@@ -7,11 +7,11 @@ import type {
 	SourceConfig,
 } from "@/core/types";
 import { CrawlerError } from "@/core/types";
-import type { MetadataStore } from "@/storage";
 import {
 	type ContentStore,
 	createContentStore,
 } from "@/storage/ContentStore.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 export interface ProcessingResult {
 	data: ProcessedData[];

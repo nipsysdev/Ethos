@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import Database from "better-sqlite3";
-import { METADATA_DB_NAME } from "@/utils";
+import { METADATA_DB_NAME } from "@/utils/storagePath.js";
 
 export interface MetadataDatabase {
 	db: Database.Database;

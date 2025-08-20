@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CrawledData } from "@/core/types.js";
 import { createContentStore } from "@/storage/ContentStore.js";
-import { CONTENT_DIR_NAME } from "@/utils";
 import { generateStringHash } from "@/utils/hash.js";
+import { CONTENT_DIR_NAME } from "@/utils/storagePath.js";
 
 describe("ContentStore - Retrieval & Existence", () => {
 	let testStorageDir: string;

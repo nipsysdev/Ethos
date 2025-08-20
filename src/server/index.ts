@@ -1,5 +1,6 @@
 import express from "express";
-import type { ContentStore, MetadataStore } from "../storage/index.js";
+import type { ContentStore } from "@/storage/ContentStore.js";
+import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import {
 	getContentByHashHandler,

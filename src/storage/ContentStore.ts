@@ -5,8 +5,8 @@ import {
 	createMetadataStore,
 	type MetadataStore,
 } from "@/storage/MetadataStore";
-import { CONTENT_DIR_NAME } from "@/utils";
 import { generateStringHash } from "@/utils/hash.js";
+import { CONTENT_DIR_NAME } from "@/utils/storagePath.js";
 
 export interface StorageResult {
 	hash: string;

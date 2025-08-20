@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
 import type { MetadataStore } from "@/storage/MetadataStore";
 import { MENU_LABELS, NAV_VALUES } from "@/ui/constants";
-import { getContentDirPath } from "@/utils";
+import { getContentDirPath } from "@/utils/storagePath.js";
 
 const ITEMS_PER_PAGE = 50;
 const MAX_VISIBLE_MENU_OPTIONS = 20;
