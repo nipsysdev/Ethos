@@ -3,12 +3,11 @@
 	"version": "1.0.9",
 	"description": "Ethos crawls then serves digital rights organizations' publications through its API.",
 	"bin": {
-		"ethos": "dist/index.js"
+		"ethos": "dist/ethos.js"
 	},
-	"main": "dist/index.js",
+	"main": "dist/ethos.js",
 	"files": [
 		"dist",
-		"src/config",
 		"README.md",
 		"LICENSE"
 	],
@@ -30,8 +29,8 @@
 		"prepare": "lefthook install",
 		"watch": "tsc --watch",
 		"build": "vite build",
-		"start": "node dist/index.js",
-		"crawl": "node dist/index.js crawl",
+		"start": "node dist/ethos.js",
+		"crawl": "node dist/ethos.js crawl",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest --watch",
@@ -59,8 +58,7 @@
 		"puppeteer": "^24.11.2",
 		"puppeteer-extra": "^3.3.6",
 		"puppeteer-extra-plugin-adblocker": "^2.13.6",
-		"puppeteer-extra-plugin-stealth": "^2.11.2",
-		"yaml": "^2.6.1"
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.6",

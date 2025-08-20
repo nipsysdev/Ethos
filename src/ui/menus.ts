@@ -5,7 +5,6 @@ import type {
 	ProcessingPipeline,
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/types";
 import { MENU_LABELS, NAV_VALUES } from "./constants";
 
 export function calculateTotalErrors(
@@ -106,7 +105,6 @@ const COMMANDS: Command[] = [
 ];
 
 export async function showMainMenu(
-	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<void> {
 	const inquirer = (await import("inquirer")).default;
@@ -129,10 +127,10 @@ export async function showMainMenu(
 			process.exit(0);
 		}
 
-		let action = await handleCommand(command, sourceRegistry, pipeline);
+		let action = await handleCommand(command, pipeline);
 
 		while (action === NAV_VALUES.CRAWL) {
-			action = await handleCrawl(sourceRegistry, pipeline);
+			action = await handleCrawl(pipeline);
 		}
 
 		if (action === NAV_VALUES.EXIT) {
@@ -144,16 +142,15 @@ export async function showMainMenu(
 
 async function handleCommand(
 	command: string,
-	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit" | undefined> {
 	switch (command) {
 		case NAV_VALUES.CRAWL:
-			return await handleCrawl(sourceRegistry, pipeline);
+			return await handleCrawl(pipeline);
 		case NAV_VALUES.SESSIONS:
 			return await handleSessions(pipeline);
 		case "clean":
-			return await handleClean(sourceRegistry, pipeline);
+			return await handleClean(pipeline);
 		default:
 			console.log("Unknown command");
 			return NAV_VALUES.MAIN;

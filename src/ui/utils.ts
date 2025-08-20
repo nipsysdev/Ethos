@@ -1,5 +1,5 @@
+import { sources } from "@/config/sources/index.js";
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { SourceRegistry } from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -21,29 +21,34 @@ export function checkRequiredStores(pipeline: ProcessingPipeline) {
 	return { error: false as const, metadataStore, contentStore };
 }
 
-export interface EnhancedSource {
+export interface SourceWithStats {
 	id: string;
 	name: string;
 	count: number;
 }
 
-export async function createEnhancedSourceList(
-	sources: Array<{ source: string; count: number }>,
-	sourceRegistry: SourceRegistry,
-): Promise<EnhancedSource[]> {
-	return Promise.all(
-		sources.map(async (source) => {
-			const sourceConfig = await sourceRegistry.getSource(source.source);
-			return {
-				id: source.source,
-				name: sourceConfig?.name || source.source, // Fallback to ID if name not found
-				count: source.count,
-			};
-		}),
-	);
+/**
+ * Get source display name by ID
+ */
+export function getSourceName(sourceId: string): string {
+	const source = sources.find((s) => s.id === sourceId);
+	return source?.name || sourceId;
 }
 
-export function createSourceChoices(sources: EnhancedSource[]) {
+/**
+ * Create source list with statistics for display
+ */
+export function createSourceListWithStats(
+	sourceStats: Array<{ source: string; count: number }>,
+): SourceWithStats[] {
+	return sourceStats.map((stat) => ({
+		id: stat.source,
+		name: getSourceName(stat.source),
+		count: stat.count,
+	}));
+}
+
+export function createSourceChoices(sources: SourceWithStats[]) {
 	return [
 		...sources.map((source) => ({
 			name: source.name,
@@ -57,7 +62,7 @@ export function createSourceChoices(sources: EnhancedSource[]) {
 }
 
 export function createSourceChoicesWithBackLabel(
-	sources: EnhancedSource[],
+	sources: SourceWithStats[],
 	backLabel: string,
 ) {
 	return [
@@ -74,7 +79,7 @@ export function createSourceChoicesWithBackLabel(
 
 export async function promptSourceSelection(
 	inquirer: typeof import("inquirer").default,
-	sources: EnhancedSource[],
+	sources: SourceWithStats[],
 	message: string = PROMPT_MESSAGES.SELECT_SOURCE_TO_CRAWL,
 ) {
 	const { selectedSource } = await inquirer.prompt([

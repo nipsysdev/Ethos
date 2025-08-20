@@ -38,7 +38,7 @@ export const ERROR_MESSAGES = {
 	NO_ERRORS_FOUND: "No errors found during crawling!",
 	NO_STORED_FILES_FOUND: "No stored files found.",
 	NO_SOURCES_CONFIGURED:
-		"No sources configured. Please add sources to config/sources.yaml",
+		"No sources configured. Please add sources to src/config/sources/",
 	SOURCE_NOT_FOUND: "Source not found",
 	AVAILABLE_SOURCES: "Available sources: ",
 	CRAWL_FAILED: "Crawl failed",

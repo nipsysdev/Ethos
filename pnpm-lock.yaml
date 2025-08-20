@@ -35,9 +35,6 @@ importers:
       puppeteer-extra-plugin-stealth:
         specifier: ^2.11.2
         version: 2.11.2(puppeteer-extra@3.3.6(puppeteer-core@24.11.2)(puppeteer@24.11.2(typescript@5.8.3)))
-      yaml:
-        specifier: ^2.6.1
-        version: 2.8.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.0.6

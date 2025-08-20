@@ -1,9 +1,6 @@
+import { sources } from "@/config/sources/index.js";
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type {
-	CrawlOptions,
-	CrawlOptionsCLI,
-	SourceRegistry,
-} from "@/core/types";
+import type { CrawlOptions, CrawlOptionsCLI } from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -18,13 +15,11 @@ import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
 
 export async function crawlWithOptions(
 	options: CrawlOptionsCLI,
-	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
 	try {
-		const selectedSource = await sourceRegistry.getSource(options.source);
+		const selectedSource = sources.find((s) => s.id === options.source);
 		if (!selectedSource) {
-			const sources = await sourceRegistry.getAllSources();
 			console.log(ERROR_MESSAGES.SOURCE_NOT_FOUND);
 			console.log(
 				`${ERROR_MESSAGES.AVAILABLE_SOURCES} ${displaySources(sources)}`,
@@ -71,14 +66,11 @@ export async function crawlWithOptions(
 }
 
 export async function handleCrawl(
-	sourceRegistry: SourceRegistry,
 	pipeline: ProcessingPipeline,
 ): Promise<"main" | "crawl" | "exit"> {
 	const inquirer = (await import("inquirer")).default;
 
 	try {
-		const sources = await sourceRegistry.getAllSources();
-
 		if (sources.length === 0) {
 			console.log(ERROR_MESSAGES.NO_SOURCES_CONFIGURED);
 			return NAV_VALUES.MAIN;
@@ -106,7 +98,7 @@ export async function handleCrawl(
 			return NAV_VALUES.MAIN;
 		}
 
-		const selectedSource = await sourceRegistry.getSource(selectedSourceId);
+		const selectedSource = sources.find((s) => s.id === selectedSourceId);
 		if (!selectedSource) {
 			console.log(ERROR_MESSAGES.SOURCE_NOT_FOUND);
 			console.log(
