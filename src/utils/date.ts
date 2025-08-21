@@ -28,11 +28,11 @@ export function parsePublishedDate(
 			"DD MMMM YYYY",
 			"YYYY-MM-DD",
 		];
-		parsedDate = dayjs(cleaned, dateFormats);
+		parsedDate = dayjs(cleaned, dateFormats, true);
 	}
 
 	if (parsedDate.isValid()) {
-		return parsedDate.utc(true).toISOString();
+		return parsedDate.utc(parsedDate.hour() === 0).toISOString();
 	}
 
 	throw new Error(

@@ -39,13 +39,13 @@ describe("Date parsing utilities", () => {
 
 			// Handle ISO datetime formats with timezone
 			expect(parsePublishedDate("2025-07-25T12:00:00-07:00")).toBe(
-				"2025-07-25T15:00:00.000Z",
+				"2025-07-25T19:00:00.000Z",
 			);
 			expect(parsePublishedDate("2025-07-25T12:00:00Z")).toBe(
-				"2025-07-25T08:00:00.000Z",
+				"2025-07-25T12:00:00.000Z",
 			);
 			expect(parsePublishedDate("2025-07-25T12:00:00.000Z")).toBe(
-				"2025-07-25T08:00:00.000Z",
+				"2025-07-25T12:00:00.000Z",
 			);
 		});
 
