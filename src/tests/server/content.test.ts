@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/server/middleware/error.js";
 import {
-	getContentByHashHandler,
-	getContentHandler,
-} from "@/server/routes/content.js";
+	getPublicationByHashHandler,
+	getPublicationsHandler,
+} from "@/server/routes/publications.js";
 import { ApiErrorType } from "@/server/types.js";
 
 // Mock storage
@@ -87,7 +87,10 @@ describe("Content Handlers", () => {
 			mockContentStore.retrieve.mockResolvedValue(mockContent);
 
 			// Execute
-			const handler = getContentHandler(mockMetadataStore, mockContentStore);
+			const handler = getPublicationsHandler(
+				mockMetadataStore,
+				mockContentStore,
+			);
 			await handler(mockReq, mockRes);
 
 			// Assert
@@ -138,7 +141,10 @@ describe("Content Handlers", () => {
 			mockMetadataStore.query.mockReturnValue([]);
 
 			// Execute
-			const handler = getContentHandler(mockMetadataStore, mockContentStore);
+			const handler = getPublicationsHandler(
+				mockMetadataStore,
+				mockContentStore,
+			);
 			await handler(mockReq, mockRes);
 
 			// Assert
@@ -187,7 +193,10 @@ describe("Content Handlers", () => {
 			mockContentStore.retrieve.mockResolvedValue(mockContent);
 
 			// Execute
-			const handler = getContentHandler(mockMetadataStore, mockContentStore);
+			const handler = getPublicationsHandler(
+				mockMetadataStore,
+				mockContentStore,
+			);
 			await handler(mockReq, mockRes);
 
 			// Assert
@@ -215,7 +224,10 @@ describe("Content Handlers", () => {
 			});
 
 			// Execute & Assert
-			const handler = getContentHandler(mockMetadataStore, mockContentStore);
+			const handler = getPublicationsHandler(
+				mockMetadataStore,
+				mockContentStore,
+			);
 			await expect(handler(mockReq, mockRes)).rejects.toThrow(ApiError);
 		});
 	});
@@ -243,7 +255,7 @@ describe("Content Handlers", () => {
 			mockContentStore.retrieve.mockResolvedValue(mockContent);
 
 			// Execute
-			const handler = getContentByHashHandler(
+			const handler = getPublicationByHashHandler(
 				mockMetadataStore,
 				mockContentStore,
 			);
@@ -272,7 +284,7 @@ describe("Content Handlers", () => {
 			mockReq.params = { hash: "" };
 
 			// Execute & Assert
-			const handler = getContentByHashHandler(
+			const handler = getPublicationByHashHandler(
 				mockMetadataStore,
 				mockContentStore,
 			);
@@ -287,12 +299,12 @@ describe("Content Handlers", () => {
 			mockMetadataStore.getByHash.mockReturnValue(null);
 
 			// Execute & Assert
-			const handler = getContentByHashHandler(
+			const handler = getPublicationByHashHandler(
 				mockMetadataStore,
 				mockContentStore,
 			);
 			await expect(handler(mockReq, mockRes)).rejects.toThrow(
-				new ApiError(ApiErrorType.NOT_FOUND, "Content not found"),
+				new ApiError(ApiErrorType.NOT_FOUND, "Metadata not found"),
 			);
 		});
 
@@ -312,7 +324,7 @@ describe("Content Handlers", () => {
 			mockContentStore.retrieve.mockResolvedValue(null);
 
 			// Execute & Assert
-			const handler = getContentByHashHandler(
+			const handler = getPublicationByHashHandler(
 				mockMetadataStore,
 				mockContentStore,
 			);

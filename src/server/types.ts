@@ -8,7 +8,7 @@ export interface ApiListResponse<T> {
 	results: T[];
 }
 
-export interface ContentItemResponse {
+export interface PublicationResponse {
 	url: string;
 	title: string;
 	content: string;
@@ -33,7 +33,7 @@ export interface ErrorResponse {
 	};
 }
 
-export interface ContentQueryParams {
+export interface PublicationsQueryParams {
 	page?: number;
 	limit?: number;
 	source?: string;
