@@ -14,6 +14,7 @@ import {
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type {
 	ContentMetadata,
+	MetadataQueryOptions,
 	MetadataStore,
 } from "@/storage/MetadataStore.js";
 
@@ -48,7 +49,7 @@ export const getPublicationsHandler = (
 				queryOptions.endPublishedDate = endPublishedDate;
 			}
 
-			const query = {
+			const query: MetadataQueryOptions = {
 				...queryOptions,
 				startPublishedDate: queryOptions.startPublishedDate
 					? new Date(queryOptions.startPublishedDate)
@@ -58,6 +59,7 @@ export const getPublicationsHandler = (
 					: undefined,
 				limit: validatedLimit,
 				offset: (page - 1) * validatedLimit,
+				orderBy: "published_date",
 			};
 
 			const total = metadataStore.countQuery(query);
@@ -68,23 +70,30 @@ export const getPublicationsHandler = (
 
 			metadataItems = metadataStore.query(query);
 
-			const publications: PublicationResponse[] = [];
-			for (const metadata of metadataItems) {
-				const content = await contentStore.retrieve(metadata.url);
-				if (content) {
-					publications.push({
-						url: metadata.url,
-						title: metadata.title,
-						content: content.content,
-						author: metadata.author,
-						publishedDate: metadata.publishedDate?.toISOString(),
-						image: content.image,
-						source: metadata.source,
-						crawledAt: metadata.crawledAt,
-						hash: metadata.hash,
-					});
-				}
-			}
+			const publicationPromises = metadataItems.map(
+				async (metadata): Promise<PublicationResponse | null> => {
+					const content = await contentStore.retrieve(metadata.url);
+					if (content) {
+						return {
+							url: metadata.url,
+							title: metadata.title,
+							content: content.content,
+							author: metadata.author,
+							publishedDate: metadata.publishedDate?.toISOString(),
+							image: content.image,
+							source: metadata.source,
+							crawledAt: metadata.crawledAt,
+							hash: metadata.hash,
+						};
+					}
+					return null;
+				},
+			);
+
+			const publicationResults = await Promise.all(publicationPromises);
+			const publications = publicationResults.filter(
+				(pub): pub is PublicationResponse => pub !== null,
+			);
 
 			const response: ApiListResponse<PublicationResponse> = {
 				results: publications,
