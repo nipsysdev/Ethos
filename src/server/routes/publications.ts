@@ -70,23 +70,25 @@ export const getPublicationsHandler = (
 
 			metadataItems = metadataStore.query(query);
 
-			const publicationPromises = metadataItems.map(async (metadata) => {
-				const content = await contentStore.retrieve(metadata.url);
-				if (content) {
-					return {
-						url: metadata.url,
-						title: metadata.title,
-						content: content.content,
-						author: metadata.author,
-						publishedDate: metadata.publishedDate?.toISOString(),
-						image: content.image,
-						source: metadata.source,
-						crawledAt: metadata.crawledAt,
-						hash: metadata.hash,
-					} as PublicationResponse;
-				}
-				return null;
-			});
+			const publicationPromises = metadataItems.map(
+				async (metadata): Promise<PublicationResponse | null> => {
+					const content = await contentStore.retrieve(metadata.url);
+					if (content) {
+						return {
+							url: metadata.url,
+							title: metadata.title,
+							content: content.content,
+							author: metadata.author,
+							publishedDate: metadata.publishedDate?.toISOString(),
+							image: content.image,
+							source: metadata.source,
+							crawledAt: metadata.crawledAt,
+							hash: metadata.hash,
+						};
+					}
+					return null;
+				},
+			);
 
 			const publicationResults = await Promise.all(publicationPromises);
 			const publications = publicationResults.filter(
