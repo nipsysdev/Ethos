@@ -1,6 +1,6 @@
 {
 	"name": "ethos-crawler",
-	"version": "1.0.12",
+	"version": "1.1.12",
 	"description": "Web crawler and API for aggregating and serving digital rights organizations' publications.",
 	"bin": {
 		"ethos": "dist/ethos.js"

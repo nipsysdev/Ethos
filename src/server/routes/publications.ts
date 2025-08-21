@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { ApiError } from "@/server/middleware/error.js";
 import type {
 	ApiListResponse,
-	ContentItemResponse,
-	ContentQueryParams,
+	PublicationResponse,
+	PublicationsQueryParams,
 } from "@/server/types.js";
 import { ApiErrorType } from "@/server/types.js";
 import {
@@ -17,7 +17,7 @@ import type {
 	MetadataStore,
 } from "@/storage/MetadataStore.js";
 
-export const getContentHandler = (
+export const getPublicationsHandler = (
 	metadataStore: MetadataStore,
 	contentStore: ContentStore,
 ) => {
@@ -34,7 +34,7 @@ export const getContentHandler = (
 
 			const validatedLimit = validateLimit(limit, 100);
 
-			const queryOptions: ContentQueryParams & {
+			const queryOptions: PublicationsQueryParams & {
 				limit?: number;
 				offset?: number;
 			} = {};
@@ -68,11 +68,11 @@ export const getContentHandler = (
 
 			metadataItems = metadataStore.query(query);
 
-			const contentItems: ContentItemResponse[] = [];
+			const publications: PublicationResponse[] = [];
 			for (const metadata of metadataItems) {
 				const content = await contentStore.retrieve(metadata.url);
 				if (content) {
-					contentItems.push({
+					publications.push({
 						url: metadata.url,
 						title: metadata.title,
 						content: content.content,
@@ -86,8 +86,8 @@ export const getContentHandler = (
 				}
 			}
 
-			const response: ApiListResponse<ContentItemResponse> = {
-				results: contentItems,
+			const response: ApiListResponse<PublicationResponse> = {
+				results: publications,
 				meta: paginationMeta,
 			};
 			res.json(response);
@@ -97,13 +97,13 @@ export const getContentHandler = (
 			}
 			throw new ApiError(
 				ApiErrorType.INTERNAL_ERROR,
-				"Failed to fetch content",
+				"Failed to fetch publications",
 			);
 		}
 	};
 };
 
-export const getContentByHashHandler = (
+export const getPublicationByHashHandler = (
 	metadataStore: MetadataStore,
 	contentStore: ContentStore,
 ) => {
@@ -121,7 +121,7 @@ export const getContentByHashHandler = (
 			const metadata = metadataStore.getByHash(hash);
 
 			if (!metadata) {
-				throw new ApiError(ApiErrorType.NOT_FOUND, "Content not found");
+				throw new ApiError(ApiErrorType.NOT_FOUND, "Metadata not found");
 			}
 
 			const content = await contentStore.retrieve(metadata.url);
@@ -129,7 +129,7 @@ export const getContentByHashHandler = (
 				throw new ApiError(ApiErrorType.NOT_FOUND, "Content not found");
 			}
 
-			const contentItem: ContentItemResponse = {
+			const publication: PublicationResponse = {
 				url: metadata.url,
 				title: metadata.title,
 				content: content.content,
@@ -141,7 +141,7 @@ export const getContentByHashHandler = (
 				hash: metadata.hash,
 			};
 
-			res.json(contentItem);
+			res.json(publication);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				throw error;
@@ -151,7 +151,7 @@ export const getContentByHashHandler = (
 			}
 			throw new ApiError(
 				ApiErrorType.INTERNAL_ERROR,
-				"Failed to fetch content",
+				"Failed to fetch publication",
 			);
 		}
 	};

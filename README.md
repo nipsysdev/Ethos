@@ -20,17 +20,22 @@ Reports about human rights must, too, be protected and kept forever accessible.
 - Freedom of the Press Foundation (FPF): https://freedom.press/issues
 - Logos Press Engine (LPE): https://press.logos.co/search?type=article
 
-## Running Ethos locally
+## Using Ethos locally
 
-### Installing Ethos
+### Get started
 
-#### As global package
+#### Install as global package
 
-`npm i -g ethos-crawler`
+`npm i -g ethos-crawler` then `ethos`
 
 #### Or, run directly using NPX
 
 `npx ethos-crawler`
+
+### Storage initialization
+
+Upon the first run, Ethos will initialize an `.ethos` folder within the current directory.
+To keep using the same dataset, run Ethos from the same path.
 
 ### Interactive Menu
 
@@ -125,9 +130,9 @@ Get list of available sources for crawling.
 ]
 ```
 
-#### GET `/content`
+#### GET `/publications`
 
-Retrieve crawled content with filtering and pagination.
+Retrieve publications with filtering and pagination.
 
 **Query Parameters:**
 
@@ -163,9 +168,9 @@ Retrieve crawled content with filtering and pagination.
 }
 ```
 
-#### GET `/content/:hash`
+#### GET `/publications/:hash`
 
-Retrieve a specific article by its hash.
+Retrieve a specific publication by its hash.
 
 **Parameters:**
 

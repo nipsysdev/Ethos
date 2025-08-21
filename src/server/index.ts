@@ -1,13 +1,13 @@
 import express from "express";
 import { errorHandler, notFoundHandler } from "@/server/middleware/error.js";
+import {
+	getPublicationByHashHandler,
+	getPublicationsHandler,
+} from "@/server/routes/publications.js";
 import { getSourcesHandler } from "@/server/routes/sources.js";
 import type { ServerConfig } from "@/server/types.js";
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
-import {
-	getContentByHashHandler,
-	getContentHandler,
-} from "./routes/content.js";
 
 export function createServer(
 	metadataStore: MetadataStore,
@@ -24,10 +24,10 @@ export function createServer(
 
 	app.get("/sources", getSourcesHandler());
 
-	app.get("/content", getContentHandler(metadataStore, contentStore));
+	app.get("/publications", getPublicationsHandler(metadataStore, contentStore));
 	app.get(
-		"/content/:hash",
-		getContentByHashHandler(metadataStore, contentStore),
+		"/publications/:hash",
+		getPublicationByHashHandler(metadataStore, contentStore),
 	);
 
 	app.use(notFoundHandler);

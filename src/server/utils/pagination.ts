@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { ContentQueryParams } from "../types.js";
+import type { PublicationsQueryParams } from "../types.js";
 
 export interface PaginationMeta {
 	total: number;
@@ -24,8 +24,8 @@ export const calculatePagination = (
 
 export const parseQueryParams = (
 	query: Request["query"],
-): ContentQueryParams => {
-	const params: ContentQueryParams = {};
+): PublicationsQueryParams => {
+	const params: PublicationsQueryParams = {};
 
 	if (query.page) {
 		const pageStr = Array.isArray(query.page) ? query.page[0] : query.page;
