@@ -14,6 +14,7 @@ import {
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type {
 	ContentMetadata,
+	MetadataQueryOptions,
 	MetadataStore,
 } from "@/storage/MetadataStore.js";
 
@@ -48,7 +49,7 @@ export const getPublicationsHandler = (
 				queryOptions.endPublishedDate = endPublishedDate;
 			}
 
-			const query = {
+			const query: MetadataQueryOptions = {
 				...queryOptions,
 				startPublishedDate: queryOptions.startPublishedDate
 					? new Date(queryOptions.startPublishedDate)
@@ -58,6 +59,7 @@ export const getPublicationsHandler = (
 					: undefined,
 				limit: validatedLimit,
 				offset: (page - 1) * validatedLimit,
+				orderBy: "published_date",
 			};
 
 			const total = metadataStore.countQuery(query);

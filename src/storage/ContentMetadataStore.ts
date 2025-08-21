@@ -22,6 +22,7 @@ export interface MetadataQueryOptions {
 	endPublishedDate?: Date;
 	limit?: number;
 	offset?: number;
+	orderBy?: "crawled_at" | "published_date";
 }
 
 interface DatabaseRow {
@@ -280,7 +281,7 @@ export function createContentMetadataStore(
 				params.push(options.endPublishedDate.toISOString());
 			}
 
-			sql += " ORDER BY crawled_at DESC";
+			sql += ` ORDER BY ${options.orderBy ?? "crawled_at"} DESC`;
 
 			if (options.limit) {
 				sql += " LIMIT ?";

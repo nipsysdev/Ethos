@@ -100,6 +100,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 			expect(mockMetadataStore.query).toHaveBeenCalledWith({
 				source: "test-source",
@@ -107,6 +108,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 			expect(mockContentStore.retrieve).toHaveBeenCalledWith(
 				"https://example.com/1",
@@ -154,6 +156,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 			expect(mockMetadataStore.query).toHaveBeenCalledWith({
 				source: "empty-source",
@@ -161,6 +164,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 			expect(mockRes.json).toHaveBeenCalledWith({
 				results: [],
@@ -206,6 +210,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 			expect(mockMetadataStore.query).toHaveBeenCalledWith({
 				source: undefined,
@@ -213,6 +218,7 @@ describe("Content Handlers", () => {
 				endPublishedDate: undefined,
 				limit: 10,
 				offset: 0,
+				orderBy: "published_date",
 			});
 		});
 
