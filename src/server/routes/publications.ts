@@ -70,11 +70,10 @@ export const getPublicationsHandler = (
 
 			metadataItems = metadataStore.query(query);
 
-			const publications: PublicationResponse[] = [];
-			for (const metadata of metadataItems) {
+			const publicationPromises = metadataItems.map(async (metadata) => {
 				const content = await contentStore.retrieve(metadata.url);
 				if (content) {
-					publications.push({
+					return {
 						url: metadata.url,
 						title: metadata.title,
 						content: content.content,
@@ -84,9 +83,15 @@ export const getPublicationsHandler = (
 						source: metadata.source,
 						crawledAt: metadata.crawledAt,
 						hash: metadata.hash,
-					});
+					} as PublicationResponse;
 				}
-			}
+				return null;
+			});
+
+			const publicationResults = await Promise.all(publicationPromises);
+			const publications = publicationResults.filter(
+				(pub): pub is PublicationResponse => pub !== null,
+			);
 
 			const response: ApiListResponse<PublicationResponse> = {
 				results: publications,
