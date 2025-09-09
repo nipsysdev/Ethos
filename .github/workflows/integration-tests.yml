@@ -1,0 +1,51 @@
+name: Periodic Configuration Validation
+
+on:
+  schedule:
+    # Run 3 times a day at 2 AM, 10 AM, and 6 PM UTC
+    - cron: "0 2,10,18 * * *"
+  workflow_dispatch: # Allow manual triggering
+  push:
+    branches:
+      - main
+    paths:
+      - "src/config/sources/**"
+      - "src/tests/integration/**"
+
+jobs:
+  validate-configurations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js using mise
+        uses: jdx/mise-action@v2
+        with:
+          cache: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/pnpm/store
+            node_modules
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install dependencies if cache failed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "Cache restore failed, installing dependencies..."
+            pnpm install --frozen-lockfile
+          fi
+
+      - name: Run Integration Tests
+        run: pnpm test:integration

@@ -32,6 +32,7 @@
 		"start": "node dist/ethos.js",
 		"crawl": "node dist/ethos.js crawl",
 		"test": "vitest run",
+		"test:integration": "INT_TEST=true vitest run src/tests/integration",
 		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest --watch",
 		"clean": "rm -rf dist"
