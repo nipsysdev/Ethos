@@ -60,7 +60,8 @@
 		"puppeteer": "^24.11.2",
 		"puppeteer-extra": "^3.3.6",
 		"puppeteer-extra-plugin-adblocker": "^2.13.6",
-		"puppeteer-extra-plugin-stealth": "^2.11.2"
+		"puppeteer-extra-plugin-stealth": "^2.11.2",
+		"turndown": "^7.2.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.6",
@@ -70,6 +71,7 @@
 		"@types/express": "^5.0.0",
 		"@types/inquirer": "^9.0.7",
 		"@types/node": "^24.0.10",
+		"@types/turndown": "^5.0.5",
 		"@vitest/coverage-v8": "3.2.4",
 		"commitizen": "^4.3.1",
 		"cz-conventional-changelog": "^3.3.0",

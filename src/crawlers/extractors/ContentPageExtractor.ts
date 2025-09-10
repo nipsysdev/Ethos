@@ -1,4 +1,5 @@
 import type { Page } from "puppeteer";
+import TurndownService from "turndown";
 import type {
 	CrawledData,
 	FieldExtractionStats,
@@ -32,6 +33,8 @@ async function extractFromContentPage(
 	url: string,
 	config: SourceConfig,
 ): Promise<ContentExtractionResult> {
+	const turndownService = new TurndownService();
+
 	const contentData: ContentExtractionData = {};
 	const errors: string[] = [];
 
@@ -63,7 +66,29 @@ async function extractFromContentPage(
 			config.content,
 		);
 
-		Object.assign(contentData, extractionResult.results);
+		// Process the extracted content to convert HTML to Markdown
+		const processedResults: Record<string, string | null> = {};
+		for (const [key, value] of Object.entries(extractionResult.results)) {
+			let processedContent = value;
+
+			if (key === "content" && typeof value === "string") {
+				try {
+					processedContent = turndownService.turndown(value);
+					// Replace non-breaking spaces (U+00A0) with regular spaces (U+0020)
+					processedContent = processedContent.replace(/\u00A0/g, " ");
+				} catch (conversionError) {
+					console.warn(
+						`Markdown conversion failed for ${url}:`,
+						conversionError,
+					);
+					processedContent = value;
+				}
+			}
+
+			processedResults[key] = processedContent;
+		}
+
+		Object.assign(contentData, processedResults);
 		errors.push(...extractionResult.extractionErrors);
 	} catch (error) {
 		const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
