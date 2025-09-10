@@ -44,5 +44,8 @@ jobs:
             pnpm install --frozen-lockfile
           fi
 
+      - name: Install chrome
+        run: npx puppeteer browsers install chrome
+
       - name: Run Integration Tests
         run: pnpm test:integration
