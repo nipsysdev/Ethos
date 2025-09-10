@@ -44,15 +44,16 @@ export const effSource: SourceConfig = {
 		},
 	},
 	content: {
-		container_selector: "body",
+		container_selector: "#main-content",
 		fields: {
-			content: {
-				selector: ".node--full",
+			title: {
+				selector: ".pane-page-title h1",
 				attribute: "text",
 			},
-			image: {
-				selector: ".pane-banner img",
-				attribute: "src",
+			content: {
+				selector: ".node--full",
+				exclude_selectors: [".take-action", ".field--type-file"],
+				attribute: "text",
 			},
 		},
 	},

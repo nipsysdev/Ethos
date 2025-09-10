@@ -1,7 +1,4 @@
-import type { Page, Browser as PuppeteerBrowser } from "puppeteer";
-import puppeteer from "puppeteer-extra";
-import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import type { Page } from "puppeteer";
 import type {
 	CrawledData,
 	Crawler,
@@ -31,6 +28,7 @@ import {
 	filterDuplicates,
 } from "@/crawlers/utils/UrlFilter";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
+import { createBrowser, setupPage } from "./browser";
 
 interface ContentPageExtractor {
 	extractContentPagesConcurrently: (
@@ -61,27 +59,6 @@ interface ContentPageExtractor {
 		contentFieldStats: FieldExtractionStats[],
 		itemIndex: number,
 	) => Promise<void>;
-}
-
-puppeteer.use(StealthPlugin());
-puppeteer.use(AdblockerPlugin());
-
-async function createBrowser() {
-	return await puppeteer.launch({
-		headless: true,
-		args: ["--no-sandbox", "--disable-setuid-sandbox"],
-	});
-}
-
-async function setupPage(browser: PuppeteerBrowser, url: string) {
-	const page = await browser.newPage();
-
-	page.on("error", (error) => {
-		console.error(`BROWSER ERROR: ${error.message}`);
-	});
-
-	await page.goto(url, { waitUntil: "domcontentloaded" });
-	return page;
 }
 
 function checkForInterruption(

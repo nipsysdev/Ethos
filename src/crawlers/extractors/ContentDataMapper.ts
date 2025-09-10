@@ -1,12 +1,13 @@
 import type { CrawledData, FieldExtractionStats } from "@/core/types.js";
 import { parsePublishedDate } from "@/utils/date.js";
+import type { ContentExtractionData } from "./ContentPageExtractor";
 
 /**
  * Merges content data into the crawled item, overwriting listing data where content data exists
  */
 export function mergeContentData(
 	item: CrawledData,
-	contentData: Record<string, string | null>,
+	contentData: ContentExtractionData,
 ): void {
 	if (contentData.title) item.title = contentData.title;
 	if (contentData.content) item.content = contentData.content;
@@ -29,22 +30,22 @@ export function mergeContentData(
  * Updates field extraction statistics
  */
 export function updateFieldStats(
-	contentData: Record<string, string | null>,
+	contentData: ContentExtractionData,
 	contentFieldStats: FieldExtractionStats[],
 	itemIndex: number,
 ): { contentFields: string[]; failedContentFields: string[] } {
 	// Track what we got from content vs listing
-	const contentFields = Object.keys(contentData).filter(
-		(key) => contentData[key] !== null,
-	);
-	const failedContentFields = Object.keys(contentData).filter(
-		(key) => contentData[key] === null,
-	);
+	const contentFields = (
+		Object.keys(contentData) as (keyof ContentExtractionData)[]
+	).filter((key) => contentData[key] !== null);
+	const failedContentFields = (
+		Object.keys(contentData) as (keyof ContentExtractionData)[]
+	).filter((key) => contentData[key] === null);
 
 	// Update content field stats
 	contentFieldStats.forEach((stat) => {
 		stat.totalAttempts++;
-		if (contentFields.includes(stat.fieldName)) {
+		if (contentFields.includes(stat.fieldName as keyof ContentExtractionData)) {
 			stat.successCount++;
 		} else {
 			stat.missingItems.push(itemIndex + 1);

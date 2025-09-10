@@ -46,15 +46,15 @@ export const lpeSource: SourceConfig = {
 	content: {
 		container_selector: "main article",
 		fields: {
+			title: {
+				selector: "header h1",
+				attribute: "text",
+			},
 			content: {
 				// retrieving all text from the container_selector while excluding specific elements
 				selector: "",
 				attribute: "text",
 				exclude_selectors: ["header", "div", "span"],
-			},
-			image: {
-				selector: "header .loaded img",
-				attribute: "src",
 			},
 			author: {
 				selector: "header div > p",

@@ -15,17 +15,25 @@ import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
 
+export interface ContentExtractionData {
+	title?: string;
+	content?: string;
+	author?: string;
+	image?: string;
+	date?: string;
+}
+
 export interface ContentExtractionResult {
-	contentData: Record<string, string | null>;
+	contentData: ContentExtractionData;
 	errors: string[];
 }
 
-export async function extractFromContentPage(
+async function extractFromContentPage(
 	page: Page,
 	url: string,
 	config: SourceConfig,
 ): Promise<ContentExtractionResult> {
-	const contentData: Record<string, string | null> = {};
+	const contentData: ContentExtractionData = {};
 	const errors: string[] = [];
 
 	if (!config.content?.fields) {
@@ -66,7 +74,7 @@ export async function extractFromContentPage(
 	return { contentData, errors };
 }
 
-export async function extractContentForSingleItem(
+async function extractContentForSingleItem(
 	page: Page,
 	item: CrawledData,
 	config: SourceConfig,

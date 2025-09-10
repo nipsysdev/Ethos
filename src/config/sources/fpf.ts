@@ -45,14 +45,14 @@ export const fpfSource: SourceConfig = {
 	content: {
 		container_selector: ".blog-page",
 		fields: {
+			title: {
+				selector: "h1.heading",
+				attribute: "text",
+			},
 			content: {
 				selector: ".post-content",
 				attribute: "text",
 				exclude_selectors: [".form.newsletter-signup"],
-			},
-			image: {
-				selector: ".header-image img",
-				attribute: "src",
 			},
 		},
 	},
