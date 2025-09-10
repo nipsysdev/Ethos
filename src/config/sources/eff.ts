@@ -44,6 +44,7 @@ export const effSource: SourceConfig = {
 			title: {
 				selector: ".pane-page-title h1",
 				attribute: "text",
+				optional: true,
 			},
 			content: {
 				selector: ".node--full",

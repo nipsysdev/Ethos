@@ -43,6 +43,7 @@ export const fpfSource: SourceConfig = {
 			title: {
 				selector: "h1.heading",
 				attribute: "text",
+				optional: true,
 			},
 			content: {
 				selector: ".post-content",

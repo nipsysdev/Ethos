@@ -164,6 +164,14 @@ function createInitialMetadata(
 	config: SourceConfig,
 	sessionId: string,
 ): MetadataState {
+	const initFieldStats = (fieldName: string, fieldConfig: FieldConfig) => ({
+		fieldName,
+		successCount: 0,
+		totalAttempts: 0,
+		isOptional: fieldConfig.optional || false,
+		missingItems: [],
+	});
+
 	return {
 		sessionId,
 		contentLinkedCount: 0,
@@ -175,22 +183,10 @@ function createInitialMetadata(
 			pagesProcessed: 0,
 			contentsCrawled: 0,
 			fieldStats: Object.entries(config.listing.items.fields).map(
-				([fieldName, fieldConfig]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: (fieldConfig as FieldConfig).optional || false,
-					missingItems: [],
-				}),
+				([fieldName, fieldConfig]) => initFieldStats(fieldName, fieldConfig),
 			),
 			contentFieldStats: Object.entries(config.content.fields).map(
-				([fieldName]) => ({
-					fieldName,
-					successCount: 0,
-					totalAttempts: 0,
-					isOptional: true,
-					missingItems: [],
-				}),
+				([fieldName, fieldConfig]) => initFieldStats(fieldName, fieldConfig),
 			),
 			listingErrors: [],
 			contentErrors: [],

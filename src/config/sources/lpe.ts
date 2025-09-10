@@ -44,6 +44,7 @@ export const lpeSource: SourceConfig = {
 			title: {
 				selector: "header h1",
 				attribute: "text",
+				optional: true,
 			},
 			content: {
 				// retrieving all text from the container_selector while excluding specific elements
