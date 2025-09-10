@@ -35,11 +35,6 @@ export const lpeSource: SourceConfig = {
 					attribute: "text",
 					optional: true,
 				},
-				image: {
-					selector: ".post-card__cover-image img",
-					attribute: "src",
-					optional: true,
-				},
 			},
 		},
 	},

@@ -79,7 +79,6 @@ describe("Content Handlers", () => {
 			];
 			const mockContent = {
 				content: "Test content 1",
-				image: "https://example.com/image1.jpg",
 			};
 
 			mockMetadataStore.countQuery.mockReturnValue(1);
@@ -121,7 +120,6 @@ describe("Content Handlers", () => {
 						content: "Test content 1",
 						author: "Test Author",
 						publishedDate: new Date("2023-01-01").toISOString(),
-						image: "https://example.com/image1.jpg",
 						source: "test-source",
 						crawledAt: mockMetadata[0].crawledAt,
 						hash: "hash1",
@@ -254,7 +252,6 @@ describe("Content Handlers", () => {
 			};
 			const mockContent = {
 				content: "Test content 1",
-				image: "https://example.com/image1.jpg",
 			};
 
 			mockMetadataStore.getByHash.mockReturnValue(mockMetadata);
@@ -278,7 +275,6 @@ describe("Content Handlers", () => {
 				content: "Test content 1",
 				author: "Test Author",
 				publishedDate: new Date("2023-01-01").toISOString(),
-				image: "https://example.com/image1.jpg",
 				source: "test-source",
 				crawledAt: mockMetadata.crawledAt,
 				hash: "hash1",

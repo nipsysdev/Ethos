@@ -41,14 +41,13 @@ function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
 }
 
 function extractContentData(data: CrawledData): ContentData {
-	const { url, title, content, author, publishedDate, image } = data;
+	const { url, title, content, author, publishedDate } = data;
 	return {
 		url,
 		title,
 		content,
 		...(author && { author }),
 		...(publishedDate && { publishedDate }),
-		...(image && { image }),
 	};
 }
 

@@ -19,7 +19,6 @@ export interface ContentExtractionData {
 	title?: string;
 	content?: string;
 	author?: string;
-	image?: string;
 	date?: string;
 }
 

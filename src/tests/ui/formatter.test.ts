@@ -25,7 +25,6 @@ describe("Data Formatter", () => {
 			content: "This is the first article content.",
 			author: "John Doe",
 			publishedDate: "2025-01-01",
-			image: "https://example.com/image1.jpg",
 			metadata: { wordCount: 100, category: "technology" },
 			analysis: [],
 		},

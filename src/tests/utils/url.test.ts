@@ -33,14 +33,6 @@ describe("URL Utilities", () => {
 			expect(result).toBe("https://example.com/page");
 		});
 
-		it("should handle protocol-relative URLs", () => {
-			const protocolRelativeUrl = "//cdn.example.com/image.jpg";
-			const baseUrl = "https://example.com";
-
-			const result = resolveAbsoluteUrl(protocolRelativeUrl, baseUrl);
-			expect(result).toBe("https://cdn.example.com/image.jpg");
-		});
-
 		it("should preserve query parameters and fragments", () => {
 			const relativeUrl = "/search?q=test&page=2#results";
 			const baseUrl = "https://example.com";

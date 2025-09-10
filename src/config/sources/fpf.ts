@@ -34,11 +34,6 @@ export const fpfSource: SourceConfig = {
 					attribute: "text",
 					optional: true,
 				},
-				image: {
-					selector: ".card-image",
-					attribute: "src",
-					optional: true,
-				},
 			},
 		},
 	},

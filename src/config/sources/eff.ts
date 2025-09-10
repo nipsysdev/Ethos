@@ -35,11 +35,6 @@ export const effSource: SourceConfig = {
 					attribute: "text",
 					optional: true,
 				},
-				image: {
-					selector: ".teaser-thumbnail img",
-					attribute: "src",
-					optional: true,
-				},
 			},
 		},
 	},
