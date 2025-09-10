@@ -273,7 +273,6 @@ async function extractItemsFromPage(
 				content: result.item.excerpt || "",
 				author: result.item.author || undefined,
 				publishedDate,
-				image: result.item.image || undefined,
 				metadata: {
 					crawlerType: CRAWLER_TYPES.LISTING,
 					configId: config.id,

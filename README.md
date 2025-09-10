@@ -153,7 +153,6 @@ Retrieve publications with filtering and pagination.
       "content": "Full article content text extracted from the source...",
       "author": "By Author Name",
       "publishedDate": "2023-12-01T00:00:00.000Z",
-      "image": "https://eff.org/sites/default/files/example-image.jpg",
       "source": "eff",
       "crawledAt": "2023-12-01T10:30:00.000Z",
       "hash": "a1b2c3d4e5f6..."
@@ -185,7 +184,6 @@ Retrieve a specific publication by its hash.
   "content": "Full article content text extracted from the source...",
   "author": "By Author Name",
   "publishedDate": "2023-12-01T00:00:00.000Z",
-  "image": "https://eff.org/sites/default/files/example-image.jpg",
   "source": "eff",
   "crawledAt": "2023-12-01T10:30:00.000Z",
   "hash": "a1b2c3d4e5f6..."

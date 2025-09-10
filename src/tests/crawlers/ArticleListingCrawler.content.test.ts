@@ -100,7 +100,6 @@ describe("ArticleListingCrawler - Content Processing", () => {
 			title: "Test Title",
 			content: "Test Content",
 			author: null,
-			image: null,
 		};
 
 		const errors = ["Failed to extract author: element not found"];
@@ -113,7 +112,7 @@ describe("ArticleListingCrawler - Content Processing", () => {
 		);
 
 		expect(contentFields).toEqual(["title", "content"]);
-		expect(failedContentFields).toEqual(["author", "image"]);
+		expect(failedContentFields).toEqual(["author"]);
 
 		const expectedMetadata = {
 			contentFieldsExtracted: contentFields,
@@ -125,7 +124,7 @@ describe("ArticleListingCrawler - Content Processing", () => {
 			"title",
 			"content",
 		]);
-		expect(expectedMetadata.contentFieldsFailed).toEqual(["author", "image"]);
+		expect(expectedMetadata.contentFieldsFailed).toEqual(["author"]);
 		expect(expectedMetadata.contentExtractionErrors).toEqual(errors);
 	});
 });

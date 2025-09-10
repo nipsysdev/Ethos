@@ -63,7 +63,6 @@ export interface ContentData {
 	content: string;
 	author?: string;
 	publishedDate?: string; // ISO 8601 string, strictly validated (throws if unparseable)
-	image?: string;
 }
 
 export interface CrawledData extends ContentData {

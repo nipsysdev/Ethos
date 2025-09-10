@@ -201,7 +201,6 @@ describe("MetadataTracker - Basic Functionality", () => {
 	it("should track field extraction warnings", () => {
 		metadataTracker.addFieldExtractionWarnings([
 			"Optional field 'author' not found for \"Test Article\"",
-			"Optional field 'image' not found for \"Another Article\"",
 			"Content extraction warning: element not found",
 		]);
 
@@ -216,10 +215,7 @@ describe("MetadataTracker - Basic Functionality", () => {
 			1,
 			expect.any(String),
 			"listing",
-			[
-				"Optional field 'author' not found for \"Test Article\"",
-				"Optional field 'image' not found for \"Another Article\"",
-			],
+			["Optional field 'author' not found for \"Test Article\""],
 		);
 		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
 			2,

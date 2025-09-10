@@ -12,7 +12,6 @@ export function mergeContentData(
 	if (contentData.title) item.title = contentData.title;
 	if (contentData.content) item.content = contentData.content;
 	if (contentData.author) item.author = contentData.author;
-	if (contentData.image) item.image = contentData.image;
 
 	if (contentData.date) {
 		try {

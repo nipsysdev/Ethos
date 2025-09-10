@@ -29,10 +29,6 @@ export function formatDataForViewing(
 			lines.push(`Author: ${item.author}`);
 		}
 
-		if (item.image) {
-			lines.push(`Image: ${item.image}`);
-		}
-
 		lines.push(`Content: ${item.content || "N/A"}`);
 
 		lines.push("\nMetadata:");

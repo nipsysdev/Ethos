@@ -14,7 +14,6 @@ export interface PublicationResponse {
 	content: string;
 	author?: string;
 	publishedDate?: string;
-	image?: string;
 	source: string;
 	crawledAt: Date;
 	hash: string;
