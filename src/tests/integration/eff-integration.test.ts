@@ -24,15 +24,11 @@ ifDescribe("Electronics Foundation integration tests", () => {
 		const page = await setupPage(browser, config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
-		// TODO: Remove when url exclusion is implemented
-		const validItems = result.items.filter(
-			(item) => !item.url.includes("www.eff.org/event/"),
-		);
-		expect(validItems.length).toBeGreaterThan(0);
-		expect(validItems.every((item) => !!item.title)).toBeTruthy();
-		expect(validItems.every((item) => !!item.url)).toBeTruthy();
-		expect(validItems.every((item) => !!item.publishedDate)).toBeTruthy();
-		expect(validItems.every((item) => !!item.content)).toBeTruthy();
+		expect(result.items.length).toBeGreaterThan(0);
+		expect(result.items.every((item) => !!item.title)).toBeTruthy();
+		expect(result.items.every((item) => !!item.url)).toBeTruthy();
+		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
+		expect(result.items.every((item) => !!item.content)).toBeTruthy();
 	});
 
 	it("should crawl to next EFF listing page", async () => {

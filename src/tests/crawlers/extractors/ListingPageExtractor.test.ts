@@ -95,6 +95,7 @@ describe("ListingPageExtractor", () => {
 	it("should filter items missing required fields", async () => {
 		const extractor = createListingPageExtractor();
 		const mockPage = {
+			url: () => "https://test.com",
 			evaluate: vi.fn().mockResolvedValue([
 				{
 					item: { title: "Complete Article", url: "/article/1" },
@@ -315,5 +316,198 @@ describe("ListingPageExtractor", () => {
 		expect(result.filteredReasons).toContain(
 			"Field 'url' extraction failed: Network error",
 		);
+	});
+
+	it("should exclude items with URLs matching exclusion patterns", async () => {
+		const extractor = createListingPageExtractor();
+		const mockConfigWithExcludes: SourceConfig = {
+			...mockConfig,
+			content_url_excludes: ["/excluded/", "/category/"],
+		};
+
+		const mockPage = {
+			url: () => "https://test.com",
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Normal Article", url: "/article/1" },
+					fieldResults: {
+						title: { success: true, value: "Normal Article" },
+						url: { success: true, value: "/article/1" },
+					},
+					hasExcludedUrl: false,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+				{
+					item: { title: "Excluded Article", url: "/excluded/article/2" },
+					fieldResults: {
+						title: { success: true, value: "Excluded Article" },
+						url: { success: true, value: "/excluded/article/2" },
+					},
+					hasExcludedUrl: true,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+				{
+					item: { title: "Another Normal Article", url: "/article/3" },
+					fieldResults: {
+						title: { success: true, value: "Another Normal Article" },
+						url: { success: true, value: "/article/3" },
+					},
+					hasExcludedUrl: false,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats: FieldExtractionStats[] = [];
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfigWithExcludes,
+			fieldStats,
+			0,
+		);
+
+		// Should only include non-excluded items
+		expect(result.items).toHaveLength(2);
+		expect(result.items[0].title).toBe("Normal Article");
+		expect(result.items[1].title).toBe("Another Normal Article");
+
+		// Should track excluded URLs
+		expect(result.excludedUrls).toContain("/excluded/article/2");
+		expect(result.filteredCount).toBe(1);
+	});
+
+	it("should handle items with no exclusion patterns", async () => {
+		const extractor = createListingPageExtractor();
+		const mockConfigWithoutExcludes: SourceConfig = {
+			...mockConfig,
+			content_url_excludes: undefined,
+		};
+
+		const mockPage = {
+			url: () => "https://test.com",
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Article 1", url: "/article/1" },
+					fieldResults: {
+						title: { success: true, value: "Article 1" },
+						url: { success: true, value: "/article/1" },
+					},
+					hasExcludedUrl: false,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+				{
+					item: { title: "Article 2", url: "/article/2" },
+					fieldResults: {
+						title: { success: true, value: "Article 2" },
+						url: { success: true, value: "/article/2" },
+					},
+					hasExcludedUrl: false,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats: FieldExtractionStats[] = [];
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfigWithoutExcludes,
+			fieldStats,
+			0,
+		);
+
+		// Should include all items when no exclusion patterns
+		expect(result.items).toHaveLength(2);
+		expect(result.excludedUrls).toHaveLength(0);
+		expect(result.filteredCount).toBe(0);
+	});
+
+	it("should properly filter items when exclusion patterns is empty array", async () => {
+		const extractor = createListingPageExtractor();
+		const mockConfigWithEmptyExcludes: SourceConfig = {
+			...mockConfig,
+			content_url_excludes: [],
+		};
+
+		const mockPage = {
+			url: () => "https://test.com",
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Article 1", url: "/article/1" },
+					fieldResults: {
+						title: { success: true, value: "Article 1" },
+						url: { success: true, value: "/article/1" },
+					},
+					hasExcludedUrl: false,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats: FieldExtractionStats[] = [];
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfigWithEmptyExcludes,
+			fieldStats,
+			0,
+		);
+
+		// Should include all items when exclusion patterns is empty
+		expect(result.items).toHaveLength(1);
+		expect(result.excludedUrls).toHaveLength(0);
+		expect(result.filteredCount).toBe(0);
+	});
+
+	it("should add filtered reason for excluded items", async () => {
+		const extractor = createListingPageExtractor();
+		const mockConfigWithExcludes: SourceConfig = {
+			...mockConfig,
+			content_url_excludes: ["/excluded/"],
+		};
+
+		const mockPage = {
+			url: () => "https://test.com",
+			evaluate: vi.fn().mockResolvedValue([
+				{
+					item: { title: "Excluded Article", url: "/excluded/article/1" },
+					fieldResults: {
+						title: { success: true, value: "Excluded Article" },
+						url: { success: true, value: "/excluded/article/1" },
+					},
+					hasExcludedUrl: true,
+					hasRequiredFields: true,
+					missingRequiredFields: [],
+					extractionErrors: [],
+				},
+			]),
+		} as unknown as Page;
+
+		const fieldStats: FieldExtractionStats[] = [];
+		const result = await extractor.extractItemsFromPage(
+			mockPage,
+			mockConfigWithExcludes,
+			fieldStats,
+			0,
+		);
+
+		// Should have no valid items but should track the exclusion
+		expect(result.items).toHaveLength(0);
+		expect(result.excludedUrls).toContain("/excluded/article/1");
+		expect(result.filteredCount).toBe(1);
+
+		// Should not add a specific filtered reason for excluded items
+		// (they are tracked separately in excludedUrls)
+		expect(result.filteredReasons).toHaveLength(0);
 	});
 });

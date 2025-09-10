@@ -4,7 +4,7 @@ export const effSource: SourceConfig = {
 	id: "eff",
 	name: "Electronic Frontier Foundation",
 	type: "listing",
-	content_url_excludes: ["/event/"],
+	content_url_excludes: ["eff.org/event/", "eff.org/wp/", "eff.org/cases/"],
 	listing: {
 		url: "https://eff.org/updates",
 		pagination: {
