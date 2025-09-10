@@ -1,3 +1,4 @@
+import * as jsdom from "jsdom";
 import type { Page } from "puppeteer";
 import TurndownService from "turndown";
 import type {
@@ -68,20 +69,23 @@ async function extractFromContentPage(
 
 		// Process the extracted content to convert HTML to Markdown
 		const processedResults: Record<string, string | null> = {};
+		const processingErrors: string[] = [];
+
 		for (const [key, value] of Object.entries(extractionResult.results)) {
 			let processedContent = value;
 
 			if (key === "content" && typeof value === "string") {
+				const document = new jsdom.JSDOM(value).window.document;
+
 				try {
-					processedContent = turndownService.turndown(value);
+					processedContent = turndownService.turndown(document);
 					// Replace non-breaking spaces (U+00A0) with regular spaces (U+0020)
 					processedContent = processedContent.replace(/\u00A0/g, " ");
 				} catch (conversionError) {
-					console.warn(
-						`Markdown conversion failed for ${url}:`,
-						conversionError,
+					processingErrors.push(
+						`Markdown conversion failed: ${(conversionError as ReferenceError).message}`,
 					);
-					processedContent = value;
+					processedContent = `${document.body.textContent?.trim()}`;
 				}
 			}
 
@@ -89,7 +93,7 @@ async function extractFromContentPage(
 		}
 
 		Object.assign(contentData, processedResults);
-		errors.push(...extractionResult.extractionErrors);
+		errors.push(...extractionResult.extractionErrors, ...processingErrors);
 	} catch (error) {
 		const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
 		errors.push(`Failed to load content page ${absoluteUrl}: ${error}`);
