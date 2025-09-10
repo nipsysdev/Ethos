@@ -23,10 +23,7 @@ import {
 } from "@/crawlers/MetadataTracker";
 import type { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import { createInterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
-import {
-	filterByExclusion,
-	filterDuplicates,
-} from "@/crawlers/utils/UrlFilter";
+import { filterDuplicates } from "@/crawlers/utils/UrlFilter";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { createBrowser, setupPage } from "./browser";
 
@@ -89,29 +86,9 @@ async function processPageItems(
 		metadata.itemsProcessed,
 	);
 
-	// Filter out URLs that match exclude patterns FIRST
-	const exclusionResult = filterByExclusion(
-		pageResult.items,
-		{
-			excludePatterns: config.content_url_excludes,
-			baseUrl: config.listing.url,
-		},
-		metadata.itemsProcessed,
-	);
-
-	const {
-		filteredItems: filteredPageItems,
-		excludedCount,
-		excludedItemIndices,
-	} = exclusionResult;
-
 	// Track excluded URLs
-	if (excludedCount > 0) {
-		metadataTracker.addUrlsExcluded(excludedCount);
-		metadataTracker.removeFieldStatsForExcludedUrls(
-			excludedCount,
-			excludedItemIndices,
-		);
+	if (pageResult.excludedUrls.length > 0) {
+		metadataTracker.addUrlsExcluded(pageResult.excludedUrls.length);
 	}
 
 	metadataTracker.addFilteredItems(
@@ -129,8 +106,8 @@ async function processPageItems(
 	}
 
 	// Filter out duplicates
-	const newItems = filterDuplicates(filteredPageItems, seenUrls);
-	const sessionDuplicatesSkipped = filteredPageItems.length - newItems.length;
+	const newItems = filterDuplicates(pageResult.items, seenUrls);
+	const sessionDuplicatesSkipped = pageResult.items.length - newItems.length;
 
 	if (sessionDuplicatesSkipped > 0) {
 		metadataTracker.addDuplicatesSkipped(sessionDuplicatesSkipped);
@@ -157,11 +134,9 @@ async function processPageItems(
 	return {
 		itemsToProcess,
 		pageResult,
-		excludedCount,
 		sessionDuplicatesSkipped,
 		dbDuplicatesSkipped,
 		newItems,
-		filteredPageItems,
 	};
 }
 
@@ -330,35 +305,30 @@ async function extractItemsFromListing(
 
 		metadataTracker.incrementPagesProcessed();
 
-		const {
-			itemsToProcess,
-			pageResult,
-			excludedCount,
-			dbDuplicatesSkipped,
-			newItems,
-			filteredPageItems,
-		} = await processPageItems(
-			page,
-			config,
-			options,
-			metadataTracker,
-			seenUrls,
-			listingExtractor,
-		);
+		const { itemsToProcess, pageResult, dbDuplicatesSkipped, newItems } =
+			await processPageItems(
+				page,
+				config,
+				options,
+				metadataTracker,
+				seenUrls,
+				listingExtractor,
+			);
 
 		// Check if all items are duplicates
 		if (
-			filteredPageItems.length > 0 &&
+			pageResult.items.length > 0 &&
 			itemsToProcess.length === 0 &&
 			options?.stopOnAllDuplicates !== false
 		) {
 			metadataTracker.setStoppedReason(StoppedReason.ALL_DUPLICATES);
 			const totalDuplicatesOnPage =
-				filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+				pageResult.items.length - newItems.length + dbDuplicatesSkipped;
 
 			const updatedPageResult = {
 				...pageResult,
-				filteredCount: pageResult.filteredCount + excludedCount,
+				filteredCount:
+					pageResult.filteredCount + pageResult.excludedUrls.length,
 			};
 
 			logPageSummary(
@@ -373,11 +343,11 @@ async function extractItemsFromListing(
 		}
 
 		const totalDuplicatesOnPage =
-			filteredPageItems.length - newItems.length + dbDuplicatesSkipped;
+			pageResult.items.length - newItems.length + dbDuplicatesSkipped;
 
 		const updatedPageResult = {
 			...pageResult,
-			filteredCount: pageResult.filteredCount + excludedCount,
+			filteredCount: pageResult.filteredCount + pageResult.excludedUrls.length,
 		};
 
 		if (itemsToProcess.length > 0) {

@@ -216,10 +216,6 @@ export interface MetadataTracker extends ContentSessionLinker {
 	incrementPagesProcessed(): void;
 	addDuplicatesSkipped(count: number): void;
 	addUrlsExcluded(count: number): void;
-	removeFieldStatsForExcludedUrls(
-		excludedCount: number,
-		excludedItemIndices: number[],
-	): void;
 	addFilteredItems(count: number, reasons: string[]): void;
 	addContentErrors(errors: string[]): void;
 	addFieldExtractionWarnings(warnings: string[]): void;
@@ -349,17 +345,6 @@ export function createMetadataTracker(
 
 		addUrlsExcluded(count: number): void {
 			updateState({ type: MetadataActionType.ADD_URLS_EXCLUDED, count });
-		},
-
-		removeFieldStatsForExcludedUrls(
-			excludedCount: number,
-			excludedItemIndices: number[],
-		): void {
-			updateState({
-				type: MetadataActionType.REMOVE_FIELD_STATS_FOR_EXCLUDED_URLS,
-				excludedCount,
-				excludedItemIndices,
-			});
 		},
 
 		addFilteredItems(count: number, reasons: string[]): void {

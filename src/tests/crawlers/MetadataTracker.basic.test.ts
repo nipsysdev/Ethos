@@ -231,4 +231,27 @@ describe("MetadataTracker - Basic Functionality", () => {
 		const metadata = metadataTracker.getMetadata();
 		expect(metadata.stoppedReason).toBe("max_pages");
 	});
+
+	it("should track excluded URLs", () => {
+		metadataTracker.addUrlsExcluded(3);
+		metadataTracker.addUrlsExcluded(2);
+
+		const metadata = metadataTracker.getMetadata();
+		expect(metadata.urlsExcluded).toBe(5);
+		// Excluded URLs should also increment totalFilteredItems
+		expect(metadata.totalFilteredItems).toBe(5);
+	});
+
+	it("should track excluded URLs separately from other filtered items", () => {
+		// Add some filtered items
+		metadataTracker.addFilteredItems(2, ["Missing title", "Invalid URL"]);
+
+		// Add some excluded URLs
+		metadataTracker.addUrlsExcluded(3);
+
+		const metadata = metadataTracker.getMetadata();
+		expect(metadata.urlsExcluded).toBe(3);
+		// Total should include both filtered items and excluded URLs
+		expect(metadata.totalFilteredItems).toBe(5);
+	});
 });
