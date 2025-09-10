@@ -1,4 +1,4 @@
-name: Periodic Configuration Validation
+name: Periodic Integration Testing
 
 on:
   schedule:
@@ -8,12 +8,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "src/config/sources/**"
-      - "src/tests/integration/**"
 
 jobs:
-  validate-configurations:
+  integration-testing:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
