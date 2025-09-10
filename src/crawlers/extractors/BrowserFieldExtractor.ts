@@ -34,9 +34,9 @@ export function createBrowserExtractionFunction() {
 						excludedElement.remove();
 					}
 				}
-				return cloned.textContent?.trim().replace(/\s+/g, " ") || null;
+				return cloned.innerHTML.trim() || null;
 			} else {
-				return element.textContent?.trim().replace(/\s+/g, " ") || null;
+				return element.innerHTML.trim() || null;
 			}
 		}
 

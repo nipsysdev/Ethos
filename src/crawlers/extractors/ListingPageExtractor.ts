@@ -107,9 +107,9 @@ async function extractItemsFromPage(
 							excludedElement.remove();
 						}
 					}
-					return cloned.textContent?.trim().replace(/\s+/g, " ") || null;
+					return cloned.textContent?.replace(/\s+/g, " ").trim() || null;
 				} else {
-					return element.textContent?.trim().replace(/\s+/g, " ") || null;
+					return element.textContent?.replace(/\s+/g, " ").trim() || null;
 				}
 			}
 
