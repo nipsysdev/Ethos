@@ -1,5 +1,6 @@
 import { sources } from "@/config/sources/index.js";
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
+import type { FieldExtractionStats } from "@/core/types";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,
@@ -101,4 +102,12 @@ export function validatePositiveIntegerOrEmpty(input: string): true | string {
 		return VALIDATION_MESSAGES.POSITIVE_NUMBER_OR_EMPTY;
 	}
 	return true;
+}
+
+export function calculateRequiredFieldIssues(
+	fieldStats: FieldExtractionStats[],
+) {
+	return fieldStats.filter(
+		(stat) => !stat.isOptional && stat.successCount < stat.totalAttempts,
+	);
 }

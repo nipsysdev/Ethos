@@ -48,6 +48,7 @@ describe("ListingPageExtractor", () => {
 					extractionErrors: [],
 				},
 			]),
+			url: vi.fn().mockReturnValue("https://example.com"),
 		} as unknown as Page;
 
 		const fieldStats = [
@@ -192,6 +193,7 @@ describe("ListingPageExtractor", () => {
 					],
 				},
 			]),
+			url: vi.fn().mockReturnValue("https://example.com"),
 		} as unknown as Page;
 
 		const fieldStats = [
@@ -284,6 +286,7 @@ describe("ListingPageExtractor", () => {
 					extractionErrors: ["Field 'url' extraction failed: Network error"],
 				},
 			]),
+			url: vi.fn().mockReturnValue("https://example.com"),
 		} as unknown as Page;
 
 		const fieldStats = [

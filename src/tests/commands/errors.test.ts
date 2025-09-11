@@ -119,8 +119,8 @@ describe("Error Display", () => {
 		expect(content).toContain("Listing error 1");
 		expect(content).toContain("Listing error 2");
 		expect(content).toContain("Content error 1");
-		expect(content).toContain("Total listing errors: 2");
-		expect(content).toContain("Total content errors: 1");
+		expect(content).toContain("Listing errors: 2");
+		expect(content).toContain("Content errors: 1");
 		expect(content).toContain("Total errors: 3");
 	});
 
@@ -155,7 +155,7 @@ describe("Error Display", () => {
 		expect(content).toContain("Required Field Extraction Issues:");
 		expect(content).toContain("2 item(s) missing required field: title");
 		expect(content).toContain("4 item(s) missing required field: date");
-		expect(content).toContain("Total field extraction issues: 2");
+		expect(content).toContain("Field extraction issues: 2");
 		expect(content).toContain("Total errors: 2");
 	});
 });
