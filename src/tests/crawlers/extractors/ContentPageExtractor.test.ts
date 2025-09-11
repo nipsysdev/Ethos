@@ -114,7 +114,7 @@ describe("ContentPageExtractor", () => {
 
 			expect(result.contentData).toEqual({});
 			expect(result.errors).toContain(
-				"Failed to load content page https://example.com/article1: Error: Network error",
+				"Failed to load content page https://example.com/article1 : Error: Network error",
 			);
 		});
 
