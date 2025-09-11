@@ -223,7 +223,7 @@ async function extractItemsFromPage(
 			const itemIdentifier =
 				result.item.url || result.item.title || "Unknown item";
 			filteredReasons.push(
-				`Item "${itemIdentifier}" missing required fields: ${missingFields}`,
+				`Item "${itemIdentifier}" missing required fields: ${missingFields}. Seen at ${page.url()}`,
 			);
 		} else {
 			filteredReasons.push("Item failed validation");
@@ -261,6 +261,7 @@ async function extractItemsFromPage(
 		});
 
 	extractionResult.forEach((result: ExtractionResult, itemIndex: number) => {
+		if (result.hasExcludedUrl) return;
 		fieldStats.forEach((stat) => {
 			stat.totalAttempts++;
 			const fieldResult = result.fieldResults[stat.fieldName];

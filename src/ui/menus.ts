@@ -6,21 +6,13 @@ import type {
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
 import { MENU_LABELS, NAV_VALUES } from "./constants";
+import { calculateRequiredFieldIssues } from "./utils";
 
 export function calculateTotalErrors(
 	summary: ProcessingSummaryResult["summary"],
 ): number {
-	const { listingErrors, contentErrors, fieldStats, itemsWithErrors } = summary;
-
-	// Use itemsWithErrors if available (more accurate for sessions)
-	if (itemsWithErrors !== undefined && itemsWithErrors > 0) {
-		return itemsWithErrors;
-	}
-
-	// Fallback to calculating from individual error arrays
-	const requiredFieldIssues = fieldStats.filter(
-		(stat) => !stat.isOptional && stat.successCount < stat.totalAttempts,
-	);
+	const { listingErrors, contentErrors, fieldStats } = summary;
+	const requiredFieldIssues = calculateRequiredFieldIssues(fieldStats);
 
 	return (
 		(listingErrors?.length || 0) +

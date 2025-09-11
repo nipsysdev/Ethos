@@ -190,7 +190,7 @@ async function retrieveContent(
 		return null;
 	} catch (error) {
 		throw new Error(
-			`Failed to retrieve content for URL ${url}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			`Failed to retrieve content for URL ${url} : ${error instanceof Error ? error.message : "Unknown error"}`,
 		);
 	}
 }

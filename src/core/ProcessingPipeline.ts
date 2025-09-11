@@ -67,7 +67,7 @@ async function handleItemStorage(
 			},
 		};
 	} catch (error) {
-		console.warn(`Failed to store item ${data.url}:`, error);
+		console.warn(`Failed to store item ${data.url} :`, error);
 		return {
 			...data,
 			analysis: [],

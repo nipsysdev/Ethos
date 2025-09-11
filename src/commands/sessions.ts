@@ -7,7 +7,7 @@ import type {
 	ContentMetadata,
 	CrawlSession,
 	MetadataStore,
-} from "@/storage/index";
+} from "@/storage/MetadataStore";
 import {
 	ERROR_MESSAGES,
 	FIELD_NAMES,

@@ -3,6 +3,7 @@ import { unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProcessingSummaryResult } from "@/core/ProcessingPipeline";
+import { calculateRequiredFieldIssues } from "@/ui/utils";
 
 export async function showCrawlErrors(
 	result: ProcessingSummaryResult,
@@ -10,9 +11,7 @@ export async function showCrawlErrors(
 	const { summary } = result;
 	const { listingErrors, contentErrors, fieldStats } = summary;
 
-	const requiredFieldIssues = fieldStats.filter(
-		(stat) => !stat.isOptional && stat.successCount < stat.totalAttempts,
-	);
+	const requiredFieldIssues = calculateRequiredFieldIssues(fieldStats);
 
 	const hasListingErrors = listingErrors && listingErrors.length > 0;
 	const hasContentErrors = contentErrors && contentErrors.length > 0;
@@ -74,9 +73,9 @@ export async function showCrawlErrors(
 	errorContent += "SUMMARY\n";
 	errorContent +=
 		"===============================================================\n\n";
-	errorContent += `Total field extraction issues: ${requiredFieldIssues.length}\n`;
-	errorContent += `Total listing errors: ${listingErrors?.length || 0}\n`;
-	errorContent += `Total content errors: ${contentErrors?.length || 0}\n`;
+	errorContent += `Field extraction issues: ${requiredFieldIssues.length}\n`;
+	errorContent += `Listing errors: ${listingErrors?.length || 0}\n`;
+	errorContent += `Content errors: ${contentErrors?.length || 0}\n`;
 	errorContent += `Total errors: ${requiredFieldIssues.length + (listingErrors?.length || 0) + (contentErrors?.length || 0)}\n\n`;
 	errorContent += "Use 'q' to quit, arrow keys to navigate, '/' to search\n";
 

@@ -96,7 +96,7 @@ async function extractFromContentPage(
 		errors.push(...extractionResult.extractionErrors, ...processingErrors);
 	} catch (error) {
 		const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
-		errors.push(`Failed to load content page ${absoluteUrl}: ${error}`);
+		errors.push(`Failed to load content page ${absoluteUrl} : ${error}`);
 	}
 
 	return { contentData, errors };
@@ -135,7 +135,7 @@ async function extractContentForSingleItem(
 			if (hasExcerpt) {
 				contentErrors.push(
 					...errors.map(
-						(err) => `Content extraction warning for ${item.url}: ${err}`,
+						(err) => `Content extraction warning for ${item.url} : ${err}`,
 					),
 				);
 			} else {
@@ -144,15 +144,15 @@ async function extractContentForSingleItem(
 			}
 		}
 	} catch (error) {
-		const errorMessage = `Failed to extract content data for ${item.url}: ${error}`;
+		const errorMessage = `Failed to extract content data for ${item.url} : ${error}`;
 
 		if (hasExcerpt) {
 			contentErrors.push(
-				`Content extraction warning for ${item.url}: ${errorMessage}`,
+				`Content extraction warning for ${item.url} : ${errorMessage}`,
 			);
 		} else {
 			contentErrors.push(
-				`Content extraction failed for ${item.url}: ${errorMessage}`,
+				`Content extraction failed for ${item.url} : ${errorMessage}`,
 			);
 		}
 

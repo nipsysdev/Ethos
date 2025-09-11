@@ -46,6 +46,7 @@ describe("PaginationHandler - Navigation", () => {
 			waitForNavigation: vi.fn(),
 			waitForSelector: vi.fn(),
 			url: vi.fn(),
+			reload: vi.fn(),
 		};
 		return { ...defaultMocks, ...overrides } as unknown as Page;
 	};
@@ -73,7 +74,7 @@ describe("PaginationHandler - Navigation", () => {
 		expect(result).toBe(true);
 		expect(mockButton.click).toHaveBeenCalled();
 		expect(mockPage.waitForSelector).toHaveBeenCalledWith(".article", {
-			timeout: 6000, // Updated timeout to match optimized value
+			timeout: 20000, // Updated timeout to match optimized value
 		});
 		expect(mockPage.waitForNavigation).toHaveBeenCalledWith({
 			waitUntil: "domcontentloaded",
