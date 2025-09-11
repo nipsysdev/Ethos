@@ -29,12 +29,6 @@ export const lpeSource: SourceConfig = {
 					attribute: "text",
 					optional: true,
 				},
-				author: {
-					// Author is not displayed in the listing
-					selector: "",
-					attribute: "text",
-					optional: true,
-				},
 			},
 		},
 	},
