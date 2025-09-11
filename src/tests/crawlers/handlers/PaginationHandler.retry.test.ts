@@ -46,6 +46,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			waitForNavigation: vi.fn(),
 			waitForSelector: vi.fn(),
 			url: vi.fn(),
+			reload: vi.fn(),
 		};
 		return { ...defaultMocks, ...overrides } as unknown as Page;
 	};
@@ -67,7 +68,7 @@ describe("PaginationHandler - Retry Logic", () => {
 		const result = await promise;
 
 		expect(result).toBe(false);
-		expect(mockButton.click).toHaveBeenCalledTimes(2); // Should retry 2 times (optimized)
+		expect(mockButton.click).toHaveBeenCalledTimes(3); // Should retry 3 times (including initial attempt)
 	});
 
 	it("should succeed on second attempt after first failure", async () => {
@@ -121,7 +122,7 @@ describe("PaginationHandler - Retry Logic", () => {
 		await promise;
 
 		// Verify delays were used (this is implicit in the retry logic working)
-		expect(mockButton.click).toHaveBeenCalledTimes(2); // Optimized retry count
+		expect(mockButton.click).toHaveBeenCalledTimes(3); // Retry count including initial attempt
 	});
 
 	it("should return false when container doesn't load after all retries", async () => {
@@ -141,6 +142,6 @@ describe("PaginationHandler - Retry Logic", () => {
 		const result = await promise;
 
 		expect(result).toBe(false);
-		expect(mockButton.click).toHaveBeenCalledTimes(2); // All retries exhausted (optimized)
+		expect(mockButton.click).toHaveBeenCalledTimes(3); // All retries exhausted (including initial attempt)
 	});
 });

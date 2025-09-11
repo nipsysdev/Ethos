@@ -46,6 +46,7 @@ describe("PaginationHandler - Error Handling", () => {
 			waitForNavigation: vi.fn(),
 			waitForSelector: vi.fn(),
 			url: vi.fn(),
+			reload: vi.fn(),
 		};
 		return { ...defaultMocks, ...overrides } as unknown as Page;
 	};

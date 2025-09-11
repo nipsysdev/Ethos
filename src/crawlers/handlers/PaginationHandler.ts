@@ -1,15 +1,15 @@
-import type { Page } from "puppeteer";
+import type { Page, TimeoutError } from "puppeteer";
 import type { SourceConfig } from "@/core/types.js";
 
 const PAGINATION_TIMEOUTS = {
 	NAVIGATION_MS: 5000,
-	CONTAINER_WAIT_MS: 6000,
+	CONTAINER_WAIT_MS: 20000,
 	CONTENT_LOAD_DELAY_MS: 1000,
-	RETRY_DELAY_MS: 1000,
+	RETRY_DELAY_MS: 15000,
 } as const;
 
 const PAGINATION_RETRY = {
-	MAX_ATTEMPTS: 2,
+	MAX_ATTEMPTS: 3,
 } as const;
 
 async function isButtonDisabled(
@@ -63,9 +63,8 @@ async function attemptPagination(
 			timeout: PAGINATION_TIMEOUTS.CONTAINER_WAIT_MS,
 		});
 	} catch (error) {
-		console.error(
-			"PaginationHandler: Failed to wait for container selector during pagination.",
-			error,
+		console.warn(
+			`PaginationHandler: ${(error as TimeoutError).message} at url: ${page.url()}`,
 		);
 		return false;
 	}
@@ -84,23 +83,15 @@ async function retryPagination(
 			if (success) {
 				return true;
 			}
-
-			if (attempt === PAGINATION_RETRY.MAX_ATTEMPTS) {
-				return false;
-			}
-
-			await new Promise((resolve) =>
-				setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
-			);
-		} catch {
-			if (attempt === PAGINATION_RETRY.MAX_ATTEMPTS) {
-				return false;
-			}
-
-			await new Promise((resolve) =>
-				setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
-			);
+		} catch {}
+		if (attempt >= PAGINATION_RETRY.MAX_ATTEMPTS) {
+			return false;
 		}
+
+		await page.reload();
+		await new Promise((resolve) =>
+			setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
+		);
 	}
 
 	return false;
