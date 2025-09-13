@@ -54,7 +54,7 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 	summary.fieldStats.forEach((stat: FieldExtractionStats) => {
 		const percentage =
 			stat.totalAttempts > 0
-				? Math.round((stat.successCount / stat.totalAttempts) * 100)
+				? ((stat.successCount / stat.totalAttempts) * 100).toFixed(2)
 				: 0;
 		const optionalLabel = stat.isOptional ? " (optional)" : "";
 
@@ -69,7 +69,7 @@ export function displayCrawlSummary(result: ProcessingSummaryResult): void {
 		contentStats.forEach((stat: FieldExtractionStats) => {
 			const percentage =
 				stat.totalAttempts > 0
-					? Math.round((stat.successCount / stat.totalAttempts) * 100)
+					? ((stat.successCount / stat.totalAttempts) * 100).toFixed(2)
 					: 0;
 
 			console.log(

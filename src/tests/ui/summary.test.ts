@@ -49,8 +49,8 @@ describe("Summary Display", () => {
 		expect(mockLog).toHaveBeenCalledWith("  Items found: 10");
 		expect(mockLog).toHaveBeenCalledWith("  Items successfully retrieved: 8");
 		expect(mockLog).toHaveBeenCalledWith("  Items with errors: 2");
-		expect(mockLog).toHaveBeenCalledWith("  title: 8/8 (100%)");
-		expect(mockLog).toHaveBeenCalledWith("  author: 6/8 (75%)");
+		expect(mockLog).toHaveBeenCalledWith("  title: 8/8 (100.00%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/8 (75.00%)");
 	});
 
 	it("should handle zero attempts and show missing field issues", () => {
@@ -124,8 +124,8 @@ describe("Summary Display", () => {
 			"  Stop reason: reached maximum pages limit",
 		);
 		expect(mockLog).toHaveBeenCalledWith("\nContent field extraction stats:");
-		expect(mockLog).toHaveBeenCalledWith("  content: 5/6 (83%)");
-		expect(mockLog).toHaveBeenCalledWith("  author: 6/6 (100%)");
+		expect(mockLog).toHaveBeenCalledWith("  content: 5/6 (83.33%)");
+		expect(mockLog).toHaveBeenCalledWith("  author: 6/6 (100.00%)");
 	});
 
 	it("should show content extraction errors when present", () => {
