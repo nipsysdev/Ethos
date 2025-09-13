@@ -34,6 +34,24 @@ export function createBrowserExtractionFunction() {
 						excludedElement.remove();
 					}
 				}
+				return cloned.textContent?.trim() || null;
+			} else {
+				return element.textContent?.trim() || null;
+			}
+		}
+
+		function extractNodeWithExclusions(
+			element: Element,
+			excludeSelectors?: string[],
+		) {
+			if (excludeSelectors && excludeSelectors.length > 0) {
+				const cloned = element.cloneNode(true) as Element;
+				for (const selector of excludeSelectors) {
+					const excludedElements = cloned.querySelectorAll(selector);
+					for (const excludedElement of excludedElements) {
+						excludedElement.remove();
+					}
+				}
 				return cloned.innerHTML.trim() || null;
 			} else {
 				return element.innerHTML.trim() || null;
@@ -58,6 +76,11 @@ export function createBrowserExtractionFunction() {
 				// For href and src attributes, get the absolute URL using the browser's URL resolution
 				const urlValue = element.getAttribute(fieldConfig.attribute);
 				return resolveUrlAttribute(urlValue, window.location.href);
+			} else if (fieldConfig.attribute === "node") {
+				return extractNodeWithExclusions(
+					element,
+					fieldConfig.exclude_selectors,
+				);
 			} else {
 				return element.getAttribute(fieldConfig.attribute);
 			}

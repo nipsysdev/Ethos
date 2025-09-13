@@ -42,7 +42,7 @@ export const p2pSource: SourceConfig = {
 			},
 			content: {
 				selector: "article.post .entry-content",
-				attribute: "text",
+				attribute: "node",
 			},
 			author: {
 				selector: ".entry-header .author",

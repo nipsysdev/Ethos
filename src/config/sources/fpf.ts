@@ -47,7 +47,7 @@ export const fpfSource: SourceConfig = {
 			},
 			content: {
 				selector: ".post-content",
-				attribute: "text",
+				attribute: "node",
 				exclude_selectors: [".form.newsletter-signup"],
 			},
 		},
