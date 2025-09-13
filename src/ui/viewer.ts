@@ -141,8 +141,7 @@ async function showPaginatedViewer(
 		short: "Back",
 	});
 
-	const pageInfo =
-		totalPages > 1 ? ` (Page ${currentPage + 1}/${totalPages})` : "";
+	const pageInfo = totalPages > 1 ? ` (Page ${currentPage}/${totalPages})` : "";
 	const { selectedFile } = await inquirer.prompt([
 		{
 			type: "list",

@@ -204,19 +204,19 @@ export interface MetadataTracker extends ContentSessionLinker {
 	getSessionId(): string;
 	getMetadataStore(): MetadataStore;
 	checkpoint(): void;
-	addItems(items: CrawledData[]): void;
+	addItems(items: CrawledData[]): MetadataState;
 	linkContentToSession(
 		contentId: number,
 		hadContentExtractionError?: boolean,
-	): void;
-	incrementPagesProcessed(): void;
-	addDuplicatesSkipped(count: number): void;
-	addUrlsExcluded(count: number): void;
-	addFilteredItems(count: number, reasons: string[]): void;
+	): MetadataState;
+	incrementPagesProcessed(): MetadataState;
+	addDuplicatesSkipped(count: number): MetadataState;
+	addUrlsExcluded(count: number): MetadataState;
+	addFilteredItems(count: number, reasons: string[]): MetadataState;
 	addContentErrors(errors: string[]): void;
 	addFieldExtractionWarnings(warnings: string[]): void;
-	addContentsCrawled(count: number): void;
-	setStoppedReason(reason: StoppedReason): void;
+	addContentsCrawled(count: number): MetadataState;
+	setStoppedReason(reason: StoppedReason): MetadataState;
 	buildCrawlResult(): CrawlResult;
 }
 
@@ -248,9 +248,10 @@ export function createMetadataTracker(
 		throw error;
 	}
 
-	function updateState(action: MetadataAction): void {
+	function updateState(action: MetadataAction): MetadataState {
 		state = metadataReducer(state, action);
 		updateSessionInDatabase();
+		return state;
 	}
 
 	function updateSessionInDatabase(): void {
@@ -314,42 +315,63 @@ export function createMetadataTracker(
 			store.checkpoint();
 		},
 
-		addItems(items: CrawledData[]): void {
-			updateState({ type: MetadataActionType.ADD_ITEMS, count: items.length });
+		addItems(items: CrawledData[]): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.ADD_ITEMS,
+				count: items.length,
+			});
+			return state;
 		},
 
 		linkContentToSession(
 			contentId: number,
 			hadContentExtractionError = false,
-		): void {
-			updateState({ type: MetadataActionType.LINK_CONTENT_TO_SESSION });
+		): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.LINK_CONTENT_TO_SESSION,
+			});
 			store.linkContentToSession(
 				sessionId,
 				contentId,
 				state.contentLinkedCount,
 				hadContentExtractionError,
 			);
+			return state;
 		},
 
-		incrementPagesProcessed(): void {
-			updateState({ type: MetadataActionType.INCREMENT_PAGES_PROCESSED });
+		incrementPagesProcessed(): MetadataState {
+			return updateState({
+				type: MetadataActionType.INCREMENT_PAGES_PROCESSED,
+			});
 		},
 
-		addDuplicatesSkipped(count: number): void {
-			updateState({ type: MetadataActionType.ADD_DUPLICATES_SKIPPED, count });
+		addDuplicatesSkipped(count: number): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.ADD_DUPLICATES_SKIPPED,
+				count,
+			});
+			return state;
 		},
 
-		addUrlsExcluded(count: number): void {
-			updateState({ type: MetadataActionType.ADD_URLS_EXCLUDED, count });
+		addUrlsExcluded(count: number): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.ADD_URLS_EXCLUDED,
+				count,
+			});
+			return state;
 		},
 
-		addFilteredItems(count: number, reasons: string[]): void {
-			updateState({ type: MetadataActionType.ADD_FILTERED_ITEMS, count });
+		addFilteredItems(count: number, reasons: string[]): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.ADD_FILTERED_ITEMS,
+				count,
+			});
 			errorManager.addListingErrors(reasons);
 			updateSessionMetadataField(
 				"totalFilteredItems",
 				state.metadata.totalFilteredItems,
 			);
+			return state;
 		},
 
 		addContentErrors(errors: string[]): void {
@@ -360,17 +382,25 @@ export function createMetadataTracker(
 			errorManager.addFieldExtractionWarnings(warnings);
 		},
 
-		addContentsCrawled(count: number): void {
-			updateState({ type: MetadataActionType.ADD_CONTENTS_CRAWLED, count });
+		addContentsCrawled(count: number): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.ADD_CONTENTS_CRAWLED,
+				count,
+			});
 			updateSessionMetadataField(
 				"contentsCrawled",
 				state.metadata.contentsCrawled,
 			);
+			return state;
 		},
 
-		setStoppedReason(reason: StoppedReason): void {
-			updateState({ type: MetadataActionType.SET_STOPPED_REASON, reason });
+		setStoppedReason(reason: StoppedReason): MetadataState {
+			const state = updateState({
+				type: MetadataActionType.SET_STOPPED_REASON,
+				reason,
+			});
 			updateSessionMetadataField("stoppedReason", state.metadata.stoppedReason);
+			return state;
 		},
 
 		buildCrawlResult(): CrawlResult {
