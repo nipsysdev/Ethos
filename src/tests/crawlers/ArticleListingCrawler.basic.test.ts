@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CRAWLER_TYPES, type SourceConfig } from "@/core/types.js";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler.js";
+
+// Mock the BrowserHandler to prevent Puppeteer from being called
+vi.mock("@/crawlers/handlers/BrowserHandler.js", () => {
+	return {
+		createBrowserHandler: vi.fn().mockResolvedValue({
+			setupNewPage: vi.fn().mockResolvedValue({}),
+			close: vi.fn().mockResolvedValue(undefined),
+			resetBrowser: vi.fn().mockResolvedValue(undefined),
+			goto: vi.fn().mockResolvedValue(undefined),
+		}),
+	};
+});
 
 describe("ArticleListingCrawler - Basic Functionality", () => {
 	it("should have correct type", () => {
