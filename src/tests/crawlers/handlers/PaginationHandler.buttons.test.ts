@@ -64,10 +64,16 @@ describe("PaginationHandler - Button Detection", () => {
 	});
 
 	it("should return false when button has disabled attribute", async () => {
-		const mockButton = { click: vi.fn() };
+		const mockButton = { click: vi.fn(), isVisible: true };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
-			evaluate: vi.fn().mockResolvedValue(true), // Button is disabled
+			evaluate: vi.fn().mockImplementation((fn, selector) => {
+				// Simulate the disabled detection logic
+				if (selector === ".next-page") {
+					return true; // Button is disabled
+				}
+				return false;
+			}),
 		});
 
 		const promise = navigateToNextPage(mockPage, mockConfig);
@@ -79,14 +85,19 @@ describe("PaginationHandler - Button Detection", () => {
 	});
 
 	it("should detect disabled button through various methods", async () => {
-		const mockButton = { click: vi.fn() };
+		const mockButton = { click: vi.fn(), isVisible: true };
 
 		// Test the evaluate function that checks for disabled states
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
-			evaluate: vi.fn().mockImplementation((_fn, _selector) => {
+			evaluate: vi.fn().mockImplementation((fn, selector) => {
 				// Simulate the disabled detection logic
-				return true; // Button is disabled (hidden, aria-disabled, etc.)
+				// This should match the implementation in PaginationHandler.ts
+				if (selector === ".next-page") {
+					// Simulate that the button is disabled
+					return true; // Button is disabled (hidden, aria-disabled, etc.)
+				}
+				return false;
 			}),
 		});
 

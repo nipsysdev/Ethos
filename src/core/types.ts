@@ -51,9 +51,10 @@ export interface SourceConfig {
 	id: string;
 	name: string;
 	type: CrawlerType;
+	content_url_excludes?: string[]; // URL patterns to exclude from content extraction
+	disableJavascript?: boolean;
 	listing: ListingConfig;
 	content: ContentConfig;
-	content_url_excludes?: string[]; // URL patterns to exclude from content extraction
 }
 
 // Data structures for content and crawling

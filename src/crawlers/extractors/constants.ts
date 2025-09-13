@@ -6,8 +6,8 @@
  * Timeout configurations for content extraction
  */
 export const EXTRACTION_TIMEOUTS = {
-	/** Timeout for waiting for dynamic content to load (reduced for faster crawling) */
-	DYNAMIC_CONTENT_MS: 6000, // 6 seconds (reduced from 10)
+	/** Timeout for waiting for dynamic content to load */
+	DYNAMIC_CONTENT_MS: 20000, // 20 seconds
 } as const;
 
 /**

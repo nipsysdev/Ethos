@@ -1,10 +1,11 @@
-import type { Browser, Page } from "puppeteer";
+import type { Page } from "puppeteer";
 import type {
 	CrawledData,
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
+import type { BrowserHandler } from "../handlers/BrowserHandler";
 
 export interface ConcurrentExtractionConfig {
 	concurrencyLimit: number;
@@ -20,6 +21,7 @@ export interface ConcurrentExtractionConfig {
 
 export interface ContentExtractionHandler {
 	extractContentForSingleItem: (
+		browser: BrowserHandler,
 		page: Page,
 		item: CrawledData,
 		config: SourceConfig,
@@ -63,7 +65,7 @@ function filterOutExistingUrls(
 }
 
 async function createPagePool(
-	browser: Browser,
+	browser: BrowserHandler,
 	concurrencyLimit: number,
 	itemCount: number,
 ): Promise<Page[]> {
@@ -71,7 +73,7 @@ async function createPagePool(
 	const pagePool: Page[] = [];
 
 	for (let i = 0; i < totalPagesNeeded; i++) {
-		const newPage = await browser.newPage();
+		const newPage = await browser.setupNewPage();
 		pagePool.push(newPage);
 	}
 
@@ -100,6 +102,7 @@ async function cleanupPagePool(pagePool: Page[]): Promise<void> {
 }
 
 async function processItemsConcurrently(
+	browser: BrowserHandler,
 	pagePool: Page[],
 	items: CrawledData[],
 	config: SourceConfig,
@@ -132,6 +135,7 @@ async function processItemsConcurrently(
 			availablePages.delete(pageIndex);
 
 			const task = dependencies.extractContentForSingleItem(
+				browser,
 				pagePool[pageIndex],
 				item,
 				config,
@@ -164,11 +168,11 @@ async function processItemsConcurrently(
 }
 
 export function createConcurrentContentExtractor(
+	browser: BrowserHandler,
 	dependencies: ContentExtractionHandler,
 ) {
 	return {
 		extractConcurrently: async (
-			mainPage: Page,
 			items: CrawledData[],
 			config: SourceConfig,
 			itemOffset: number,
@@ -199,7 +203,6 @@ export function createConcurrentContentExtractor(
 			const contentFieldStats: FieldExtractionStats[] =
 				externalContentFieldStats || [];
 
-			const browser = mainPage.browser();
 			const pagePool = await createPagePool(
 				browser,
 				concurrencyLimit,
@@ -208,6 +211,7 @@ export function createConcurrentContentExtractor(
 
 			try {
 				await processItemsConcurrently(
+					browser,
 					pagePool,
 					itemsToProcess,
 					config,

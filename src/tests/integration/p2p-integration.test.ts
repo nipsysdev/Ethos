@@ -1,16 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { lpeSource as config } from "@/config/sources/lpe.js";
+import { p2pSource as config } from "@/config/sources/p2p.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
-import fixture1 from "@/tests/__fixtures__/lpe/august-2025";
-import fixture3 from "@/tests/__fixtures__/lpe/keycard-manifesto";
-import fixture2 from "@/tests/__fixtures__/lpe/logos-a-declaration-of-independence-in-cyberspace";
+import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
+import fixture2 from "@/tests/__fixtures__/p2p/book-of-the-day-abundance-the-future-is-better-than-you-think";
+import fixture3 from "@/tests/__fixtures__/p2p/great-transition-alternative-paths-better-climate-just-future";
+import fixture4 from "@/tests/__fixtures__/p2p/take-back-the-app-a-dialogue-on-platform-cooperativism-free-software-and-discos";
+import fixture1 from "@/tests/__fixtures__/p2p/trusting-google-or-not";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
-ifDescribe("Logos integration tests", () => {
+ifDescribe("P2P Foundation integration tests", () => {
 	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
@@ -22,42 +24,50 @@ ifDescribe("Logos integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl LPE listing page", async () => {
+	it("should crawl P2P listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
-		console.log(result.items);
 		expect(result.items.length).toBeGreaterThan(0);
 		expect(result.items.every((item) => !!item.title)).toBeTruthy();
 		expect(result.items.every((item) => !!item.url)).toBeTruthy();
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
+		expect(result.items.every((item) => !!item.content)).toBeTruthy();
 	});
 
-	// Logos Press Engine has only 1 page for now
-	/* it("should crawl to next LPE listing page", async () => {
-		const page = await setupPage(browser, config.listing.url);
+	it("should crawl to next P2P listing page", async () => {
+		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
-	}); */
+	});
 
-	it("should crawl multiple LPE content pages", async () => {
+	it("should crawl multiple P2P content pages", async () => {
 		const testCases = [
 			{
-				url: "https://press.logos.co/article/august-2025",
-				expectedTitle: "State of the Logos Network: August 2025",
-				expectedAuthor: "Logos",
+				url: "https://blog.p2pfoundation.net/trusting-google-or-not/",
+				expectedTitle: "Trusting Google, or not?",
 				expectedContent: fixture1,
+				expectedAuthor: "Michel Bauwens",
 			},
 			{
-				url: "https://press.logos.co/article/logos-a-declaration-of-independence-in-cyberspace",
-				expectedTitle: "Logos: A Declaration of Independence in Cyberspace",
-				expectedAuthor: "Logos",
+				url: "https://blog.p2pfoundation.net/book-of-the-day-abundance-the-future-is-better-than-you-think/",
+				expectedTitle:
+					"Book of the Day: Abundance – The Future Is Better Than You Think",
 				expectedContent: fixture2,
+				expectedAuthor: "P2P Foundation",
 			},
 			{
-				url: "https://press.logos.co/article/keycard-manifesto",
-				expectedTitle: "We Need Sovereign Tools: A Keycard Manifesto",
-				expectedAuthor: "Guy-Louis Grau",
+				url: "https://blog.p2pfoundation.net/great-transition-alternative-paths-better-climate-just-future/",
+				expectedTitle:
+					"The great transition – Alternative paths for a better and climate just future",
 				expectedContent: fixture3,
+				expectedAuthor: "Lili Fuhr",
+			},
+			{
+				url: "https://blog.p2pfoundation.net/take-back-the-app-a-dialogue-on-platform-cooperativism-free-software-and-discos/",
+				expectedTitle:
+					"Take back the App! A dialogue on Platform Cooperativism, Free Software and DisCOs",
+				expectedContent: fixture4,
+				expectedAuthor: "The Laura Flanders Show",
 			},
 		];
 

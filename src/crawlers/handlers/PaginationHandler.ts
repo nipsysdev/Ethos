@@ -35,8 +35,9 @@ async function attemptPagination(
 	config: SourceConfig,
 	nextButtonSelector: string,
 ): Promise<boolean> {
+	const oldUrl = page.url();
 	const nextButton = await page.$(nextButtonSelector);
-	if (!nextButton) {
+	if (!nextButton?.isVisible) {
 		return false;
 	}
 
@@ -66,6 +67,11 @@ async function attemptPagination(
 		console.warn(
 			`PaginationHandler: ${(error as TimeoutError).message} at url: ${page.url()}`,
 		);
+		return false;
+	}
+
+	if (oldUrl === page.url()) {
+		console.warn(`PaginationHandler: Navigated to same url`);
 		return false;
 	}
 

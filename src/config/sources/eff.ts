@@ -54,7 +54,7 @@ export const effSource: SourceConfig = {
 			content: {
 				selector: ".node--full",
 				exclude_selectors: [".take-action", ".field--type-file"],
-				attribute: "text",
+				attribute: "node",
 			},
 		},
 	},

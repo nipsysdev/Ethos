@@ -1,4 +1,4 @@
-import type { Browser, Page } from "puppeteer";
+import type { Page } from "puppeteer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
 	CrawledData,
@@ -7,13 +7,14 @@ import type {
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { createConcurrentContentExtractor } from "@/crawlers/extractors/ConcurrentContentExtractor.js";
+import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 
 describe("ConcurrentContentExtractor", () => {
+	let mockBrowserHandler: BrowserHandler;
 	let mockExtractContentForSingleItem: ReturnType<typeof vi.fn>;
 	let concurrentExtractor: ReturnType<typeof createConcurrentContentExtractor>;
 	let mockPage: Page;
-	let mockBrowser: Browser;
 	let mockMetadataStore: MetadataStore;
 
 	const mockConfig: SourceConfig = {
@@ -60,17 +61,17 @@ describe("ConcurrentContentExtractor", () => {
 		// Create mock extractContentForSingleItem function
 		mockExtractContentForSingleItem = vi.fn().mockResolvedValue(undefined);
 
-		// Create mock browser and pages
+		// Create mock browser handler
 		const mockNewPage = vi.fn().mockResolvedValue({
 			close: vi.fn().mockResolvedValue(undefined),
 		});
 
-		mockBrowser = {
-			newPage: mockNewPage,
-		} as unknown as Browser;
+		mockBrowserHandler = {
+			setupNewPage: mockNewPage,
+		} as unknown as BrowserHandler;
 
 		mockPage = {
-			browser: () => mockBrowser,
+			browser: () => mockBrowserHandler,
 		} as unknown as Page;
 
 		// Create mock metadata store
@@ -78,24 +79,19 @@ describe("ConcurrentContentExtractor", () => {
 			getExistingUrls: vi.fn().mockReturnValue(new Set()),
 		} as unknown as MetadataStore;
 
-		concurrentExtractor = createConcurrentContentExtractor({
+		// Create concurrent extractor with proper dependencies
+		concurrentExtractor = createConcurrentContentExtractor(mockBrowserHandler, {
 			extractContentForSingleItem: mockExtractContentForSingleItem,
 		});
 	});
 
 	describe("extractConcurrently", () => {
 		it("should handle empty items list", async () => {
-			await concurrentExtractor.extractConcurrently(
-				mockPage,
-				[],
-				mockConfig,
-				0,
-				{
-					concurrencyLimit: 2,
-					skipExistingUrls: true,
-					metadataStore: mockMetadataStore,
-				},
-			);
+			await concurrentExtractor.extractConcurrently([], mockConfig, 0, {
+				concurrencyLimit: 2,
+				skipExistingUrls: true,
+				metadataStore: mockMetadataStore,
+			});
 
 			expect(mockExtractContentForSingleItem).not.toHaveBeenCalled();
 		});
@@ -111,82 +107,115 @@ describe("ConcurrentContentExtractor", () => {
 				addUrlsExcluded: vi.fn(),
 			};
 
-			await concurrentExtractor.extractConcurrently(
-				mockPage,
-				mockItems,
-				mockConfig,
-				0,
-				{
-					concurrencyLimit: 2,
-					skipExistingUrls: true,
-					metadataStore: mockMetadataStore,
-					metadataTracker: mockTracker,
-				},
-			);
+			const mockContentErrors: string[] = [];
+			const mockContentFieldStats: FieldExtractionStats[] = [];
+
+			await concurrentExtractor.extractConcurrently(mockItems, mockConfig, 0, {
+				concurrencyLimit: 2,
+				skipExistingUrls: true,
+				metadataStore: mockMetadataStore,
+				metadataTracker: mockTracker,
+				externalContentErrors: mockContentErrors,
+				externalContentFieldStats: mockContentFieldStats,
+			});
 
 			expect(mockTracker.addDuplicatesSkipped).toHaveBeenCalledWith(1);
 			expect(mockExtractContentForSingleItem).toHaveBeenCalledTimes(1);
+			// Should only process the second item (not the first which is in existingUrls)
+			expect(mockExtractContentForSingleItem).toHaveBeenCalledWith(
+				mockBrowserHandler,
+				expect.any(Object), // page
+				mockItems[1], // second item
+				mockConfig,
+				mockContentErrors,
+				mockContentFieldStats,
+				0, // itemIndex (0 because it's the first/only item in the filtered array)
+			);
 		});
 
 		it("should not filter URLs when skipExistingUrls is false", async () => {
-			await concurrentExtractor.extractConcurrently(
-				mockPage,
-				mockItems,
-				mockConfig,
-				0,
-				{
-					concurrencyLimit: 2,
-					skipExistingUrls: false,
-					metadataStore: mockMetadataStore,
-				},
-			);
+			const mockContentErrors: string[] = [];
+			const mockContentFieldStats: FieldExtractionStats[] = [];
+
+			await concurrentExtractor.extractConcurrently(mockItems, mockConfig, 0, {
+				concurrencyLimit: 2,
+				skipExistingUrls: false,
+				externalContentErrors: mockContentErrors,
+				externalContentFieldStats: mockContentFieldStats,
+			});
 
 			expect(mockMetadataStore.getExistingUrls).not.toHaveBeenCalled();
 			expect(mockExtractContentForSingleItem).toHaveBeenCalledTimes(2);
+			// Should process both items
+			expect(mockExtractContentForSingleItem).toHaveBeenNthCalledWith(
+				1,
+				mockBrowserHandler,
+				expect.any(Object), // page
+				mockItems[0], // first item
+				mockConfig,
+				mockContentErrors,
+				mockContentFieldStats,
+				0, // itemIndex
+			);
+			expect(mockExtractContentForSingleItem).toHaveBeenNthCalledWith(
+				2,
+				mockBrowserHandler,
+				expect.any(Object), // page
+				mockItems[1], // second item
+				mockConfig,
+				mockContentErrors,
+				mockContentFieldStats,
+				1, // itemIndex
+			);
 		});
 
 		it("should respect concurrency limit", async () => {
+			const mockPages = [
+				{ close: vi.fn().mockResolvedValue(undefined) },
+				{ close: vi.fn().mockResolvedValue(undefined) },
+			];
+
 			const mockNewPage = vi
 				.fn()
-				.mockResolvedValueOnce({ close: vi.fn() })
-				.mockResolvedValueOnce({ close: vi.fn() });
+				.mockResolvedValueOnce(mockPages[0])
+				.mockResolvedValueOnce(mockPages[1]);
 
-			mockBrowser = {
-				newPage: mockNewPage,
-			} as unknown as Browser;
+			mockBrowserHandler = {
+				setupNewPage: mockNewPage,
+			} as unknown as BrowserHandler;
 
-			mockPage = {
-				browser: () => mockBrowser,
-			} as unknown as Page;
-
-			await concurrentExtractor.extractConcurrently(
-				mockPage,
-				mockItems,
-				mockConfig,
-				0,
+			concurrentExtractor = createConcurrentContentExtractor(
+				mockBrowserHandler,
 				{
-					concurrencyLimit: 2,
-					skipExistingUrls: false,
+					extractContentForSingleItem: mockExtractContentForSingleItem,
 				},
 			);
+
+			await concurrentExtractor.extractConcurrently(mockItems, mockConfig, 0, {
+				concurrencyLimit: 2,
+				skipExistingUrls: false,
+			});
 
 			// Should create exactly 2 pages for concurrency limit of 2
 			expect(mockNewPage).toHaveBeenCalledTimes(2);
 		});
 
 		it("should limit pages to actual item count", async () => {
-			const mockNewPage = vi.fn().mockResolvedValueOnce({ close: vi.fn() });
+			const mockPage = { close: vi.fn().mockResolvedValue(undefined) };
+			const mockNewPage = vi.fn().mockResolvedValueOnce(mockPage);
 
-			mockBrowser = {
-				newPage: mockNewPage,
-			} as unknown as Browser;
+			mockBrowserHandler = {
+				setupNewPage: mockNewPage,
+			} as unknown as BrowserHandler;
 
-			mockPage = {
-				browser: () => mockBrowser,
-			} as unknown as Page;
+			concurrentExtractor = createConcurrentContentExtractor(
+				mockBrowserHandler,
+				{
+					extractContentForSingleItem: mockExtractContentForSingleItem,
+				},
+			);
 
 			await concurrentExtractor.extractConcurrently(
-				mockPage,
 				[mockItems[0]], // Only 1 item
 				mockConfig,
 				0,
@@ -205,7 +234,6 @@ describe("ConcurrentContentExtractor", () => {
 			const mockContentFieldStats: FieldExtractionStats[] = [];
 
 			await concurrentExtractor.extractConcurrently(
-				mockPage,
 				[mockItems[0]],
 				mockConfig,
 				10, // offset
@@ -218,6 +246,7 @@ describe("ConcurrentContentExtractor", () => {
 			);
 
 			expect(mockExtractContentForSingleItem).toHaveBeenCalledWith(
+				mockBrowserHandler,
 				expect.any(Object), // page
 				mockItems[0], // item
 				mockConfig, // config
@@ -238,24 +267,21 @@ describe("ConcurrentContentExtractor", () => {
 				.mockResolvedValueOnce(mockPages[0])
 				.mockResolvedValueOnce(mockPages[1]);
 
-			mockBrowser = {
-				newPage: mockNewPage,
-			} as unknown as Browser;
+			mockBrowserHandler = {
+				setupNewPage: mockNewPage,
+			} as unknown as BrowserHandler;
 
-			mockPage = {
-				browser: () => mockBrowser,
-			} as unknown as Page;
-
-			await concurrentExtractor.extractConcurrently(
-				mockPage,
-				mockItems,
-				mockConfig,
-				0,
+			concurrentExtractor = createConcurrentContentExtractor(
+				mockBrowserHandler,
 				{
-					concurrencyLimit: 2,
-					skipExistingUrls: false,
+					extractContentForSingleItem: mockExtractContentForSingleItem,
 				},
 			);
+
+			await concurrentExtractor.extractConcurrently(mockItems, mockConfig, 0, {
+				concurrencyLimit: 2,
+				skipExistingUrls: false,
+			});
 
 			expect(mockPages[0].close).toHaveBeenCalled();
 			expect(mockPages[1].close).toHaveBeenCalled();
