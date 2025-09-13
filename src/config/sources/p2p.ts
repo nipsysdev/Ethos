@@ -4,6 +4,7 @@ export const p2pSource: SourceConfig = {
 	id: "p2p",
 	name: "P2P Foundation",
 	type: "listing",
+	disableJavascript: true,
 	listing: {
 		url: "https://blog.p2pfoundation.net/",
 		pagination: {
