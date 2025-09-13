@@ -1,5 +1,7 @@
 // Core crawler types and interfaces
 
+import type { StoppedReason } from "@/crawlers/MetadataTracker";
+
 export const CRAWLER_TYPES = {
 	LISTING: "listing",
 } as const;
@@ -141,11 +143,7 @@ export interface CrawlSummary {
 	pagesProcessed?: number;
 	duplicatesSkipped?: number;
 	urlsExcluded?: number;
-	stoppedReason?:
-		| "max_pages"
-		| "no_next_button"
-		| "all_duplicates"
-		| "process_interrupted";
+	stoppedReason?: StoppedReason;
 	contentsCrawled?: number;
 	contentErrors?: string[];
 	sessionId?: string; // Session ID for accessing crawl metadata from database
