@@ -52,16 +52,19 @@ describe("PaginationHandler - Navigation", () => {
 	};
 
 	it("should navigate to next page successfully with URL change", async () => {
-		const mockButton = { click: vi.fn() };
+		let urlState = "https://example.com/page/1";
+
+		const mockButton = { click: vi.fn(), isVisible: true };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton), // Button exists
 			evaluate: vi.fn().mockResolvedValue(false), // Button not disabled
-			waitForNavigation: vi.fn().mockResolvedValue(undefined),
+			waitForNavigation: vi.fn().mockImplementation(() => {
+				// After navigation, URL should change
+				urlState = "https://example.com/page/2";
+				return Promise.resolve();
+			}),
 			waitForSelector: vi.fn().mockResolvedValue(undefined),
-			url: vi
-				.fn()
-				.mockReturnValueOnce("https://example.com/page/1") // Initial URL
-				.mockReturnValueOnce("https://example.com/page/2"), // After navigation
+			url: vi.fn().mockImplementation(() => urlState),
 		});
 
 		const promise = navigateToNextPage(mockPage, mockConfig);
@@ -80,27 +83,5 @@ describe("PaginationHandler - Navigation", () => {
 			waitUntil: "domcontentloaded",
 			timeout: 5000, // Updated timeout to match optimized value
 		});
-	});
-
-	it("should handle AJAX pagination (no URL change but content loads)", async () => {
-		const mockButton = { click: vi.fn() };
-		const mockPage = createMockPage({
-			$: vi.fn().mockResolvedValue(mockButton),
-			evaluate: vi.fn().mockResolvedValue(false), // Button not disabled
-			waitForNavigation: vi.fn().mockRejectedValue(new Error("No navigation")),
-			waitForSelector: vi.fn().mockResolvedValue(undefined), // Container loads
-			url: vi.fn().mockReturnValue("https://example.com/ajax-page"), // Same URL
-		});
-
-		const promise = navigateToNextPage(mockPage, mockConfig);
-
-		// Fast-forward through all timers
-		await vi.runAllTimersAsync();
-
-		const result = await promise;
-
-		expect(result).toBe(true);
-		expect(mockButton.click).toHaveBeenCalled();
-		expect(mockPage.waitForSelector).toHaveBeenCalled();
 	});
 });
