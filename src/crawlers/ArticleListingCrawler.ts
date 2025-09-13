@@ -4,12 +4,11 @@ import type {
 	Crawler,
 	CrawlOptions,
 	CrawlResult,
-	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
-import type { ContentExtractionResult } from "@/crawlers/extractors/ContentPageExtractor.js";
+import type { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor.js";
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
 import {
 	createListingPageExtractor,
@@ -24,39 +23,8 @@ import {
 import type { InterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import { createInterruptionHandler } from "@/crawlers/utils/InterruptionHandler";
 import { filterDuplicates } from "@/crawlers/utils/UrlFilter";
-import type { MetadataStore } from "@/storage/MetadataStore.js";
-import { createBrowser, setupPage } from "./browser";
-
-interface ContentPageExtractor {
-	extractContentPagesConcurrently: (
-		page: Page,
-		items: CrawledData[],
-		config: SourceConfig,
-		itemOffset: number,
-		concurrencyLimit: number,
-		metadataStore?: MetadataStore,
-		skipExistingUrls?: boolean,
-		externalContentErrors?: string[],
-		externalContentFieldStats?: FieldExtractionStats[],
-		metadataTracker?: {
-			addDuplicatesSkipped: (count: number) => void;
-			addUrlsExcluded: (count: number) => void;
-		},
-	) => Promise<void>;
-	extractFromContentPage: (
-		page: Page,
-		url: string,
-		config: SourceConfig,
-	) => Promise<ContentExtractionResult>;
-	extractContentForSingleItem: (
-		page: Page,
-		item: CrawledData,
-		config: SourceConfig,
-		contentErrors: string[],
-		contentFieldStats: FieldExtractionStats[],
-		itemIndex: number,
-	) => Promise<void>;
-}
+import type { BrowserHandler } from "./handlers/BrowserHandler";
+import { createBrowserHandler } from "./handlers/BrowserHandler";
 
 function checkForInterruption(
 	interruptionHandler: InterruptionHandler,
@@ -70,7 +38,7 @@ function checkForInterruption(
 }
 
 async function processPageItems(
-	page: Page,
+	listingPage: Page,
 	config: SourceConfig,
 	options: CrawlOptions,
 	metadataTracker: MetadataTracker,
@@ -80,7 +48,7 @@ async function processPageItems(
 	const metadata = metadataTracker.getMetadata();
 
 	const pageResult = await listingExtractor.extractItemsFromPage(
-		page,
+		listingPage,
 		config,
 		metadata.fieldStats,
 		metadata.itemsProcessed,
@@ -141,7 +109,6 @@ async function processPageItems(
 }
 
 async function processContentExtraction(
-	page: Page,
 	itemsToProcess: CrawledData[],
 	config: SourceConfig,
 	options: CrawlOptions,
@@ -151,7 +118,6 @@ async function processContentExtraction(
 	if (itemsToProcess.length === 0) return;
 
 	const metadata = metadataTracker.getMetadata();
-	const currentListingUrl = page.url();
 
 	const concurrency =
 		options?.contentConcurrency ??
@@ -163,7 +129,6 @@ async function processContentExtraction(
 	);
 
 	await contentExtractor.extractContentPagesConcurrently(
-		page,
 		itemsToProcess,
 		config,
 		metadata.itemsProcessed,
@@ -189,8 +154,6 @@ async function processContentExtraction(
 		metadataTracker.addFieldExtractionWarnings(contentWarnings);
 	}
 
-	await page.goto(currentListingUrl, { waitUntil: "domcontentloaded" });
-
 	if (options?.onPageComplete) {
 		const originalTracker = options.metadataTracker;
 		options.metadataTracker = metadataTracker;
@@ -205,6 +168,7 @@ async function processContentExtraction(
 function logPageSummary(
 	pagesProcessed: number,
 	pageResult: { items: CrawledData[]; filteredCount: number },
+	pageUrl: string,
 	newItemsCount: number,
 	duplicatesOnPage: number,
 	maxPages?: number,
@@ -214,7 +178,7 @@ function logPageSummary(
 		totalFilteredItems: number;
 	},
 ) {
-	const totalItemsOnPage = pageResult.items.length;
+	const totalItemsOnPage = pageResult.items.length + pageResult.filteredCount;
 	const filteredOnPage = pageResult.filteredCount;
 
 	const displayPageNumber = pagesProcessed + 1;
@@ -222,7 +186,9 @@ function logPageSummary(
 		? `${displayPageNumber}/${maxPages}`
 		: `${displayPageNumber}`;
 
-	console.log(`Page ${progressInfo}: found ${totalItemsOnPage} items`);
+	console.log(
+		`Page ${progressInfo}: found ${totalItemsOnPage} items (${pageUrl})`,
+	);
 	console.log(`  Processed ${newItemsCount} new items`);
 	if (duplicatesOnPage > 0) {
 		console.log(`  Skipped ${duplicatesOnPage} duplicates`);
@@ -242,10 +208,12 @@ async function crawlListing(
 	config: SourceConfig,
 	options?: CrawlOptions,
 ): Promise<CrawlResult> {
+	const browser = await createBrowserHandler(config);
+
 	const startTime = new Date();
 	const interruptionHandler = createInterruptionHandler();
 	const listingExtractor = createListingPageExtractor();
-	const contentExtractor = createContentPageExtractor();
+	const contentExtractor = createContentPageExtractor(browser);
 
 	interruptionHandler.setup();
 
@@ -256,11 +224,10 @@ async function crawlListing(
 		);
 	}
 
-	const browser = await createBrowser();
-
 	try {
-		const page = await setupPage(browser, config.listing.url);
+		const page = await browser.setupNewPage(config.listing.url);
 		return await extractItemsFromListing(
+			browser,
 			page,
 			config,
 			options,
@@ -282,7 +249,8 @@ async function crawlListing(
 }
 
 async function extractItemsFromListing(
-	page: Page,
+	browser: BrowserHandler,
+	listingPage: Page,
 	config: SourceConfig,
 	options: CrawlOptions = {},
 	startTime: Date,
@@ -292,6 +260,7 @@ async function extractItemsFromListing(
 ): Promise<CrawlResult> {
 	const metadataTracker = createMetadataTracker(config, startTime);
 	const seenUrls = new Set<string>();
+	let itemsProcessedSinceReset = 0;
 
 	while (true) {
 		const metadata = metadataTracker.getMetadata();
@@ -307,7 +276,7 @@ async function extractItemsFromListing(
 
 		const { itemsToProcess, pageResult, dbDuplicatesSkipped, newItems } =
 			await processPageItems(
-				page,
+				listingPage,
 				config,
 				options,
 				metadataTracker,
@@ -334,6 +303,7 @@ async function extractItemsFromListing(
 			logPageSummary(
 				metadata.pagesProcessed,
 				updatedPageResult,
+				listingPage.url(),
 				0,
 				totalDuplicatesOnPage,
 				options?.maxPages,
@@ -352,7 +322,6 @@ async function extractItemsFromListing(
 
 		if (itemsToProcess.length > 0) {
 			await processContentExtraction(
-				page,
 				itemsToProcess,
 				config,
 				options,
@@ -364,13 +333,23 @@ async function extractItemsFromListing(
 		logPageSummary(
 			metadata.pagesProcessed,
 			updatedPageResult,
+			listingPage.url(),
 			itemsToProcess.length,
 			totalDuplicatesOnPage,
 			options?.maxPages,
 			metadataTracker.getMetadata(),
 		);
+		itemsProcessedSinceReset += itemsToProcess.length;
 
-		const hasNextPage = await navigateToNextPage(page, config);
+		if (itemsProcessedSinceReset >= 100) {
+			console.log("Resetting browser");
+			const url = listingPage.url();
+			await browser.resetBrowser();
+			listingPage = await browser.setupNewPage(url);
+			itemsProcessedSinceReset = 0;
+		}
+
+		const hasNextPage = await navigateToNextPage(listingPage, config);
 
 		if (checkForInterruption(interruptionHandler, metadataTracker)) break;
 

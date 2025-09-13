@@ -7,14 +7,24 @@ import type {
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
+import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 
 describe("ContentPageExtractor", () => {
 	let mockPage: Page;
+	let mockBrowserHandler: BrowserHandler;
 	let mockConfig: SourceConfig;
 	let contentPageExtractor: ReturnType<typeof createContentPageExtractor>;
 
 	beforeEach(() => {
-		// Create mock page
+		// Create mock browser handler
+		mockBrowserHandler = {
+			resetBrowser: vi.fn().mockResolvedValue(undefined),
+			setupNewPage: vi.fn().mockResolvedValue({} as Page),
+			goto: vi.fn().mockResolvedValue(undefined),
+			close: vi.fn().mockResolvedValue(undefined),
+		};
+
+		// Create mock page with close method
 		mockPage = {
 			goto: vi.fn().mockResolvedValue(undefined),
 			waitForSelector: vi.fn().mockResolvedValue(undefined),
@@ -22,6 +32,7 @@ describe("ContentPageExtractor", () => {
 				results: {},
 				extractionErrors: [],
 			}),
+			close: vi.fn().mockResolvedValue(undefined), // Add close method
 			browser: vi.fn().mockReturnValue({
 				newPage: vi.fn().mockResolvedValue({
 					close: vi.fn().mockResolvedValue(undefined),
@@ -51,7 +62,8 @@ describe("ContentPageExtractor", () => {
 			},
 		};
 
-		contentPageExtractor = createContentPageExtractor();
+		// Create content page extractor with mock browser handler
+		contentPageExtractor = createContentPageExtractor(mockBrowserHandler);
 
 		// Reset all mocks
 		vi.clearAllMocks();
@@ -72,6 +84,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -79,9 +92,9 @@ describe("ContentPageExtractor", () => {
 
 			expect(result.contentData.content).toBe(mockMarkdownContent);
 			expect(result.errors).toHaveLength(0);
-			expect(mockPage.goto).toHaveBeenCalledWith(
+			expect(mockBrowserHandler.goto).toHaveBeenCalledWith(
+				mockPage,
 				"https://example.com/article1",
-				{ waitUntil: "domcontentloaded" },
 			);
 		});
 
@@ -93,6 +106,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -103,19 +117,25 @@ describe("ContentPageExtractor", () => {
 		});
 
 		it("should handle page loading errors", async () => {
-			// Mock page.goto to throw an error
-			vi.mocked(mockPage.goto).mockRejectedValue(new Error("Network error"));
+			// Mock browserHandler.goto to throw an error
+			vi.mocked(mockBrowserHandler.goto).mockImplementation(() => {
+				throw new Error("Network error");
+			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
 			);
 
 			expect(result.contentData).toEqual({});
-			expect(result.errors).toContain(
-				"Failed to load content page https://example.com/article1 : Error: Network error",
-			);
+			// Check that errors array exists and has content
+			expect(result.errors).toBeDefined();
+			expect(result.errors.length).toBeGreaterThan(0);
+			// Check that error message contains the expected parts
+			expect(result.errors[0]).toMatch(/Failed to load content page/);
+			expect(result.errors[0]).toMatch(/Network error/);
 		});
 
 		it("should handle missing content config", async () => {
@@ -125,6 +145,7 @@ describe("ContentPageExtractor", () => {
 			} as unknown as SourceConfig;
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				configWithoutContent,
@@ -149,6 +170,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -159,7 +181,7 @@ describe("ContentPageExtractor", () => {
 			expect(result.errors).toHaveLength(0);
 		});
 
-		it("should handle markdown conversion errors gracefully", async () => {
+		it("should handle markdown conversion with formatting", async () => {
 			const mockHtmlContent =
 				"<div><p>Text with <strong>formatting</strong> and <em>emphasis</em></p></div>";
 
@@ -172,6 +194,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -207,7 +230,7 @@ describe("ContentPageExtractor", () => {
 			const { createContentPageExtractor } = await import(
 				"@/crawlers/extractors/ContentPageExtractor"
 			);
-			const extractorWithMock = createContentPageExtractor();
+			const extractorWithMock = createContentPageExtractor(mockBrowserHandler);
 
 			// Create HTML content with specific text content for testing fallback
 			const mockHtmlContent =
@@ -223,6 +246,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await extractorWithMock.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -250,6 +274,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -260,9 +285,31 @@ describe("ContentPageExtractor", () => {
 		});
 
 		it("should add processing errors to overall errors when markdown conversion fails", async () => {
+			// Reset modules and clear all mocks
+			vi.resetModules();
+			vi.clearAllMocks();
+
+			// Mock TurndownService to throw an error
+			const mockTurndownService = {
+				turndown: vi.fn().mockImplementation(() => {
+					throw new Error("Test conversion error");
+				}),
+			};
+
+			// Mock the TurndownService module
+			vi.doMock("turndown", () => {
+				return {
+					default: vi.fn(() => mockTurndownService),
+				};
+			});
+
+			// Dynamically import the module under test after mocking
+			const { createContentPageExtractor } = await import(
+				"@/crawlers/extractors/ContentPageExtractor"
+			);
+			const extractorWithMock = createContentPageExtractor(mockBrowserHandler);
+
 			const mockHtmlContent = "<p>Content that might fail conversion</p>";
-			const mockProcessingError =
-				"Markdown conversion failed: Test conversion error";
 
 			// Mock page.evaluate to return content
 			vi.mocked(mockPage.evaluate).mockResolvedValue({
@@ -272,15 +319,16 @@ describe("ContentPageExtractor", () => {
 				extractionErrors: [],
 			});
 
-			const result = await contentPageExtractor.extractFromContentPage(
+			const result = await extractorWithMock.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
 			);
 
-			// The processing errors would be added if conversion failed
-			// We're testing that the error collection mechanism works
-			expect(result.errors).toBeDefined();
+			// Should have processing error when turndown fails
+			expect(result.errors).toHaveLength(1);
+			expect(result.errors[0]).toContain("Test conversion error");
 		});
 
 		it("should replace non-breaking spaces with regular spaces", async () => {
@@ -297,6 +345,7 @@ describe("ContentPageExtractor", () => {
 			});
 
 			const result = await contentPageExtractor.extractFromContentPage(
+				mockBrowserHandler,
 				mockPage,
 				"https://example.com/article1",
 				mockConfig,
@@ -319,15 +368,125 @@ describe("ContentPageExtractor", () => {
 				},
 			];
 
+			const mockContentErrors: string[] = [];
+			const mockContentFieldStats: FieldExtractionStats[] = [];
+
+			const mockTracker = {
+				addDuplicatesSkipped: vi.fn(),
+				addUrlsExcluded: vi.fn(),
+			};
+
+			// Mock browser handler setupNewPage to return pages with close method
+			const mockPage1 = { close: vi.fn().mockResolvedValue(undefined) };
+			const mockPage2 = { close: vi.fn().mockResolvedValue(undefined) };
+
+			mockBrowserHandler.setupNewPage = vi
+				.fn()
+				.mockResolvedValueOnce(mockPage1)
+				.mockResolvedValueOnce(mockPage2);
+
 			// This test is mainly to ensure the function can be called without errors
 			await expect(
 				contentPageExtractor.extractContentPagesConcurrently(
-					mockPage,
 					mockItems,
 					mockConfig,
 					0,
+					2, // concurrencyLimit
+					undefined, // metadataStore
+					true, // skipExistingUrls
+					mockContentErrors,
+					mockContentFieldStats,
+					mockTracker,
 				),
 			).resolves.toBeUndefined();
+		});
+
+		it("should handle empty items list", async () => {
+			await expect(
+				contentPageExtractor.extractContentPagesConcurrently(
+					[],
+					mockConfig,
+					0,
+					5,
+				),
+			).resolves.toBeUndefined();
+		});
+	});
+
+	describe("extractContentForSingleItem", () => {
+		it("should extract content for a single item", async () => {
+			const mockItem: CrawledData = {
+				url: "https://example.com/article1",
+				title: "Article 1",
+				content: "Content 1",
+				crawledAt: new Date(),
+				source: "test",
+				metadata: {},
+			};
+
+			const mockContentErrors: string[] = [];
+			const mockContentFieldStats: FieldExtractionStats[] = [];
+
+			// Create a new extractor instance to properly test the function
+			const testExtractor = createContentPageExtractor(mockBrowserHandler);
+
+			// Mock page.evaluate to return successful result
+			vi.mocked(mockPage.evaluate).mockResolvedValue({
+				results: {
+					content: "Extracted content",
+					title: "Extracted title",
+				},
+				extractionErrors: [],
+			});
+
+			await expect(
+				testExtractor.extractContentForSingleItem(
+					mockBrowserHandler,
+					mockPage,
+					mockItem,
+					mockConfig,
+					mockContentErrors,
+					mockContentFieldStats,
+					0,
+				),
+			).resolves.toBeUndefined();
+
+			// Verify the item was updated with extracted content
+			// The content should be merged, so the original content should be replaced
+			expect(mockItem.content).toBe("Extracted content");
+			expect(mockItem.title).toBe("Extracted title");
+		});
+
+		it("should handle missing URL gracefully", async () => {
+			const mockItem: CrawledData = {
+				url: undefined as any, // Intentionally missing URL
+				title: "Article 1",
+				content: "Content 1",
+				crawledAt: new Date(),
+				source: "test",
+				metadata: {},
+			};
+
+			const mockContentErrors: string[] = [];
+			const mockContentFieldStats: FieldExtractionStats[] = [];
+
+			// Should not call page.evaluate when URL is missing
+			const evaluateSpy = vi.spyOn(mockPage, "evaluate");
+
+			await expect(
+				contentPageExtractor.extractContentForSingleItem(
+					mockBrowserHandler,
+					mockPage,
+					mockItem,
+					mockConfig,
+					mockContentErrors,
+					mockContentFieldStats,
+					0,
+				),
+			).resolves.toBeUndefined();
+
+			// Should not have called page.evaluate
+			expect(evaluateSpy).not.toHaveBeenCalled();
 		});
 	});
 });

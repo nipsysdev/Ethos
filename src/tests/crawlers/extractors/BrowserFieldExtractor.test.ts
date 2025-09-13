@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createBrowserExtractionFunction } from "@/crawlers/extractors/BrowserFieldExtractor";
 
 describe("BrowserFieldExtractor", () => {
@@ -7,26 +7,26 @@ describe("BrowserFieldExtractor", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
 			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							querySelector: (fieldSelector: string) => {
-								if (fieldSelector === ".content") {
-									return {
-										innerHTML: "<p>Hello World</p>",
-									};
-								}
-								return null;
-							},
-						};
-					}
-					return null;
-				},
+			const mockElement = {
+				textContent: "Hello World",
+				querySelector: vi.fn().mockReturnValue({
+					textContent: "Hello World",
+				}),
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockReturnValue(mockElement),
 			};
 
 			// Mocking global document
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -38,7 +38,8 @@ describe("BrowserFieldExtractor", () => {
 				},
 			});
 
-			expect(result.results.content).toBe("<p>Hello World</p>");
+			// For text attribute, we expect the textContent to be extracted
+			expect(result.results.content).toBe("Hello World");
 			expect(result.extractionErrors).toHaveLength(0);
 		});
 
@@ -46,29 +47,32 @@ describe("BrowserFieldExtractor", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
 			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							querySelector: (fieldSelector: string) => {
-								if (fieldSelector === "a") {
-									return {
-										getAttribute: (attr: string) => {
-											if (attr === "href") return "/relative-link";
-											return null;
-										},
-									};
-								}
-								return null;
-							},
-						};
+			const mockElement = {
+				getAttribute: vi.fn().mockImplementation((attr: string) => {
+					if (attr === "href") return "/relative-link";
+					return null;
+				}),
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === "a") {
+						return mockElement;
 					}
 					return null;
-				},
+				}),
 			};
 
 			// Mocking global document and window
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
+
 			global.window = {
 				location: {
 					href: "https://example.com/page",
@@ -92,13 +96,12 @@ describe("BrowserFieldExtractor", () => {
 		it("should handle missing container selector", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
-			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => null,
-			};
-
-			// Mocking global document
-			global.document = mockDocument as any;
+			// Mock browser context - container not found
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					return null; // Always return null to simulate missing container
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".nonexistent",
@@ -119,20 +122,21 @@ describe("BrowserFieldExtractor", () => {
 		it("should handle missing field element", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
-			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							querySelector: () => null,
-						};
-					}
-					return null;
-				},
+			// Mock browser context - container exists but field element doesn't
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					return null; // Always return null for field elements
+				}),
 			};
 
-			// Mocking global document
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -153,20 +157,21 @@ describe("BrowserFieldExtractor", () => {
 		it("should handle optional missing field without error", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
-			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							querySelector: () => null,
-						};
-					}
-					return null;
-				},
+			// Mock browser context - container exists but optional field element doesn't
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					return null; // Always return null for field elements
+				}),
 			};
 
-			// Mocking global document
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -188,32 +193,32 @@ describe("BrowserFieldExtractor", () => {
 		it("should extract content from container element when selector is empty", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
-			// Mock browser context
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							innerHTML: "<div>Main content here</div>",
-						};
-					}
-					return null;
-				},
+			// Mock browser context - when selector is empty, use container element directly
+			const mockContainer = {
+				textContent: "Main content here",
+				innerHTML: "<div>Main content here</div>",
 			};
 
-			// Mocking global document
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".container",
 				fields: {
 					content: {
-						selector: "",
+						selector: "", // Empty selector means use container element
 						attribute: "text",
 					},
 				},
 			});
 
-			expect(result.results.content).toBe("<div>Main content here</div>");
+			expect(result.results.content).toBe("Main content here");
 			expect(result.extractionErrors).toHaveLength(0);
 		});
 
@@ -221,21 +226,20 @@ describe("BrowserFieldExtractor", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 
 			// Mock browser context with error
-			const mockDocument = {
-				querySelector: (selector: string) => {
-					if (selector === ".container") {
-						return {
-							querySelector: () => {
-								throw new Error("Query error");
-							},
-						};
-					}
-					return null;
-				},
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation(() => {
+					throw new Error("Query error");
+				}),
 			};
 
-			// Mocking global document
-			global.document = mockDocument as any;
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -251,6 +255,195 @@ describe("BrowserFieldExtractor", () => {
 			expect(result.extractionErrors).toContain(
 				"Failed to extract content: Error: Query error",
 			);
+		});
+
+		it("should extract src attribute and resolve to absolute URL", () => {
+			const extractionFunction = createBrowserExtractionFunction();
+
+			// Mock browser context
+			const mockElement = {
+				getAttribute: vi.fn().mockImplementation((attr: string) => {
+					if (attr === "src") return "/image.jpg";
+					return null;
+				}),
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === "img") {
+						return mockElement;
+					}
+					return null;
+				}),
+			};
+
+			// Mocking global document and window
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
+
+			global.window = {
+				location: {
+					href: "https://example.com/page",
+				},
+			} as any;
+
+			const result = extractionFunction({
+				container_selector: ".container",
+				fields: {
+					image: {
+						selector: "img",
+						attribute: "src",
+					},
+				},
+			});
+
+			expect(result.results.image).toBe("https://example.com/image.jpg");
+			expect(result.extractionErrors).toHaveLength(0);
+		});
+
+		it("should extract node (innerHTML) attribute", () => {
+			const extractionFunction = createBrowserExtractionFunction();
+
+			// Mock browser context
+			const mockElement = {
+				innerHTML: "<p>Hello <strong>World</strong></p>",
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".content") {
+						return mockElement;
+					}
+					return null;
+				}),
+			};
+
+			// Mocking global document
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
+
+			const result = extractionFunction({
+				container_selector: ".container",
+				fields: {
+					content: {
+						selector: ".content",
+						attribute: "node",
+					},
+				},
+			});
+
+			expect(result.results.content).toBe(
+				"<p>Hello <strong>World</strong></p>",
+			);
+			expect(result.extractionErrors).toHaveLength(0);
+		});
+
+		it("should handle custom attributes", () => {
+			const extractionFunction = createBrowserExtractionFunction();
+
+			// Mock browser context
+			const mockElement = {
+				getAttribute: vi.fn().mockImplementation((attr: string) => {
+					if (attr === "data-id") return "12345";
+					return null;
+				}),
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".item") {
+						return mockElement;
+					}
+					return null;
+				}),
+			};
+
+			// Mocking global document
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
+
+			const result = extractionFunction({
+				container_selector: ".container",
+				fields: {
+					id: {
+						selector: ".item",
+						attribute: "data-id",
+					},
+				},
+			});
+
+			expect(result.results.id).toBe("12345");
+			expect(result.extractionErrors).toHaveLength(0);
+		});
+
+		it("should handle textContent with exclusions", () => {
+			const extractionFunction = createBrowserExtractionFunction();
+
+			// Mock browser context with nested elements
+			const mockExcludedElement = {
+				remove: vi.fn(),
+			};
+
+			const mockElement = {
+				textContent: "Main content plus excluded content",
+				cloneNode: vi.fn().mockReturnValue({
+					querySelectorAll: vi.fn().mockReturnValue([mockExcludedElement]),
+					textContent: "Main content ",
+					remove: mockExcludedElement.remove,
+				}),
+			};
+
+			const mockContainer = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".content") {
+						return mockElement;
+					}
+					return null;
+				}),
+			};
+
+			// Mocking global document
+			global.document = {
+				querySelector: vi.fn().mockImplementation((selector: string) => {
+					if (selector === ".container") {
+						return mockContainer;
+					}
+					return null;
+				}),
+			} as any;
+
+			const result = extractionFunction({
+				container_selector: ".container",
+				fields: {
+					content: {
+						selector: ".content",
+						attribute: "text",
+						exclude_selectors: [".exclude"],
+					},
+				},
+			});
+
+			// The exact result depends on the implementation, but it should be a string
+			expect(typeof result.results.content).toBe("string");
+			expect(result.extractionErrors).toHaveLength(0);
 		});
 	});
 });

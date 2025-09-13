@@ -1,9 +1,9 @@
-import type { Browser as PuppeteerBrowser } from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { lpeSource as config } from "@/config/sources/lpe.js";
-import { createBrowser, setupPage } from "@/crawlers/browser";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
+import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
+import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import fixture1 from "@/tests/__fixtures__/lpe/august-2025";
 import fixture3 from "@/tests/__fixtures__/lpe/keycard-manifesto";
 import fixture2 from "@/tests/__fixtures__/lpe/logos-a-declaration-of-independence-in-cyberspace";
@@ -11,11 +11,11 @@ import fixture2 from "@/tests/__fixtures__/lpe/logos-a-declaration-of-independen
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
 ifDescribe("Logos integration tests", () => {
-	let browser: PuppeteerBrowser;
+	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
 	beforeAll(async () => {
-		browser = await createBrowser();
+		browser = await createBrowserHandler(config);
 	});
 
 	afterAll(async () => {
@@ -23,7 +23,7 @@ ifDescribe("Logos integration tests", () => {
 	});
 
 	it("should crawl LPE listing page", async () => {
-		const page = await setupPage(browser, config.listing.url);
+		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
 		console.log(result.items);
@@ -63,9 +63,10 @@ ifDescribe("Logos integration tests", () => {
 
 		await Promise.all(
 			testCases.map(async (testCase) => {
-				const page = await setupPage(browser, testCase.url);
-				const extractor = createContentPageExtractor();
+				const page = await browser.setupNewPage(testCase.url);
+				const extractor = createContentPageExtractor(browser);
 				const result = await extractor.extractFromContentPage(
+					browser,
 					page,
 					testCase.url,
 					config,

@@ -1,9 +1,9 @@
-import type { Browser as PuppeteerBrowser } from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { effSource as config } from "@/config/sources/eff.js";
-import { createBrowser, setupPage } from "@/crawlers/browser";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
+import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
+import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
 import fixture3 from "@/tests/__fixtures__/eff/21-44";
 import fixture1 from "@/tests/__fixtures__/eff/eff-awards-spotlight-software-freedom-law-center-india";
@@ -14,11 +14,11 @@ import fixture5 from "@/tests/__fixtures__/eff/wiring-big-brother-machine";
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
 ifDescribe("Electronics Foundation integration tests", () => {
-	let browser: PuppeteerBrowser;
+	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
 	beforeAll(async () => {
-		browser = await createBrowser();
+		browser = await createBrowserHandler(config);
 	});
 
 	afterAll(async () => {
@@ -26,7 +26,7 @@ ifDescribe("Electronics Foundation integration tests", () => {
 	});
 
 	it("should crawl EFF listing page", async () => {
-		const page = await setupPage(browser, config.listing.url);
+		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
 		expect(result.items.length).toBeGreaterThan(0);
@@ -37,7 +37,7 @@ ifDescribe("Electronics Foundation integration tests", () => {
 	});
 
 	it("should crawl to next EFF listing page", async () => {
-		const page = await setupPage(browser, config.listing.url);
+		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
 	});
 
@@ -76,9 +76,10 @@ ifDescribe("Electronics Foundation integration tests", () => {
 
 		await Promise.all(
 			testCases.map(async (testCase) => {
-				const page = await setupPage(browser, testCase.url);
-				const extractor = createContentPageExtractor();
+				const page = await browser.setupNewPage(testCase.url);
+				const extractor = createContentPageExtractor(browser);
 				const result = await extractor.extractFromContentPage(
+					browser,
 					page,
 					testCase.url,
 					config,

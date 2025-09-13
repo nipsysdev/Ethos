@@ -16,6 +16,39 @@ import {
 import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
+import type { BrowserHandler } from "../handlers/BrowserHandler";
+
+export interface ContentPageExtractor {
+	extractContentPagesConcurrently: (
+		items: CrawledData[],
+		config: SourceConfig,
+		itemOffset: number,
+		concurrencyLimit: number,
+		metadataStore?: MetadataStore,
+		skipExistingUrls?: boolean,
+		externalContentErrors?: string[],
+		externalContentFieldStats?: FieldExtractionStats[],
+		metadataTracker?: {
+			addDuplicatesSkipped: (count: number) => void;
+			addUrlsExcluded: (count: number) => void;
+		},
+	) => Promise<void>;
+	extractFromContentPage: (
+		browser: BrowserHandler,
+		page: Page,
+		url: string,
+		config: SourceConfig,
+	) => Promise<ContentExtractionResult>;
+	extractContentForSingleItem: (
+		browser: BrowserHandler,
+		page: Page,
+		item: CrawledData,
+		config: SourceConfig,
+		contentErrors: string[],
+		contentFieldStats: FieldExtractionStats[],
+		itemIndex: number,
+	) => Promise<void>;
+}
 
 export interface ContentExtractionData {
 	title?: string;
@@ -30,6 +63,7 @@ export interface ContentExtractionResult {
 }
 
 async function extractFromContentPage(
+	browser: BrowserHandler,
 	page: Page,
 	url: string,
 	config: SourceConfig,
@@ -44,21 +78,14 @@ async function extractFromContentPage(
 	}
 
 	try {
-		const absoluteUrl = resolveAbsoluteUrl(url, config.listing.url);
-
-		await page.goto(absoluteUrl, { waitUntil: "domcontentloaded" });
+		browser.goto(page, url);
 
 		if (config.content.container_selector) {
 			try {
 				await page.waitForSelector(config.content.container_selector, {
 					timeout: DYNAMIC_CONTENT_TIMEOUT,
 				});
-			} catch (error) {
-				console.warn(
-					`Warning: Content container selector "${config.content.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds for ${absoluteUrl}`,
-					error,
-				);
-			}
+			} catch {}
 		}
 
 		const extractionFunction = createBrowserExtractionFunction();
@@ -80,7 +107,15 @@ async function extractFromContentPage(
 				try {
 					processedContent = turndownService.turndown(document);
 					// Replace non-breaking spaces (U+00A0) with regular spaces (U+0020)
-					processedContent = processedContent.replace(/\u00A0/g, " ");
+					processedContent = processedContent
+						.replace(/\u00A0/g, " ")
+						.replace(/\u00A0/g, " ")
+						.replace(/â€œ/g, '"')
+						.replace(/â€/g, '"')
+						.replace(/â€™/g, "'")
+						.replace(/â€˜/g, "'")
+						.replace(/â€”/g, "—")
+						.replace(/â€“/g, "–");
 				} catch (conversionError) {
 					processingErrors.push(
 						`Markdown conversion failed: ${(conversionError as ReferenceError).message}`,
@@ -103,6 +138,7 @@ async function extractFromContentPage(
 }
 
 async function extractContentForSingleItem(
+	browser: BrowserHandler,
 	page: Page,
 	item: CrawledData,
 	config: SourceConfig,
@@ -116,6 +152,7 @@ async function extractContentForSingleItem(
 
 	try {
 		const { contentData, errors } = await extractFromContentPage(
+			browser,
 			page,
 			item.url,
 			config,
@@ -147,6 +184,7 @@ async function extractContentForSingleItem(
 		const errorMessage = `Failed to extract content data for ${item.url} : ${error}`;
 
 		if (hasExcerpt) {
+			console.error(`Content extraction warning for ${item.url}`, error);
 			contentErrors.push(
 				`Content extraction warning for ${item.url} : ${errorMessage}`,
 			);
@@ -160,14 +198,15 @@ async function extractContentForSingleItem(
 	}
 }
 
-export function createContentPageExtractor() {
-	const concurrentExtractor = createConcurrentContentExtractor({
+export function createContentPageExtractor(
+	browserHandler: BrowserHandler,
+): ContentPageExtractor {
+	const concurrentExtractor = createConcurrentContentExtractor(browserHandler, {
 		extractContentForSingleItem,
 	});
 
 	return {
 		extractContentPagesConcurrently: async (
-			page: Page,
 			items: CrawledData[],
 			config: SourceConfig,
 			itemOffset: number,
@@ -182,7 +221,6 @@ export function createContentPageExtractor() {
 			},
 		): Promise<void> => {
 			return concurrentExtractor.extractConcurrently(
-				page,
 				items,
 				config,
 				itemOffset,
