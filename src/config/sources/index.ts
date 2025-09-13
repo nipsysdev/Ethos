@@ -1,4 +1,5 @@
 import type { SourceConfig } from "@/core/types";
+import { dukSource } from "./duk.js";
 import { effSource } from "./eff.js";
 import { fpfSource } from "./fpf.js";
 import { lpeSource } from "./lpe.js";
@@ -9,4 +10,5 @@ export const sources: SourceConfig[] = [
 	fpfSource,
 	lpeSource,
 	p2pSource,
+	dukSource,
 ];
