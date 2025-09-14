@@ -1,4 +1,4 @@
-name: Periodic Integration Testing
+name: Integration Testing
 
 on:
   schedule:
