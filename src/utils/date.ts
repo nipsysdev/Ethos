@@ -22,9 +22,9 @@ export function parsePublishedDate(
 	let parsedDate = dayjs(cleaned);
 
 	if (!parsedDate.isValid()) {
-		if (cleaned.includes("today")) {
+		if (cleaned.toLowerCase().includes("today")) {
 			parsedDate = dayjs();
-		} else if (cleaned.includes("yesterday")) {
+		} else if (cleaned.toLowerCase().includes("yesterday")) {
 			parsedDate = dayjs().add(-1, "day");
 		} else {
 			const dateFormats = [
