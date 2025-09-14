@@ -1,0 +1,7 @@
+export default `![perspectiv bredband](https://TorrentFreak.com//images/perspectiv.jpg)Apparently this anti net-censorship campaign by [The Pirate Bay](http://thepiratebay.org/) was effective. Today, a press release from the ISP, responsible for the city core net of three major cities in southern Sweden, declares that they have reconsidered their position and decided to no longer block [AllofMP3](https://torrentfreak.com/search/allofmp3).
+
+“We made a premature decision and deviated from our mission. I regret this. The management agree with our new chairman of the board that limiting access to content on the Internet is not within the scope of our business”, says Fredrik Winbladh, CEO of Perspektiv Bredband, in a [press release](http://www.perspektivbredband.se/main1/news.asp).
+
+“It is of great importance that we, as a telecom and Internet provider, focus on transmitting information. Our standpoint could be questioned if one looks at the position we took, something we cannot risk. The company and its management has learned a lot from the debate that has taken place”, says new chairman of the board, Mikael Paulsson.
+
+It is a Christmas present in advance, one might say, that proves that Internet activism can pay off. Even though I believe that Perspektiv might have made an honest mistake and reconsidered it, they say openly that it is the debate surrounding this affair (i.e. the attention it has gotten from those that have highlighted it in various ways), and thus the actions of The Pirate Bay and PiratbyrÃ¥n that they have learned their lesson from.`;

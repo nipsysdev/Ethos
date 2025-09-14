@@ -99,6 +99,7 @@ async function extractItemsFromPage(
 				element: Element,
 				excludeSelectors?: string[],
 			): string | null {
+				let text: string | null = null;
 				if (excludeSelectors && excludeSelectors.length > 0) {
 					const cloned = element.cloneNode(true) as Element;
 					for (const selector of excludeSelectors) {
@@ -107,10 +108,11 @@ async function extractItemsFromPage(
 							excludedElement.remove();
 						}
 					}
-					return cloned.textContent?.replace(/\s+/g, " ").trim() || null;
+					text = cloned.textContent;
 				} else {
-					return element.textContent?.replace(/\s+/g, " ").trim() || null;
+					text = element.textContent;
 				}
+				return text?.replace(/\s+/g, " ").trim() || null;
 			}
 
 			const containers = document.querySelectorAll(

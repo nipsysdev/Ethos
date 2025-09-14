@@ -25,7 +25,8 @@ export function createBrowserExtractionFunction() {
 		function extractTextWithExclusions(
 			element: Element,
 			excludeSelectors?: string[],
-		) {
+		): string | null {
+			let text: string | null = null;
 			if (excludeSelectors && excludeSelectors.length > 0) {
 				const cloned = element.cloneNode(true) as Element;
 				for (const selector of excludeSelectors) {
@@ -34,10 +35,11 @@ export function createBrowserExtractionFunction() {
 						excludedElement.remove();
 					}
 				}
-				return cloned.textContent?.trim() || null;
+				text = cloned.textContent;
 			} else {
-				return element.textContent?.trim() || null;
+				text = element.textContent;
 			}
+			return text?.replace(/\s+/g, " ").trim() || null;
 		}
 
 		function extractNodeWithExclusions(

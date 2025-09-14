@@ -142,10 +142,6 @@ describe("MetadataTracker - Session Management", () => {
 	});
 
 	describe("Checkpoint Management", () => {
-		it("should have a checkpoint method", () => {
-			expect(typeof metadataTracker.checkpoint).toBe("function");
-		});
-
 		it("should execute checkpoint without error", () => {
 			// This should not throw
 			expect(() => metadataTracker.checkpoint()).not.toThrow();

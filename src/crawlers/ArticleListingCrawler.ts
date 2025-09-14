@@ -181,10 +181,9 @@ function logPageSummary(
 	const totalItemsOnPage = pageResult.items.length + pageResult.filteredCount;
 	const filteredOnPage = pageResult.filteredCount;
 
-	const displayPageNumber = pagesProcessed + 1;
 	const progressInfo = maxPages
-		? `${displayPageNumber}/${maxPages}`
-		: `${displayPageNumber}`;
+		? `${pagesProcessed}/${maxPages}`
+		: `${pagesProcessed}`;
 
 	console.log(
 		`Page ${progressInfo}: found ${totalItemsOnPage} items (${pageUrl})`,
@@ -263,16 +262,7 @@ async function extractItemsFromListing(
 	let itemsProcessedSinceReset = 0;
 
 	while (true) {
-		const metadata = metadataTracker.getMetadata();
-
-		if (checkForInterruption(interruptionHandler, metadataTracker)) break;
-
-		if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
-			metadataTracker.setStoppedReason(StoppedReason.MAX_PAGES);
-			break;
-		}
-
-		metadataTracker.incrementPagesProcessed();
+		let metadata = metadataTracker.getMetadata();
 
 		const { itemsToProcess, pageResult, dbDuplicatesSkipped, newItems } =
 			await processPageItems(
@@ -330,6 +320,8 @@ async function extractItemsFromListing(
 			);
 		}
 
+		metadata = metadataTracker.incrementPagesProcessed().metadata;
+
 		logPageSummary(
 			metadata.pagesProcessed,
 			updatedPageResult,
@@ -347,6 +339,11 @@ async function extractItemsFromListing(
 			await browser.resetBrowser();
 			listingPage = await browser.setupNewPage(url);
 			itemsProcessedSinceReset = 0;
+		}
+
+		if (options.maxPages && metadata.pagesProcessed >= options.maxPages) {
+			metadataTracker.setStoppedReason(StoppedReason.MAX_PAGES);
+			break;
 		}
 
 		const hasNextPage = await navigateToNextPage(listingPage, config);

@@ -1,4 +1,4 @@
-name: Periodic Integration Testing
+name: Integration Testing
 
 on:
   schedule:
@@ -8,6 +8,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - "*"
 
 jobs:
   integration-testing:

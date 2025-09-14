@@ -20,15 +20,22 @@ export function parsePublishedDate(
 		.replace(/\s+/g, " ");
 
 	let parsedDate = dayjs(cleaned);
+
 	if (!parsedDate.isValid()) {
-		const dateFormats = [
-			"MMMM D, YYYY",
-			"MMMM DD, YYYY",
-			"D MMMM YYYY",
-			"DD MMMM YYYY",
-			"YYYY-MM-DD",
-		];
-		parsedDate = dayjs(cleaned, dateFormats, true);
+		if (cleaned.toLowerCase().includes("today")) {
+			parsedDate = dayjs();
+		} else if (cleaned.toLowerCase().includes("yesterday")) {
+			parsedDate = dayjs().add(-1, "day");
+		} else {
+			const dateFormats = [
+				"MMMM D, YYYY",
+				"MMMM DD, YYYY",
+				"D MMMM YYYY",
+				"DD MMMM YYYY",
+				"YYYY-MM-DD",
+			];
+			parsedDate = dayjs(cleaned, dateFormats, true);
+		}
 	}
 
 	if (parsedDate.isValid()) {
