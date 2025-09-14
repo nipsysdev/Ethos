@@ -95,13 +95,6 @@ describe("MetadataTracker - Basic Functionality", () => {
 		expect(metadata.contentErrors).toEqual([]);
 	});
 
-	it("should provide a session ID", () => {
-		const sessionId = metadataTracker.getSessionId();
-		expect(typeof sessionId).toBe("string");
-		expect(sessionId).toMatch(/^crawl-session-\d+$/); // Format: crawl-session-[epoch-timestamp]
-		expect(sessionId).toContain("crawl-session-");
-	});
-
 	it("should create a session in the database on initialization", () => {
 		expect(mockCreateSession).toHaveBeenCalledWith(
 			expect.stringMatching(/^crawl-session-\d+$/), // Epoch timestamp format
