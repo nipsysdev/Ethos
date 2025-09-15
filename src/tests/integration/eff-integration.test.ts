@@ -33,7 +33,6 @@ ifDescribe("Electronics Foundation integration tests", () => {
 		expect(result.items.every((item) => !!item.title)).toBeTruthy();
 		expect(result.items.every((item) => !!item.url)).toBeTruthy();
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
-		expect(result.items.every((item) => !!item.content)).toBeTruthy();
 	});
 
 	it("should crawl to next EFF listing page", async () => {

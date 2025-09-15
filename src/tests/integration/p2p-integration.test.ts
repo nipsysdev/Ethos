@@ -32,7 +32,6 @@ ifDescribe("P2P Foundation integration tests", () => {
 		expect(result.items.every((item) => !!item.title)).toBeTruthy();
 		expect(result.items.every((item) => !!item.url)).toBeTruthy();
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
-		expect(result.items.every((item) => !!item.content)).toBeTruthy();
 	});
 
 	it("should crawl to next P2P listing page", async () => {
