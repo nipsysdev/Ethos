@@ -154,42 +154,6 @@ describe("BrowserFieldExtractor", () => {
 			);
 		});
 
-		it("should handle optional missing field without error", () => {
-			const extractionFunction = createBrowserExtractionFunction();
-
-			// Mock browser context - container exists but optional field element doesn't
-			const mockContainer = {
-				querySelector: vi.fn().mockImplementation((selector: string) => {
-					return null; // Always return null for field elements
-				}),
-			};
-
-			global.document = {
-				querySelector: vi.fn().mockImplementation((selector: string) => {
-					if (selector === ".container") {
-						return mockContainer;
-					}
-					return null;
-				}),
-			} as any;
-
-			const result = extractionFunction({
-				container_selector: ".container",
-				fields: {
-					optional: {
-						selector: ".missing",
-						attribute: "text",
-						optional: true,
-					},
-				},
-			});
-
-			expect(result.results.optional).toBeNull();
-			expect(result.extractionErrors).toContain(
-				"Optional field 'optional' not found: selector '.missing' returned no results",
-			);
-		});
-
 		it("should extract content from container element when selector is empty", () => {
 			const extractionFunction = createBrowserExtractionFunction();
 

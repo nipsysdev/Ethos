@@ -1,12 +1,15 @@
 import type { Page } from "puppeteer";
 import type {
 	CrawledData,
+	FieldConfig,
 	FieldExtractionStats,
+	ListingConfig,
 	SourceConfig,
 } from "@/core/types.js";
 import { CRAWLER_TYPES } from "@/core/types.js";
 import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
 import { parsePublishedDate } from "@/utils/date.js";
+import type { ContentFieldName } from "./ContentPageExtractor";
 
 export interface ListingExtractionResult {
 	items: CrawledData[];
@@ -15,13 +18,21 @@ export interface ListingExtractionResult {
 	filteredReasons: string[];
 }
 
+export interface ExtractedListingValues {
+	title: string | null;
+	url: string | null;
+	date: string | null;
+	author: string | null;
+}
+export type ListingFieldName = keyof ExtractedListingValues;
+
 interface ExtractionResult {
-	item: Record<string, string | null>;
+	values: ExtractedListingValues;
 	fieldResults: Record<
-		string,
+		ListingFieldName | ContentFieldName,
 		{ success: boolean; value: string | null; error?: string }
 	>;
-	hasExcludedUrl: boolean;
+	isExcluded: boolean;
 	hasRequiredFields: boolean;
 	missingRequiredFields: string[];
 	extractionErrors: string[];
@@ -43,18 +54,23 @@ async function extractItemsFromPage(
 	currentItemOffset: number,
 ): Promise<ListingExtractionResult> {
 	try {
-		await page.waitForSelector(config.listing.items.container_selector, {
+		await page.waitForSelector(config.listing.container_selector, {
 			timeout: DYNAMIC_CONTENT_TIMEOUT,
 		});
 	} catch (error) {
 		console.warn(
-			`Warning: Container selector "${config.listing.items.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds`,
+			`Warning: Container selector "${config.listing.container_selector}" not found within ${DYNAMIC_CONTENT_TIMEOUT / 1000} seconds`,
 			error,
 		);
 	}
 
+	const excludeFunction = config.listing.shouldExcludeItem
+		? config.listing.shouldExcludeItem
+		: () => false;
+	await page.exposeFunction("isExcluded", excludeFunction);
+
 	const extractionResult = await page.evaluate(
-		(itemsConfig, excludedUrlPaths) => {
+		async (listingConfig: ListingConfig) => {
 			function extractFieldValue(
 				element: Element | null,
 				fieldConfig: {
@@ -116,99 +132,115 @@ async function extractItemsFromPage(
 			}
 
 			const containers = document.querySelectorAll(
-				itemsConfig.container_selector,
+				listingConfig.container_selector,
 			);
 			const results: ExtractionResult[] = [];
 
-			containers.forEach((container) => {
-				const item: Record<string, string | null> = {};
-				const fieldResults: Record<
-					string,
-					{ success: boolean; value: string | null; error?: string }
-				> = {};
-				let hasRequiredFields = true;
-				const missingRequiredFields: string[] = [];
-				const extractionErrors: string[] = [];
-
-				for (const [fieldName, fieldConfig] of Object.entries(
-					itemsConfig.fields,
-				)) {
-					let success = false;
-					let value: string | null = null;
-					let error: string | undefined;
-
-					const typedFieldConfig = fieldConfig as {
-						selector: string;
-						attribute: string;
-						exclude_selectors?: string[];
-						optional?: boolean;
+			await Promise.all(
+				[...containers].map(async (container) => {
+					const extractedValues: ExtractedListingValues = {
+						title: null,
+						url: null,
+						date: null,
+						author: null,
 					};
+					const fieldResults: Record<
+						string,
+						{ success: boolean; value: string | null; error?: string }
+					> = {};
+					let hasRequiredFields = true;
+					const missingRequiredFields: string[] = [];
+					const extractionErrors: string[] = [];
 
-					try {
-						const element = container.querySelector(typedFieldConfig.selector);
-						if (element) {
-							value = extractFieldValue(element, typedFieldConfig);
+					for (const [fieldName, fieldConfig] of Object.entries(
+						listingConfig.fields,
+					) as [ListingFieldName, FieldConfig][]) {
+						let success = false;
+						let value: string | null = null;
+						let error: string | undefined;
+
+						const typedFieldConfig = fieldConfig as {
+							selector: string;
+							attribute: string;
+							exclude_selectors?: string[];
+							optional?: boolean;
+						};
+
+						try {
+							const element = container.querySelector(
+								typedFieldConfig.selector,
+							);
+							if (element) {
+								value = extractFieldValue(element, typedFieldConfig);
+							}
+							success = value !== null && value !== "";
+						} catch (err) {
+							error =
+								err instanceof Error
+									? err.message
+									: `Unknown error extracting field ${fieldName}`;
+							extractionErrors.push(
+								`Field '${fieldName}' extraction failed: ${error}`,
+							);
 						}
-						success = value !== null && value !== "";
-					} catch (err) {
-						error =
-							err instanceof Error
-								? err.message
-								: `Unknown error extracting field ${fieldName}`;
-						extractionErrors.push(
-							`Field '${fieldName}' extraction failed: ${error}`,
-						);
+
+						fieldResults[fieldName] = { success, value, error };
+
+						if (success) {
+							extractedValues[fieldName] = value;
+						} else if (!typedFieldConfig.optional) {
+							hasRequiredFields = false;
+							missingRequiredFields.push(fieldName);
+						}
 					}
 
-					fieldResults[fieldName] = { success, value, error };
+					const isExcluded = await (
+						window as unknown as {
+							isExcluded: (
+								a: string,
+								b: ExtractedListingValues,
+							) => Promise<boolean>;
+						}
+					).isExcluded(container.outerHTML, extractedValues);
+					console.log(isExcluded);
 
-					if (success) {
-						item[fieldName] = value;
-					} else if (!typedFieldConfig.optional) {
-						hasRequiredFields = false;
-						missingRequiredFields.push(fieldName);
-					}
-				}
-
-				const hasExcludedUrl = !!excludedUrlPaths.filter((path) =>
-					item.url?.includes(path),
-				).length;
-
-				results.push({
-					item,
-					fieldResults,
-					hasExcludedUrl,
-					hasRequiredFields,
-					missingRequiredFields,
-					extractionErrors,
-				});
-			});
+					results.push({
+						values: extractedValues,
+						fieldResults,
+						isExcluded,
+						hasRequiredFields,
+						missingRequiredFields,
+						extractionErrors,
+					});
+				}),
+			);
 
 			return results;
 		},
-		config.listing.items,
-		config.content_url_excludes ?? [],
+		config.listing,
 	);
+	page.removeExposedFunction("isExcluded");
 
 	const validItems = extractionResult.filter(
 		(result: ExtractionResult) =>
-			!result.hasExcludedUrl &&
+			!result.isExcluded &&
 			result.hasRequiredFields &&
-			Object.keys(result.item).length > 0,
+			Object.keys(result.values).length > 0,
 	);
 	const filteredItems = extractionResult.filter(
 		(result: ExtractionResult) =>
-			result.hasExcludedUrl ||
+			result.isExcluded ||
 			!result.hasRequiredFields ||
-			Object.keys(result.item).length === 0,
+			Object.keys(result.values).length === 0,
 	);
+
 	extractItemsFromPage;
 	const excludedUrls: string[] = [];
 	const filteredReasons: string[] = [];
 
 	filteredItems.forEach((result: ExtractionResult) => {
-		if (result.hasExcludedUrl && result.item.url) {
-			excludedUrls.push(result.item.url);
+		if (result.isExcluded && result.values.url) {
+			excludedUrls.push(result.values.url);
 			return;
 		}
 		// Add extraction errors first
@@ -218,12 +250,12 @@ async function extractItemsFromPage(
 			});
 		}
 
-		if (Object.keys(result.item).length === 0) {
+		if (Object.keys(result.values).length === 0) {
 			filteredReasons.push("Item contained no extractable data");
 		} else if (!result.hasRequiredFields) {
 			const missingFields = result.missingRequiredFields.join(", ");
 			const itemIdentifier =
-				result.item.url || result.item.title || "Unknown item";
+				result.values.url || result.values.title || "Unknown item";
 			filteredReasons.push(
 				`Item "${itemIdentifier}" missing required fields: ${missingFields}. Seen at ${page.url()}`,
 			);
@@ -233,15 +265,17 @@ async function extractItemsFromPage(
 	});
 
 	extractionResult
-		.filter((result) => !result.hasExcludedUrl)
+		.filter((result) => !result.isExcluded)
 		.forEach((result: ExtractionResult, itemIndex: number) => {
 			const itemIdentifier =
-				result.item.url || result.item.title || `Item ${itemIndex + 1}`;
+				result.values.url || result.values.title || `Item ${itemIndex + 1}`;
 
 			Object.entries(result.fieldResults).forEach(
 				([fieldName, fieldResult]) => {
 					if (!fieldResult.success) {
-						const fieldConfig = config.listing.items.fields[fieldName] as {
+						const fieldConfig = config.listing.fields[
+							fieldName as ListingFieldName
+						] as {
 							selector: string;
 							attribute: string;
 							optional?: boolean;
@@ -263,7 +297,7 @@ async function extractItemsFromPage(
 		});
 
 	extractionResult.forEach((result: ExtractionResult, itemIndex: number) => {
-		if (result.hasExcludedUrl) return;
+		if (result.isExcluded) return;
 		fieldStats.forEach((stat) => {
 			stat.totalAttempts++;
 			const fieldResult = result.fieldResults[stat.fieldName];
@@ -279,27 +313,27 @@ async function extractItemsFromPage(
 		(result: ExtractionResult) => {
 			let publishedDate: string | undefined;
 			try {
-				publishedDate = result.item.date
-					? parsePublishedDate(result.item.date)
+				publishedDate = result.values.date
+					? parsePublishedDate(result.values.date)
 					: undefined;
 			} catch (error) {
 				throw new Error(
-					`Date parsing failed for item "${result.item.title || result.item.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
+					`Date parsing failed for item "${result.values.title || result.values.url}": ${error instanceof Error ? error.message : "Unknown error"}`,
 				);
 			}
 
 			return {
-				url: result.item.url || "",
+				url: result.values.url || "",
 				crawledAt: new Date(),
 				source: config.id,
-				title: result.item.title || "",
-				content: result.item.excerpt || "",
-				author: result.item.author || undefined,
+				title: result.values.title || "",
+				content: "",
+				author: result.values.author || undefined,
 				publishedDate,
 				metadata: {
 					crawlerType: CRAWLER_TYPES.LISTING,
 					configId: config.id,
-					extractedFields: Object.keys(result.item),
+					extractedFields: Object.keys(result.values),
 				},
 			};
 		},

@@ -1,19 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { effSource as config } from "@/config/sources/eff.js";
+import { anSource as config } from "@/config/sources/an.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import fixture3 from "@/tests/__fixtures__/eff/21-44";
-import fixture1 from "@/tests/__fixtures__/eff/eff-awards-spotlight-software-freedom-law-center-india";
-import fixture2 from "@/tests/__fixtures__/eff/eff-commerce-department-we-must-revise-overbroad-export-control-proposal";
-import fixture4 from "@/tests/__fixtures__/eff/trailblazing-tech-scholar-danah-boyd-groundbreaking-cyberpunk-author-william-gibson";
-import fixture5 from "@/tests/__fixtures__/eff/wiring-big-brother-machine";
+import fixture4 from "@/tests/__fixtures__/an/biden-digital-rights";
+import fixture2 from "@/tests/__fixtures__/an/kenya-sim-card-biometrics";
+import fixture1 from "@/tests/__fixtures__/an/russias-record-war-on-connectivity";
+import fixture3 from "@/tests/__fixtures__/an/vodafone-challenged-release-transparency-report";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
-ifDescribe("Electronics Foundation integration tests", () => {
+ifDescribe("Access Now integration tests", () => {
 	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
@@ -25,7 +24,7 @@ ifDescribe("Electronics Foundation integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl EFF listing page", async () => {
+	it("should crawl AN listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
@@ -35,41 +34,38 @@ ifDescribe("Electronics Foundation integration tests", () => {
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
 	});
 
-	it("should crawl to next EFF listing page", async () => {
+	it("should crawl to next AN listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
 	});
 
-	it("should crawl multiple EFF content pages", async () => {
+	it("should crawl multiple AN content pages", async () => {
 		const testCases = [
 			{
-				url: "https://www.eff.org/deeplinks/2025/08/eff-awards-spotlight-software-freedom-law-center-india",
-				expectedTitle:
-					"EFF Awards Spotlight ✨ Software Freedom Law Center, India",
+				url: "https://www.accessnow.org/russias-record-war-on-connectivity/",
+				expectedTitle: "Russia’s record war on connectivity",
+				expectedAuthor: "Anastasiya",
 				expectedContent: fixture1,
 			},
 			{
-				url: "https://www.eff.org/deeplinks/2015/07/eff-commerce-department-we-must-revise-overbroad-export-control-proposal",
+				url: "https://www.accessnow.org/kenya-sim-card-biometrics/",
 				expectedTitle:
-					"EFF to Commerce Department: We Must Revise Overbroad Export Control Proposal",
+					"Why Kenyans should say no to biometrics for SIM card registry",
+				expectedAuthor: "Bridget Jaimee Kokonya",
 				expectedContent: fixture2,
 			},
 			{
-				url: "https://www.eff.org/press/archives/2008/04/21-44",
-				expectedTitle:
-					"Mathematician challenges U.S. lid on encryption software",
+				url: "https://www.accessnow.org/vodafone-challenged-release-transparency-report/",
+				expectedTitle: "Vodafone Challenged to Release Transparency Report",
+				expectedAuthor: "Peter Micek",
 				expectedContent: fixture3,
 			},
 			{
-				url: "https://www.eff.org/press/releases/trailblazing-tech-scholar-danah-boyd-groundbreaking-cyberpunk-author-william-gibson",
+				url: "https://www.accessnow.org/biden-digital-rights/",
 				expectedTitle:
-					"Trailblazing Tech Scholar danah boyd, Groundbreaking Cyberpunk Author William Gibson, and Influential Surveillance Fighters Oakland Privacy Win EFF’s Pioneer Awards",
+					"Six months in, Biden must speed progress on digital rights",
+				expectedAuthor: "Jennifer Brody Eric Null Peter Micek",
 				expectedContent: fixture4,
-			},
-			{
-				url: "https://www.eff.org/deeplinks/2010/03/wiring-big-brother-machine",
-				expectedTitle: "Wiring Up The Big Brother Machine... And Fighting It",
-				expectedContent: fixture5,
 			},
 		];
 
@@ -86,6 +82,7 @@ ifDescribe("Electronics Foundation integration tests", () => {
 
 				expect(result.contentData.title).toEqual(testCase.expectedTitle);
 				expect(result.contentData.content).toEqual(testCase.expectedContent);
+				expect(result.contentData.author).toEqual(testCase.expectedAuthor);
 				expect(result.errors.length).toBe(0);
 
 				await page.close();

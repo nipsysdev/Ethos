@@ -23,11 +23,9 @@ describe("ConcurrentContentExtractor", () => {
 		type: CRAWLER_TYPES.LISTING,
 		listing: {
 			url: "https://example.com",
-			items: {
-				container_selector: ".article",
-				fields: {
-					title: { selector: ".title", attribute: "text" },
-				},
+			container_selector: ".article",
+			fields: {
+				title: { selector: ".title", attribute: "text" },
 			},
 		},
 		content: {

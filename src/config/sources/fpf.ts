@@ -9,31 +9,24 @@ export const fpfSource: SourceConfig = {
 		pagination: {
 			next_button_selector: ".pagination .pagination-link:nth-of-type(2)",
 		},
-		items: {
-			container_selector: ".article-list .card-listing",
-			fields: {
-				title: {
-					selector: ".heading .card-link",
-					attribute: "text",
-				},
-				url: {
-					selector: ".heading .card-link",
-					attribute: "href",
-				},
-				date: {
-					selector: ".meta-info time",
-					attribute: "datetime",
-				},
-				excerpt: {
-					selector: ".inner-content p",
-					attribute: "text",
-					optional: true,
-				},
-				author: {
-					selector: ".meta-info .card-meta-link:not(:nth-child(1))",
-					attribute: "text",
-					optional: true,
-				},
+		container_selector: ".article-list .card-listing",
+		fields: {
+			title: {
+				selector: ".heading .card-link",
+				attribute: "text",
+			},
+			url: {
+				selector: ".heading .card-link",
+				attribute: "href",
+			},
+			date: {
+				selector: ".meta-info time",
+				attribute: "datetime",
+			},
+			author: {
+				selector: ".meta-info .card-meta-link:not(:nth-child(1))",
+				attribute: "text",
+				optional: true,
 			},
 		},
 	},

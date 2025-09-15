@@ -82,7 +82,6 @@ describe("Data Formatter", () => {
 		const result2 = formatDataForViewing(data, summary);
 		const secondItemSection = result2.split("--- Item 2 of 2 ---")[1];
 		expect(secondItemSection).not.toContain("Author:");
-		expect(secondItemSection).not.toContain("Excerpt:");
 	});
 
 	it("should format metadata as JSON and handle edge cases", () => {

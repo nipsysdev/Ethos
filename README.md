@@ -71,6 +71,10 @@ Options:
   -h, --help                display help for command
 ```
 
+##### Notes
+
+- Avoid running multiple crawl operations at the same time, as currently encountering database lock triggers an exception which ends the crawling (could be improved)
+
 #### Serve - Starting the API server
 
 ```

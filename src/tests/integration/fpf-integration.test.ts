@@ -32,7 +32,6 @@ ifDescribe("Freedom Press integration tests", () => {
 		expect(result.items.every((item) => !!item.title)).toBeTruthy();
 		expect(result.items.every((item) => !!item.url)).toBeTruthy();
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
-		expect(result.items.every((item) => !!item.content)).toBeTruthy();
 	});
 
 	it("should crawl to next FPF listing page", async () => {

@@ -14,6 +14,7 @@ const mockGetSession = vi.fn();
 const mockEndSession = vi.fn();
 const mockCheckpoint = vi.fn();
 const mockGetSessionContents = vi.fn();
+const mockAddSessionErrors = vi.fn();
 
 const mockMetadataStore: Partial<MetadataStore> = {
 	createSession: mockCreateSession,
@@ -22,6 +23,7 @@ const mockMetadataStore: Partial<MetadataStore> = {
 	endSession: mockEndSession,
 	checkpoint: mockCheckpoint,
 	getSessionContents: mockGetSessionContents,
+	addSessionErrors: mockAddSessionErrors,
 };
 
 describe("MetadataTracker - Session Management", () => {
@@ -38,6 +40,7 @@ describe("MetadataTracker - Session Management", () => {
 		mockEndSession.mockClear();
 		mockCheckpoint.mockClear();
 		mockGetSessionContents.mockClear();
+		mockAddSessionErrors.mockClear();
 
 		// Set up default return values
 		mockGetSessionContents.mockReturnValue([]);
@@ -49,23 +52,21 @@ describe("MetadataTracker - Session Management", () => {
 			type: CRAWLER_TYPES.LISTING,
 			listing: {
 				url: "https://example.com",
-				items: {
-					container_selector: ".item",
-					fields: {
-						title: { selector: "h2", attribute: "text", optional: false },
-						url: { selector: "a", attribute: "href", optional: false },
-						publishedDate: {
-							selector: ".date",
-							attribute: "text",
-							optional: true,
-						},
+				container_selector: ".item",
+				fields: {
+					title: { selector: "h2", attribute: "text", optional: false },
+					url: { selector: "a", attribute: "href", optional: false },
+					date: {
+						selector: ".date",
+						attribute: "text",
+						optional: true,
 					},
 				},
 			},
 			content: {
 				container_selector: ".article",
 				fields: {
-					summary: { selector: ".summary", attribute: "text", optional: true },
+					content: { selector: ".summary", attribute: "text", optional: true },
 				},
 			},
 		};

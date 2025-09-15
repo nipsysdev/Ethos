@@ -64,15 +64,6 @@ async function processPageItems(
 		pageResult.filteredReasons,
 	);
 
-	// Track field extraction warnings
-	const fieldWarnings = pageResult.filteredReasons.filter(
-		(reason) =>
-			reason.includes("Optional field") || reason.includes("Required field"),
-	);
-	if (fieldWarnings.length > 0) {
-		metadataTracker.addFieldExtractionWarnings(fieldWarnings);
-	}
-
 	// Filter out duplicates
 	const newItems = filterDuplicates(pageResult.items, seenUrls);
 	const sessionDuplicatesSkipped = pageResult.items.length - newItems.length;
@@ -144,14 +135,6 @@ async function processContentExtraction(
 
 	if (metadata.contentErrors.length > 0) {
 		metadataTracker.addContentErrors(metadata.contentErrors);
-		metadata.contentErrors.length = 0;
-	}
-
-	const contentWarnings = metadata.contentErrors.filter(
-		(error) => error.includes("Optional field") || error.includes("not found"),
-	);
-	if (contentWarnings.length > 0) {
-		metadataTracker.addFieldExtractionWarnings(contentWarnings);
 	}
 
 	if (options?.onPageComplete) {

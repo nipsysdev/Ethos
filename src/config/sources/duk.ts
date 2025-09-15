@@ -10,21 +10,19 @@ export const dukSource: SourceConfig = {
 		pagination: {
 			next_button_selector: ".wp-pagenavi .nextpostslink",
 		},
-		items: {
-			container_selector: ".blog-with-tags.ls-archive-blog .et_pb_post",
-			fields: {
-				title: {
-					selector: ".entry-title",
-					attribute: "text",
-				},
-				url: {
-					selector: ".entry-title a",
-					attribute: "href",
-				},
-				date: {
-					selector: ".post-meta .published",
-					attribute: "text",
-				},
+		container_selector: ".blog-with-tags.ls-archive-blog .et_pb_post",
+		fields: {
+			title: {
+				selector: ".entry-title",
+				attribute: "text",
+			},
+			url: {
+				selector: ".entry-title a",
+				attribute: "href",
+			},
+			date: {
+				selector: ".post-meta .published",
+				attribute: "text",
 			},
 		},
 	},

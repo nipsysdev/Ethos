@@ -1,5 +1,11 @@
-// Core crawler types and interfaces
-
+import type {
+	ContentFieldName,
+	ExtractedContentValues,
+} from "@/crawlers/extractors/ContentPageExtractor";
+import type {
+	ExtractedListingValues,
+	ListingFieldName,
+} from "@/crawlers/extractors/ListingPageExtractor";
 import type { StoppedReason } from "@/crawlers/MetadataTracker";
 
 export const CRAWLER_TYPES = {
@@ -30,30 +36,29 @@ export interface FieldConfig {
 
 export interface PaginationConfig {
 	next_button_selector?: string;
-	maxPages?: number;
-}
-
-export interface ItemsConfig {
-	container_selector: string;
-	fields: Record<string, FieldConfig>;
+	delaySec?: number;
 }
 
 export interface ListingConfig {
 	url: string;
 	pagination?: PaginationConfig;
-	items: ItemsConfig;
+	container_selector: string;
+	shouldExcludeItem?: (
+		containerHtml: string,
+		values?: ExtractedListingValues,
+	) => boolean;
+	fields: Partial<Record<ListingFieldName, FieldConfig>>;
 }
 
 export interface ContentConfig {
 	container_selector: string;
-	fields: Record<string, FieldConfig>;
+	fields: Partial<Record<ContentFieldName, FieldConfig>>;
 }
 
 export interface SourceConfig {
 	id: string;
 	name: string;
 	type: CrawlerType;
-	content_url_excludes?: string[]; // URL patterns to exclude from content extraction
 	disableJavascript?: boolean;
 	listing: ListingConfig;
 	content: ContentConfig;
@@ -122,7 +127,7 @@ export interface CrawlOptions {
 
 // Statistics and metadata
 export interface FieldExtractionStats {
-	fieldName: string;
+	fieldName: ListingFieldName | ContentFieldName;
 	successCount: number;
 	totalAttempts: number;
 	isOptional: boolean;

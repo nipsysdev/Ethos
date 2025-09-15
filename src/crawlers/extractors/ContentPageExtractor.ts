@@ -18,6 +18,13 @@ import type { MetadataStore } from "@/storage/MetadataStore.js";
 import { resolveAbsoluteUrl } from "@/utils/url.js";
 import type { BrowserHandler } from "../handlers/BrowserHandler";
 
+export interface ExtractedContentValues {
+	title: string | null;
+	author: string | null;
+	content: string | null;
+}
+export type ContentFieldName = keyof ExtractedContentValues;
+
 export interface ContentPageExtractor {
 	extractContentPagesConcurrently: (
 		items: CrawledData[],
@@ -148,8 +155,6 @@ async function extractContentForSingleItem(
 ): Promise<void> {
 	if (!item.url) return;
 
-	const hasExcerpt = item.content && item.content.trim().length > 0;
-
 	try {
 		const { contentData, errors } = await extractFromContentPage(
 			browser,
@@ -169,30 +174,15 @@ async function extractContentForSingleItem(
 		updateItemMetadata(item, contentFields, failedContentFields, errors);
 
 		if (errors.length > 0) {
-			if (hasExcerpt) {
-				contentErrors.push(
-					...errors.map(
-						(err) => `Content extraction warning for ${item.url} : ${err}`,
-					),
-				);
-			} else {
-				const errorMessage = `Content extraction failed for ${item.url} (no excerpt available): ${errors.join(", ")}`;
-				contentErrors.push(errorMessage);
-			}
+			const errorMessage = `Content extraction failed for ${item.url} : ${errors.join(", ")}`;
+			contentErrors.push(errorMessage);
 		}
 	} catch (error) {
 		const errorMessage = `Failed to extract content data for ${item.url} : ${error}`;
 
-		if (hasExcerpt) {
-			console.error(`Content extraction warning for ${item.url}`, error);
-			contentErrors.push(
-				`Content extraction warning for ${item.url} : ${errorMessage}`,
-			);
-		} else {
-			contentErrors.push(
-				`Content extraction failed for ${item.url} : ${errorMessage}`,
-			);
-		}
+		contentErrors.push(
+			`Content extraction failed for ${item.url} : ${errorMessage}`,
+		);
 
 		updateItemMetadata(item, [], [], [errorMessage]);
 	}

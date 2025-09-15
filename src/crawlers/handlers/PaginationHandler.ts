@@ -2,10 +2,10 @@ import type { Page, TimeoutError } from "puppeteer";
 import type { SourceConfig } from "@/core/types.js";
 
 const PAGINATION_TIMEOUTS = {
-	NAVIGATION_MS: 5000,
-	CONTAINER_WAIT_MS: 20000,
-	CONTENT_LOAD_DELAY_MS: 1000,
-	RETRY_DELAY_MS: 15000,
+	NAVIGATION_SEC: 5,
+	CONTAINER_WAIT_SEC: 20,
+	CONTENT_LOAD_DELAY_SEC: 1,
+	RETRY_DELAY_SEC: 15,
 } as const;
 
 const PAGINATION_RETRY = {
@@ -51,17 +51,20 @@ async function attemptPagination(
 	try {
 		await page.waitForNavigation({
 			waitUntil: "domcontentloaded",
-			timeout: PAGINATION_TIMEOUTS.NAVIGATION_MS,
+			timeout: PAGINATION_TIMEOUTS.NAVIGATION_SEC * 1000,
 		});
 	} catch {}
 
-	await new Promise((resolve) =>
-		setTimeout(resolve, PAGINATION_TIMEOUTS.CONTENT_LOAD_DELAY_MS),
-	);
+	const waitTime =
+		config.listing.pagination?.delaySec ??
+		PAGINATION_TIMEOUTS.CONTENT_LOAD_DELAY_SEC;
+
+	console.log(`Waiting ${waitTime}sec`);
+	await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
 
 	try {
-		await page.waitForSelector(config.listing.items.container_selector, {
-			timeout: PAGINATION_TIMEOUTS.CONTAINER_WAIT_MS,
+		await page.waitForSelector(config.listing.container_selector, {
+			timeout: PAGINATION_TIMEOUTS.CONTAINER_WAIT_SEC * 1000,
 		});
 	} catch (error) {
 		console.warn(
@@ -96,7 +99,7 @@ async function retryPagination(
 
 		await page.reload();
 		await new Promise((resolve) =>
-			setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_MS),
+			setTimeout(resolve, PAGINATION_TIMEOUTS.RETRY_DELAY_SEC * 1000),
 		);
 	}
 
