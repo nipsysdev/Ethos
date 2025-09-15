@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const lpeSource: SourceConfig = {
-	id: "lpe",
+export const LogosPressEngineSource: SourceConfig = {
+	id: "logos_press_engine",
 	name: "Logos Press Engine",
 	type: "listing",
 	listing: {

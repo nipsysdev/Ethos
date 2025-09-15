@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const p2pSource: SourceConfig = {
-	id: "p2p",
+export const P2pFoundationSource: SourceConfig = {
+	id: "p2p_foundation",
 	name: "P2P Foundation",
 	type: "listing",
 	disableJavascript: true,

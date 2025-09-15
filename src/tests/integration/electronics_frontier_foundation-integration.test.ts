@@ -1,18 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { p2pSource as config } from "@/config/sources/p2p.js";
+import { ElectronicFrontierFoundationSource as config } from "@/config/sources/electronic_frontier_foundation.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import fixture2 from "@/tests/__fixtures__/p2p/book-of-the-day-abundance-the-future-is-better-than-you-think";
-import fixture3 from "@/tests/__fixtures__/p2p/great-transition-alternative-paths-better-climate-just-future";
-import fixture4 from "@/tests/__fixtures__/p2p/take-back-the-app-a-dialogue-on-platform-cooperativism-free-software-and-discos";
-import fixture1 from "@/tests/__fixtures__/p2p/trusting-google-or-not";
+import fixture3 from "@/tests/__fixtures__/electronics_frontier_foundation/21-44";
+import fixture1 from "@/tests/__fixtures__/electronics_frontier_foundation/eff-awards-spotlight-software-freedom-law-center-india";
+import fixture2 from "@/tests/__fixtures__/electronics_frontier_foundation/eff-commerce-department-we-must-revise-overbroad-export-control-proposal";
+import fixture4 from "@/tests/__fixtures__/electronics_frontier_foundation/trailblazing-tech-scholar-danah-boyd-groundbreaking-cyberpunk-author-william-gibson";
+import fixture5 from "@/tests/__fixtures__/electronics_frontier_foundation/wiring-big-brother-machine";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
-ifDescribe("P2P Foundation integration tests", () => {
+ifDescribe("Electronics Frontier Foundation integration tests", () => {
 	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
@@ -24,7 +25,7 @@ ifDescribe("P2P Foundation integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl P2P listing page", async () => {
+	it("should crawl Electronics Frontier Foundation listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
@@ -34,39 +35,41 @@ ifDescribe("P2P Foundation integration tests", () => {
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
 	});
 
-	it("should crawl to next P2P listing page", async () => {
+	it("should crawl to next Electronics Frontier Foundation listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
 	});
 
-	it("should crawl multiple P2P content pages", async () => {
+	it("should crawl multiple Electronics Frontier Foundation content pages", async () => {
 		const testCases = [
 			{
-				url: "https://blog.p2pfoundation.net/trusting-google-or-not/",
-				expectedTitle: "Trusting Google, or not?",
+				url: "https://www.eff.org/deeplinks/2025/08/eff-awards-spotlight-software-freedom-law-center-india",
+				expectedTitle:
+					"EFF Awards Spotlight ✨ Software Freedom Law Center, India",
 				expectedContent: fixture1,
-				expectedAuthor: "Michel Bauwens",
 			},
 			{
-				url: "https://blog.p2pfoundation.net/book-of-the-day-abundance-the-future-is-better-than-you-think/",
+				url: "https://www.eff.org/deeplinks/2015/07/eff-commerce-department-we-must-revise-overbroad-export-control-proposal",
 				expectedTitle:
-					"Book of the Day: Abundance – The Future Is Better Than You Think",
+					"EFF to Commerce Department: We Must Revise Overbroad Export Control Proposal",
 				expectedContent: fixture2,
-				expectedAuthor: "P2P Foundation",
 			},
 			{
-				url: "https://blog.p2pfoundation.net/great-transition-alternative-paths-better-climate-just-future/",
+				url: "https://www.eff.org/press/archives/2008/04/21-44",
 				expectedTitle:
-					"The great transition – Alternative paths for a better and climate just future",
+					"Mathematician challenges U.S. lid on encryption software",
 				expectedContent: fixture3,
-				expectedAuthor: "Lili Fuhr",
 			},
 			{
-				url: "https://blog.p2pfoundation.net/take-back-the-app-a-dialogue-on-platform-cooperativism-free-software-and-discos/",
+				url: "https://www.eff.org/press/releases/trailblazing-tech-scholar-danah-boyd-groundbreaking-cyberpunk-author-william-gibson",
 				expectedTitle:
-					"Take back the App! A dialogue on Platform Cooperativism, Free Software and DisCOs",
+					"Trailblazing Tech Scholar danah boyd, Groundbreaking Cyberpunk Author William Gibson, and Influential Surveillance Fighters Oakland Privacy Win EFF’s Pioneer Awards",
 				expectedContent: fixture4,
-				expectedAuthor: "The Laura Flanders Show",
+			},
+			{
+				url: "https://www.eff.org/deeplinks/2010/03/wiring-big-brother-machine",
+				expectedTitle: "Wiring Up The Big Brother Machine... And Fighting It",
+				expectedContent: fixture5,
 			},
 		];
 
@@ -82,7 +85,6 @@ ifDescribe("P2P Foundation integration tests", () => {
 				);
 
 				expect(result.contentData.title).toEqual(testCase.expectedTitle);
-				expect(result.contentData.author).toEqual(testCase.expectedAuthor);
 				expect(result.contentData.content).toEqual(testCase.expectedContent);
 				expect(result.errors.length).toBe(0);
 

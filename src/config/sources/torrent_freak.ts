@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const tfSource: SourceConfig = {
-	id: "tf",
+export const TorrentFreakSource: SourceConfig = {
+	id: "torrent_freak",
 	name: "TorrentFreak",
 	type: "listing",
 	listing: {

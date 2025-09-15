@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const effSource: SourceConfig = {
-	id: "eff",
+export const ElectronicFrontierFoundationSource: SourceConfig = {
+	id: "electronic_frontier_foundation",
 	name: "Electronic Frontier Foundation",
 	type: "listing",
 	listing: {
