@@ -4,6 +4,7 @@ import type {
 	CrawlMetadata,
 	CrawlResult,
 	FieldConfig,
+	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types";
 import { createCrawlErrorManager } from "@/crawlers/CrawlErrorManager";
@@ -13,6 +14,8 @@ import {
 } from "@/storage/MetadataStore";
 import { getStoragePath } from "@/utils/storagePath.js";
 import { buildCrawlSummary } from "@/utils/summaryBuilder";
+import type { ContentFieldName } from "./extractors/ContentPageExtractor";
+import type { ListingFieldName } from "./extractors/ListingPageExtractor";
 
 export enum MetadataActionType {
 	ADD_ITEMS = "ADD_ITEMS",
@@ -164,7 +167,10 @@ function createInitialMetadata(
 	config: SourceConfig,
 	sessionId: string,
 ): MetadataState {
-	const initFieldStats = (fieldName: string, fieldConfig: FieldConfig) => ({
+	const initFieldStats = (
+		fieldName: ListingFieldName | ContentFieldName,
+		fieldConfig: FieldConfig,
+	): FieldExtractionStats => ({
 		fieldName,
 		successCount: 0,
 		totalAttempts: 0,
@@ -182,11 +188,13 @@ function createInitialMetadata(
 			itemsProcessed: 0,
 			pagesProcessed: 0,
 			contentsCrawled: 0,
-			fieldStats: Object.entries(config.listing.items.fields).map(
-				([fieldName, fieldConfig]) => initFieldStats(fieldName, fieldConfig),
+			fieldStats: Object.entries(config.listing.fields).map(
+				([fieldName, fieldConfig]) =>
+					initFieldStats(fieldName as ListingFieldName, fieldConfig),
 			),
 			contentFieldStats: Object.entries(config.content.fields).map(
-				([fieldName, fieldConfig]) => initFieldStats(fieldName, fieldConfig),
+				([fieldName, fieldConfig]) =>
+					initFieldStats(fieldName as ContentFieldName, fieldConfig),
 			),
 			listingErrors: [],
 			contentErrors: [],
@@ -214,7 +222,6 @@ export interface MetadataTracker extends ContentSessionLinker {
 	addUrlsExcluded(count: number): MetadataState;
 	addFilteredItems(count: number, reasons: string[]): MetadataState;
 	addContentErrors(errors: string[]): void;
-	addFieldExtractionWarnings(warnings: string[]): void;
 	addContentsCrawled(count: number): MetadataState;
 	setStoppedReason(reason: StoppedReason): MetadataState;
 	buildCrawlResult(): CrawlResult;
@@ -376,10 +383,6 @@ export function createMetadataTracker(
 
 		addContentErrors(errors: string[]): void {
 			errorManager.addContentErrors(errors);
-		},
-
-		addFieldExtractionWarnings(warnings: string[]): void {
-			errorManager.addFieldExtractionWarnings(warnings);
 		},
 
 		addContentsCrawled(count: number): MetadataState {

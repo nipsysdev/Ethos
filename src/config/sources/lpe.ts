@@ -9,26 +9,19 @@ export const lpeSource: SourceConfig = {
 		pagination: {
 			next_button_selector: "",
 		},
-		items: {
-			container_selector: ".section .post-card",
-			fields: {
-				title: {
-					selector: ".post-card__title",
-					attribute: "text",
-				},
-				url: {
-					selector: ".post-card__title",
-					attribute: "href",
-				},
-				date: {
-					selector: ".post-card__label span:nth-of-type(2)",
-					attribute: "text",
-				},
-				excerpt: {
-					selector: ".post-card__content > span",
-					attribute: "text",
-					optional: true,
-				},
+		container_selector: ".section .post-card",
+		fields: {
+			title: {
+				selector: ".post-card__title",
+				attribute: "text",
+			},
+			url: {
+				selector: ".post-card__title",
+				attribute: "href",
+			},
+			date: {
+				selector: ".post-card__label span:nth-of-type(2)",
+				attribute: "text",
 			},
 		},
 	},

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type CrawlErrorManager,
-	categorizeErrors,
 	createCrawlErrorManager,
 } from "@/crawlers/CrawlErrorManager.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
@@ -58,36 +57,23 @@ describe("CrawlErrorManager", () => {
 
 			expect(mockMetadataStore.addSessionErrors).not.toHaveBeenCalled();
 		});
-	});
 
-	describe("Error Categorization", () => {
-		it("should categorize field extraction warnings correctly", () => {
-			const warnings = [
-				"Optional field 'author' not found for Item 1",
-				"Required field 'title' not found for Item 2",
-				"Content extraction failed for URL: example.com",
-				"Unknown extraction error",
-			];
+		it("should store errors using the generic addErrors method", () => {
+			const listingErrors = ["Listing error 1", "Listing error 2"];
+			const contentErrors = ["Content error 1", "Content error 2"];
 
-			errorManager.addFieldExtractionWarnings(warnings);
+			errorManager.addErrors("listing", listingErrors);
+			errorManager.addErrors("content", contentErrors);
 
-			// Should categorize listing vs content errors automatically
 			expect(mockMetadataStore.addSessionErrors).toHaveBeenCalledWith(
 				sessionId,
 				"listing",
-				[
-					"Optional field 'author' not found for Item 1",
-					"Required field 'title' not found for Item 2",
-				],
+				listingErrors,
 			);
-
 			expect(mockMetadataStore.addSessionErrors).toHaveBeenCalledWith(
 				sessionId,
 				"content",
-				[
-					"Content extraction failed for URL: example.com",
-					"Unknown extraction error",
-				],
+				contentErrors,
 			);
 		});
 	});
@@ -132,54 +118,30 @@ describe("CrawlErrorManager", () => {
 				contentErrors: [],
 			});
 		});
-	});
-});
 
-describe("categorizeErrors", () => {
-	it("should categorize listing errors correctly", () => {
-		const errors = [
-			"Optional field 'author' not found",
-			"Required field 'title' not found",
-			"Item missing required fields: title, url",
-			"Item contained no extractable data",
-		];
+		it("should handle session with missing metadata fields", () => {
+			const mockSession = {
+				sessionId: "test",
+				sourceId: "test",
+				sourceName: "test",
+				startTime: "test",
+				endTime: null,
+				metadata: JSON.stringify({
+					// Intentionally missing listingErrors and contentErrors
+				}),
+			};
 
-		const result = categorizeErrors(errors);
+			const getSessionMock = mockMetadataStore.getSession as ReturnType<
+				typeof vi.fn
+			>;
+			getSessionMock.mockReturnValue(mockSession);
 
-		expect(result.listingErrors).toEqual(errors);
-		expect(result.contentErrors).toEqual([]);
-	});
+			const result = errorManager.getSessionErrors();
 
-	it("should categorize content errors correctly", () => {
-		const errors = [
-			"Content extraction failed",
-			"Content page load timeout",
-			"Content parsing error occurred",
-		];
-
-		const result = categorizeErrors(errors);
-
-		expect(result.listingErrors).toEqual([]);
-		expect(result.contentErrors).toEqual(errors);
-	});
-
-	it("should handle mixed error types", () => {
-		const errors = [
-			"Required field 'title' not found",
-			"Content extraction failed",
-			"Optional field 'author' not found",
-			"Content parsing error",
-		];
-
-		const result = categorizeErrors(errors);
-
-		expect(result.listingErrors).toEqual([
-			"Required field 'title' not found",
-			"Optional field 'author' not found",
-		]);
-		expect(result.contentErrors).toEqual([
-			"Content extraction failed",
-			"Content parsing error",
-		]);
+			expect(result).toEqual({
+				listingErrors: [],
+				contentErrors: [],
+			});
+		});
 	});
 });

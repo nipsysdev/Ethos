@@ -4,42 +4,39 @@ export const effSource: SourceConfig = {
 	id: "eff",
 	name: "Electronic Frontier Foundation",
 	type: "listing",
-	content_url_excludes: [
-		"eff.org/event/",
-		"eff.org/wp/",
-		"eff.org/cases/",
-		"eff.org/calendar/",
-	],
 	listing: {
 		url: "https://eff.org/updates",
 		pagination: {
 			next_button_selector: ".pager__item.pager__item--next a",
 		},
-		items: {
-			container_selector: ".views-row article.node",
-			fields: {
-				title: {
-					selector: ".node__title",
-					attribute: "text",
-				},
-				url: {
-					selector: ".node__title a",
-					attribute: "href",
-				},
-				date: {
-					selector: ".node-date",
-					attribute: "text",
-				},
-				excerpt: {
-					selector: ".node__content",
-					attribute: "text",
-					optional: true,
-				},
-				author: {
-					selector: ".node-author",
-					attribute: "text",
-					optional: true,
-				},
+		container_selector: ".views-row article.node",
+		shouldExcludeItem: (_, values) => {
+			const excludedPaths = [
+				"eff.org/event/",
+				"eff.org/wp/",
+				"eff.org/cases/",
+				"eff.org/calendar/",
+			];
+			return !!excludedPaths.filter((path) => values?.url?.includes(path))
+				.length;
+		},
+		fields: {
+			title: {
+				selector: ".node__title",
+				attribute: "text",
+			},
+			url: {
+				selector: ".node__title a",
+				attribute: "href",
+			},
+			date: {
+				selector: ".node-date",
+				attribute: "text",
+			},
+			author: {
+				selector: ".node-author",
+				attribute: "text",
+				optional: true,
 			},
 		},
 	},

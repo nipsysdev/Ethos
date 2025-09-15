@@ -18,7 +18,7 @@ describe("ContentDataMapper", () => {
 			const item: CrawledData = {
 				url: "https://example.com/article",
 				title: "Listing Title",
-				content: "Listing excerpt",
+				content: "Listing content",
 				crawledAt: new Date(),
 				source: "test",
 				metadata: {},
@@ -44,7 +44,7 @@ describe("ContentDataMapper", () => {
 			const item: CrawledData = {
 				url: "https://example.com/article",
 				title: "Listing Title",
-				content: "Listing excerpt",
+				content: "Listing content",
 				author: "Existing Author",
 				crawledAt: new Date(),
 				source: "test",
@@ -65,7 +65,7 @@ describe("ContentDataMapper", () => {
 			expect(item.publishedDate).toBe("parsed-2023-01-01");
 
 			// Should preserve existing content and author
-			expect(item.content).toBe("Listing excerpt");
+			expect(item.content).toBe("Listing content");
 			expect(item.author).toBe("Existing Author");
 		});
 
@@ -73,7 +73,7 @@ describe("ContentDataMapper", () => {
 			const item: CrawledData = {
 				url: "https://example.com/article",
 				title: "Listing Title",
-				content: "Listing excerpt",
+				content: "Listing content",
 				crawledAt: new Date(),
 				source: "test",
 				metadata: {},
@@ -85,7 +85,7 @@ describe("ContentDataMapper", () => {
 
 			// Should not update fields with null/undefined values
 			expect(item.title).toBe("Listing Title");
-			expect(item.content).toBe("Listing excerpt");
+			expect(item.content).toBe("Listing content");
 			expect(item.author).toBeUndefined();
 			expect(item.publishedDate).toBeUndefined();
 		});
@@ -94,7 +94,7 @@ describe("ContentDataMapper", () => {
 			const item: CrawledData = {
 				url: "https://example.com/article",
 				title: "Listing Title",
-				content: "Listing excerpt",
+				content: "Listing content",
 				crawledAt: new Date(),
 				source: "test",
 				metadata: {},
@@ -119,7 +119,7 @@ describe("ContentDataMapper", () => {
 			const item: CrawledData = {
 				url: "https://example.com/article",
 				title: "Listing Title",
-				content: "Listing excerpt",
+				content: "Listing content",
 				crawledAt: new Date(),
 				source: "test",
 				metadata: {},

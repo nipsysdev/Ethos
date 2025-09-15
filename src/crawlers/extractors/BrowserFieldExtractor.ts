@@ -128,17 +128,10 @@ export function createBrowserExtractionFunction() {
 				const value = extractFieldValue(element, typedFieldConfig);
 				results[fieldName] = value && value !== "" ? value : null;
 
-				// Log extraction issues for both required and optional fields
-				if (!value || value === "") {
-					if (typedFieldConfig.optional) {
-						extractionErrors.push(
-							`Optional field '${fieldName}' not found: selector '${typedFieldConfig.selector}' returned no results`,
-						);
-					} else {
-						extractionErrors.push(
-							`Required field '${fieldName}' not found: selector '${typedFieldConfig.selector}' returned no results`,
-						);
-					}
+				if (!typedFieldConfig.optional && (!value || value === "")) {
+					extractionErrors.push(
+						`Required field '${fieldName}' not found: selector '${typedFieldConfig.selector}' returned no results`,
+					);
 				}
 			} catch (error) {
 				extractionErrors.push(`Failed to extract ${fieldName}: ${error}`);

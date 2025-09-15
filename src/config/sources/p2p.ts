@@ -10,26 +10,19 @@ export const p2pSource: SourceConfig = {
 		pagination: {
 			next_button_selector: ".nav-previous a",
 		},
-		items: {
-			container_selector: ".blog-masonry article",
-			fields: {
-				title: {
-					selector: ".entry-title",
-					attribute: "text",
-				},
-				url: {
-					selector: ".entry-title a",
-					attribute: "href",
-				},
-				date: {
-					selector: ".entry-date",
-					attribute: "text",
-				},
-				excerpt: {
-					selector: ".entry-content",
-					attribute: "text",
-					optional: true,
-				},
+		container_selector: ".blog-masonry article",
+		fields: {
+			title: {
+				selector: ".entry-title",
+				attribute: "text",
+			},
+			url: {
+				selector: ".entry-title a",
+				attribute: "href",
+			},
+			date: {
+				selector: ".entry-date",
+				attribute: "text",
 			},
 		},
 	},

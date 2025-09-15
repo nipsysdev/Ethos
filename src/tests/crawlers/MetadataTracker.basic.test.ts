@@ -52,23 +52,21 @@ describe("MetadataTracker - Basic Functionality", () => {
 			type: CRAWLER_TYPES.LISTING,
 			listing: {
 				url: "https://example.com",
-				items: {
-					container_selector: ".item",
-					fields: {
-						title: { selector: "h2", attribute: "text", optional: false },
-						url: { selector: "a", attribute: "href", optional: false },
-						publishedDate: {
-							selector: ".date",
-							attribute: "text",
-							optional: true,
-						},
+				container_selector: ".item",
+				fields: {
+					title: { selector: "h2", attribute: "text", optional: false },
+					url: { selector: "a", attribute: "href", optional: false },
+					date: {
+						selector: ".date",
+						attribute: "text",
+						optional: true,
 					},
 				},
 			},
 			content: {
 				container_selector: ".article",
 				fields: {
-					summary: { selector: ".summary", attribute: "text", optional: true },
+					content: { selector: ".summary", attribute: "text", optional: true },
 				},
 			},
 		};
@@ -89,8 +87,8 @@ describe("MetadataTracker - Basic Functionality", () => {
 		expect(metadata.totalFilteredItems).toBe(0);
 		expect(metadata.pagesProcessed).toBe(0);
 		expect(metadata.contentsCrawled).toBe(0);
-		expect(metadata.fieldStats).toHaveLength(3); // title, url, publishedDate
-		expect(metadata.contentFieldStats).toHaveLength(1); // summary
+		expect(metadata.fieldStats).toHaveLength(3); // title, url, date
+		expect(metadata.contentFieldStats).toHaveLength(1); // content
 		expect(metadata.listingErrors).toEqual([]);
 		expect(metadata.contentErrors).toEqual([]);
 	});
@@ -168,8 +166,8 @@ describe("MetadataTracker - Basic Functionality", () => {
 		]);
 		metadataTracker.addContentErrors(["Another content error"]);
 
-		const metadata = metadataTracker.getMetadata();
 		// Errors are now stored directly in database, not in memory
+		const metadata = metadataTracker.getMetadata();
 		expect(metadata.contentErrors).toEqual([]);
 
 		// Verify database storage method was called correctly
@@ -188,33 +186,6 @@ describe("MetadataTracker - Basic Functionality", () => {
 			expect.any(String),
 			"content",
 			["Another content error"],
-		);
-	});
-
-	it("should track field extraction warnings", () => {
-		metadataTracker.addFieldExtractionWarnings([
-			"Optional field 'author' not found for \"Test Article\"",
-			"Content extraction warning: element not found",
-		]);
-
-		const metadata = metadataTracker.getMetadata();
-		// Errors are now stored directly in database, not in memory
-		expect(metadata.listingErrors).toEqual([]);
-		expect(metadata.contentErrors).toEqual([]);
-
-		// Verify database storage method was called correctly
-		expect(mockAddSessionErrors).toHaveBeenCalledTimes(2); // Once for listing, once for content
-		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
-			1,
-			expect.any(String),
-			"listing",
-			["Optional field 'author' not found for \"Test Article\""],
-		);
-		expect(mockAddSessionErrors).toHaveBeenNthCalledWith(
-			2,
-			expect.any(String),
-			"content",
-			["Content extraction warning: element not found"],
 		);
 	});
 

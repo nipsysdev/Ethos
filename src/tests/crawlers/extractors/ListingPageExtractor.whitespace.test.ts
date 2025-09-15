@@ -11,12 +11,9 @@ describe("ListingPageExtractor - Whitespace handling", () => {
 		type: CRAWLER_TYPES.LISTING,
 		listing: {
 			url: "https://example.com",
-			items: {
-				container_selector: ".article",
-				fields: {
-					title: { selector: ".title", attribute: "text" },
-					excerpt: { selector: ".excerpt", attribute: "text", optional: true },
-				},
+			container_selector: ".article",
+			fields: {
+				title: { selector: ".title", attribute: "text" },
 			},
 		},
 		content: {
@@ -32,35 +29,30 @@ describe("ListingPageExtractor - Whitespace handling", () => {
 		const mockPage = {
 			evaluate: vi.fn().mockResolvedValue([
 				{
-					item: {
+					values: {
 						title: "Test Article With Spaces", // Already normalized by browser context
-						excerpt: "This is an excerpt", // Already normalized by browser context
 					},
 					fieldResults: {
 						title: { success: true, value: "Test Article With Spaces" },
-						excerpt: { success: true, value: "This is an excerpt" },
 					},
+					isExcluded: false,
 					hasRequiredFields: true,
 					missingRequiredFields: [],
 					extractionErrors: [],
 				},
 			]),
 			url: vi.fn().mockReturnValue("https://example.com"),
+			exposeFunction: vi.fn(),
+			removeExposedFunction: vi.fn(),
+			waitForSelector: vi.fn(),
 		} as unknown as Page;
 
-		const fieldStats = [
+		const fieldStats: FieldExtractionStats[] = [
 			{
-				fieldName: "title",
+				fieldName: "title" as const,
 				successCount: 0,
 				totalAttempts: 0,
 				isOptional: false,
-				missingItems: [],
-			},
-			{
-				fieldName: "excerpt",
-				successCount: 0,
-				totalAttempts: 0,
-				isOptional: true,
 				missingItems: [],
 			},
 		];
@@ -75,7 +67,6 @@ describe("ListingPageExtractor - Whitespace handling", () => {
 		// Should have normalized the whitespace in the returned items
 		expect(result.items).toHaveLength(1);
 		expect(result.items[0].title).toBe("Test Article With Spaces");
-		expect(result.items[0].content).toBe("This is an excerpt");
 	});
 
 	it("should handle empty text after whitespace normalization", async () => {
@@ -83,35 +74,30 @@ describe("ListingPageExtractor - Whitespace handling", () => {
 		const mockPage = {
 			evaluate: vi.fn().mockResolvedValue([
 				{
-					item: {
-						title: "Valid Title",
-						excerpt: null, // Browser context would return null for empty/whitespace-only text
+					values: {
+						title: "", // Empty after normalization
 					},
 					fieldResults: {
-						title: { success: true, value: "Valid Title" },
-						excerpt: { success: false, value: null }, // Marked as unsuccessful
+						title: { success: false, value: null },
 					},
-					hasRequiredFields: true,
-					missingRequiredFields: [],
+					isExcluded: false,
+					hasRequiredFields: false,
+					missingRequiredFields: ["title"],
 					extractionErrors: [],
 				},
 			]),
 			url: vi.fn().mockReturnValue("https://example.com"),
+			exposeFunction: vi.fn(),
+			removeExposedFunction: vi.fn(),
+			waitForSelector: vi.fn(),
 		} as unknown as Page;
 
-		const fieldStats = [
+		const fieldStats: FieldExtractionStats[] = [
 			{
-				fieldName: "title",
+				fieldName: "title" as const,
 				successCount: 0,
 				totalAttempts: 0,
 				isOptional: false,
-				missingItems: [],
-			},
-			{
-				fieldName: "excerpt",
-				successCount: 0,
-				totalAttempts: 0,
-				isOptional: true,
 				missingItems: [],
 			},
 		];
@@ -124,9 +110,8 @@ describe("ListingPageExtractor - Whitespace handling", () => {
 		);
 
 		// Should have handled empty text correctly
-		expect(result.items).toHaveLength(1);
-		expect(result.items[0].title).toBe("Valid Title");
-		expect(result.items[0].content).toBe(""); // Empty string for excerpt
+		expect(result.items).toHaveLength(0);
+		expect(result.filteredCount).toBe(1);
 	});
 
 	it("should normalize whitespace with exclusions", async () => {

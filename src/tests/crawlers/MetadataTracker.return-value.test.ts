@@ -52,23 +52,21 @@ describe("MetadataTracker - Return Values", () => {
 			type: CRAWLER_TYPES.LISTING,
 			listing: {
 				url: "https://example.com",
-				items: {
-					container_selector: ".item",
-					fields: {
-						title: { selector: "h2", attribute: "text", optional: false },
-						url: { selector: "a", attribute: "href", optional: false },
-						publishedDate: {
-							selector: ".date",
-							attribute: "text",
-							optional: true,
-						},
+				container_selector: ".item",
+				fields: {
+					title: { selector: "h2", attribute: "text", optional: false },
+					url: { selector: "a", attribute: "href", optional: false },
+					date: {
+						selector: ".date",
+						attribute: "text",
+						optional: true,
 					},
 				},
 			},
 			content: {
 				container_selector: ".article",
 				fields: {
-					summary: { selector: ".summary", attribute: "text", optional: true },
+					content: { selector: ".summary", attribute: "text", optional: true },
 				},
 			},
 		};
