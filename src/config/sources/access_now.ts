@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const anSource: SourceConfig = {
-	id: "an",
+export const AccessNowSource: SourceConfig = {
+	id: "access_now",
 	name: "Access Now",
 	type: "listing",
 	listing: {

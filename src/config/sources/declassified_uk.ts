@@ -1,7 +1,7 @@
 import type { SourceConfig } from "@/core/types";
 
-export const dukSource: SourceConfig = {
-	id: "duk",
+export const DeclassifiedUkSource: SourceConfig = {
+	id: "declassified_uk",
 	name: "Declassified UK",
 	type: "listing",
 	disableJavascript: true,

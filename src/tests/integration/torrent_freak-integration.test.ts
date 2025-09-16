@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { tfSource as config } from "@/config/sources/tf.js";
+import { TorrentFreakSource as config } from "@/config/sources/torrent_freak.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import fixture3 from "@/tests/__fixtures__/tf/employee-who-leaked-spider-man-blu-ray-sentenced-to-nearly-5-years-in-prison-on-gun-charge";
-import fixture2 from "@/tests/__fixtures__/tf/github-takes-down-pirate-streaming-app-king-club-following-mpa-complaint-200819";
-import fixture1 from "@/tests/__fixtures__/tf/swedish-isp-backs-down-allofmp3com-no-longer-blocked";
+import fixture3 from "@/tests/__fixtures__/torrent_freak/employee-who-leaked-spider-man-blu-ray-sentenced-to-nearly-5-years-in-prison-on-gun-charge";
+import fixture2 from "@/tests/__fixtures__/torrent_freak/github-takes-down-pirate-streaming-app-king-club-following-mpa-complaint-200819";
+import fixture1 from "@/tests/__fixtures__/torrent_freak/swedish-isp-backs-down-allofmp3com-no-longer-blocked";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
-ifDescribe("TorrentFreak integration tests", () => {
+ifDescribe("Torrent Freak integration tests", () => {
 	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
@@ -23,7 +23,7 @@ ifDescribe("TorrentFreak integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl TF listing page", async () => {
+	it("should crawl Torrent Freak listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
@@ -33,12 +33,12 @@ ifDescribe("TorrentFreak integration tests", () => {
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
 	});
 
-	it("should crawl to next TF listing page", async () => {
+	it("should crawl to next Torrent Freak listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
 	});
 
-	it("should crawl multiple TF content pages", async () => {
+	it("should crawl multiple Torrent Freak content pages", async () => {
 		const testCases = [
 			{
 				url: "https://torrentfreak.com/swedish-isp-backs-down-allofmp3com-no-longer-blocked/",

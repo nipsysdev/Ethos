@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { dukSource as config } from "@/config/sources/duk.js";
+import { DeclassifiedUkSource as config } from "@/config/sources/declassified_uk.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import fixture4 from "@/tests/__fixtures__/duk/genocide-questions-avoided-as-starmer-meets-israeli-president";
-import fixture1 from "@/tests/__fixtures__/duk/how-the-uk-security-services-neutralised-the-countrys-leading-liberal-newspaper";
-import fixture3 from "@/tests/__fixtures__/duk/maersk-the-shipping-company-transporting-arms-to-israel";
-import fixture2 from "@/tests/__fixtures__/duk/rishi-sunaks-mission-creep-in-yemen";
+import fixture4 from "@/tests/__fixtures__/declassified_uk/genocide-questions-avoided-as-starmer-meets-israeli-president";
+import fixture1 from "@/tests/__fixtures__/declassified_uk/how-the-uk-security-services-neutralised-the-countrys-leading-liberal-newspaper";
+import fixture3 from "@/tests/__fixtures__/declassified_uk/maersk-the-shipping-company-transporting-arms-to-israel";
+import fixture2 from "@/tests/__fixtures__/declassified_uk/rishi-sunaks-mission-creep-in-yemen";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
@@ -24,7 +24,7 @@ ifDescribe("Declassified UK integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl DUK listing page", async () => {
+	it("should crawl Declassified UK listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
@@ -34,12 +34,12 @@ ifDescribe("Declassified UK integration tests", () => {
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
 	});
 
-	it("should crawl to next DUK listing page", async () => {
+	it("should crawl to next Declassified UK listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
 	});
 
-	it("should crawl multiple DUK content pages", async () => {
+	it("should crawl multiple Declassified UK content pages", async () => {
 		const testCases = [
 			{
 				url: "https://www.declassifieduk.org/how-the-uk-security-services-neutralised-the-countrys-leading-liberal-newspaper/",

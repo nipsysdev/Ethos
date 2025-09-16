@@ -1,18 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { fpfSource as config } from "@/config/sources/fpf.js";
+import { LogosPressEngineSource as config } from "@/config/sources/logos_press_engine.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler";
-import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler";
-import fixture1 from "@/tests/__fixtures__/fpf/a-massive-failure-in-kansas-two-years-since-the-marion-county-record-raid";
-import fixture2 from "@/tests/__fixtures__/fpf/how-aaron-swartz-fought-for-government-transparency";
-import fixture3 from "@/tests/__fixtures__/fpf/new-election-blog-catalogs-media-suppression-by-candidates-campaigns";
-import fixture4 from "@/tests/__fixtures__/fpf/prosecutor-puts-doge-ahead-of-first-amendment";
+import fixture1 from "@/tests/__fixtures__/logos_press_engine/august-2025";
+import fixture3 from "@/tests/__fixtures__/logos_press_engine/keycard-manifesto";
+import fixture2 from "@/tests/__fixtures__/logos_press_engine/logos-a-declaration-of-independence-in-cyberspace";
 
 const ifDescribe = process.env.INT_TEST === "true" ? describe : describe.skip;
 
-ifDescribe("Freedom Press integration tests", () => {
+ifDescribe("Logos Press Engine integration tests", () => {
 	let browser: BrowserHandler;
 	vi.setConfig({ testTimeout: 60000 });
 
@@ -24,44 +22,42 @@ ifDescribe("Freedom Press integration tests", () => {
 		await browser.close();
 	});
 
-	it("should crawl FPF listing page", async () => {
+	it("should crawl Logos Press Engine listing page", async () => {
 		const page = await browser.setupNewPage(config.listing.url);
 		const extractor = createListingPageExtractor();
 		const result = await extractor.extractItemsFromPage(page, config, [], 0);
+		console.log(result.items);
 		expect(result.items.length).toBeGreaterThan(0);
 		expect(result.items.every((item) => !!item.title)).toBeTruthy();
 		expect(result.items.every((item) => !!item.url)).toBeTruthy();
 		expect(result.items.every((item) => !!item.publishedDate)).toBeTruthy();
 	});
 
-	it("should crawl to next FPF listing page", async () => {
-		const page = await browser.setupNewPage(config.listing.url);
+	// Logos Press Engine has only 1 page for now
+	/* it("should crawl to next Logos Press Engine listing page", async () => {
+		const page = await setupPage(browser, config.listing.url);
 		expect(await navigateToNextPage(page, config)).toBeTruthy();
-	});
+	}); */
 
-	it("should crawl multiple FPF content pages", async () => {
+	it("should crawl multiple Logos Press Engine content pages", async () => {
 		const testCases = [
 			{
-				url: "https://freedom.press/issues/a-massive-failure-in-kansas-two-years-since-the-marion-county-record-raid/",
-				expectedTitle:
-					"A ‘massive failure’ in Kansas: Two years since the Marion County Record raid",
+				url: "https://press.logos.co/article/august-2025",
+				expectedTitle: "State of the Logos Network: August 2025",
+				expectedAuthor: "Logos",
 				expectedContent: fixture1,
 			},
 			{
-				url: "https://freedom.press/issues/how-aaron-swartz-fought-for-government-transparency/",
-				expectedTitle: "How Aaron Swartz Fought For Government Transparency",
+				url: "https://press.logos.co/article/logos-a-declaration-of-independence-in-cyberspace",
+				expectedTitle: "Logos: A Declaration of Independence in Cyberspace",
+				expectedAuthor: "Logos",
 				expectedContent: fixture2,
 			},
 			{
-				url: "https://freedom.press/issues/new-election-blog-catalogs-media-suppression-by-candidates-campaigns/",
-				expectedTitle:
-					"New election blog catalogs media suppression by candidates, campaigns",
+				url: "https://press.logos.co/article/keycard-manifesto",
+				expectedTitle: "We Need Sovereign Tools: A Keycard Manifesto",
+				expectedAuthor: "Guy-Louis Grau",
 				expectedContent: fixture3,
-			},
-			{
-				url: "https://freedom.press/issues/prosecutor-puts-doge-ahead-of-first-amendment/",
-				expectedTitle: "Prosecutor puts DOGE ahead of First Amendment",
-				expectedContent: fixture4,
 			},
 		];
 
@@ -77,6 +73,7 @@ ifDescribe("Freedom Press integration tests", () => {
 				);
 
 				expect(result.contentData.title).toEqual(testCase.expectedTitle);
+				expect(result.contentData.author).toEqual(testCase.expectedAuthor);
 				expect(result.contentData.content).toEqual(testCase.expectedContent);
 				expect(result.errors.length).toBe(0);
 
