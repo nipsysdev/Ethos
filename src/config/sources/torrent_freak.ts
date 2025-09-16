@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const TorrentFreakSource: SourceConfig = {
 	id: "torrent_freak",
 	name: "TorrentFreak",
-	type: "listing",
+	type: CrawlerType.Listing,
 	listing: {
 		url: "https://torrentfreak.com/",
 		pagination: {

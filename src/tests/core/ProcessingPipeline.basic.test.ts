@@ -8,7 +8,7 @@ import type {
 	CrawlResult,
 	SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
+import { CrawlerError, CrawlerType } from "@/core/types.js";
 
 describe("ProcessingPipeline - Basic Functionality", () => {
 	beforeEach(async () => {
@@ -32,14 +32,12 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 	const testConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		listing: {
 			url: "https://example.com",
-			items: {
-				container_selector: "article",
-				fields: {
-					title: { selector: "h1", attribute: "text" },
-				},
+			container_selector: "article",
+			fields: {
+				title: { selector: "h1", attribute: "text" },
 			},
 		},
 		content: {
@@ -60,13 +58,13 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 
 		await expect(pipeline.process(testConfig)).rejects.toThrow(CrawlerError);
 		await expect(pipeline.process(testConfig)).rejects.toThrow(
-			`No crawler found for type: ${CRAWLER_TYPES.LISTING}`,
+			`No crawler found for type: ${CrawlerType.Listing}`,
 		);
 	});
 
 	it("should process successful crawl results", async () => {
 		const mockCrawler: Crawler = {
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			async crawl(
 				_config: SourceConfig,
 				options?: CrawlOptions,
@@ -129,7 +127,7 @@ describe("ProcessingPipeline - Basic Functionality", () => {
 
 	it("should handle crawler errors", async () => {
 		const failingCrawler: Crawler = {
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			async crawl(): Promise<CrawlResult> {
 				throw new Error("Network failure");
 			},

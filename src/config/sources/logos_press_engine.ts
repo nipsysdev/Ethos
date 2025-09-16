@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const LogosPressEngineSource: SourceConfig = {
 	id: "logos_press_engine",
 	name: "Logos Press Engine",
-	type: "listing",
+	type: CrawlerType.Listing,
 	listing: {
 		url: "https://press.logos.co/search?type=article",
 		pagination: {

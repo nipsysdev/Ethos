@@ -1,7 +1,7 @@
 import type { Browser, Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 import { createBrowserHandler } from "@/crawlers/handlers/BrowserHandler.js";
 import * as urlUtils from "@/utils/url.js";
 
@@ -34,15 +34,13 @@ describe("BrowserHandler", () => {
 	const mockConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		disableJavascript: false,
 		listing: {
 			url: "https://example.com",
-			items: {
-				container_selector: ".article",
-				fields: {
-					title: { selector: ".title", attribute: "text" },
-				},
+			container_selector: ".article",
+			fields: {
+				title: { selector: ".title", attribute: "text" },
 			},
 		},
 		content: {

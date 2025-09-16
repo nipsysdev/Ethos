@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const P2pFoundationSource: SourceConfig = {
 	id: "p2p_foundation",
 	name: "P2P Foundation",
-	type: "listing",
+	type: CrawlerType.Listing,
 	disableJavascript: true,
 	listing: {
 		url: "https://blog.p2pfoundation.net/",

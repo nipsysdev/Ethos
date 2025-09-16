@@ -1,24 +1,22 @@
 import { describe, expect, it } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 
 describe("ArticleListingCrawler - Configuration Validation", () => {
 	it("should handle pagination config structure", () => {
 		const configWithPagination: SourceConfig = {
 			id: "test-pagination",
 			name: "Test Pagination",
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			listing: {
 				url: "https://example.com",
 				pagination: {
 					next_button_selector: ".pager__item.pager__item--next",
 					// Add more pagination config as needed
 				},
-				items: {
-					container_selector: ".item",
-					fields: {
-						title: { selector: ".title", attribute: "text" },
-					},
+				container_selector: ".item",
+				fields: {
+					title: { selector: ".title", attribute: "text" },
 				},
 			},
 			content: {
@@ -38,14 +36,12 @@ describe("ArticleListingCrawler - Configuration Validation", () => {
 		const configNoPagination: SourceConfig = {
 			id: "test-no-pagination",
 			name: "Test No Pagination",
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			listing: {
 				url: "https://example.com",
-				items: {
-					container_selector: ".item",
-					fields: {
-						title: { selector: ".title", attribute: "text" },
-					},
+				container_selector: ".item",
+				fields: {
+					title: { selector: ".title", attribute: "text" },
 				},
 			},
 			content: {
@@ -63,15 +59,13 @@ describe("ArticleListingCrawler - Configuration Validation", () => {
 		const configWithContent: SourceConfig = {
 			id: "test-content",
 			name: "Test Content",
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			listing: {
 				url: "https://example.com",
-				items: {
-					container_selector: ".item",
-					fields: {
-						url: { selector: "a", attribute: "href" },
-						title: { selector: ".title", attribute: "text" },
-					},
+				container_selector: ".item",
+				fields: {
+					url: { selector: "a", attribute: "href" },
+					title: { selector: ".title", attribute: "text" },
 				},
 			},
 			content: {
@@ -85,8 +79,8 @@ describe("ArticleListingCrawler - Configuration Validation", () => {
 		};
 
 		expect(configWithContent.content).toBeDefined();
-		expect(configWithContent.content?.fields.title.selector).toBe("h1");
-		expect(configWithContent.content?.fields.author.optional).toBe(true);
+		expect(configWithContent.content?.fields.title?.selector).toBe("h1");
+		expect(configWithContent.content?.fields.author?.optional).toBe(true);
 	});
 
 	it("should validate field configurations", () => {

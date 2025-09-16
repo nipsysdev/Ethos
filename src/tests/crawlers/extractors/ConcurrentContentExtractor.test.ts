@@ -5,7 +5,7 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 import { createConcurrentContentExtractor } from "@/crawlers/extractors/ConcurrentContentExtractor.js";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
@@ -20,7 +20,7 @@ describe("ConcurrentContentExtractor", () => {
 	const mockConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		listing: {
 			url: "https://example.com",
 			container_selector: ".article",

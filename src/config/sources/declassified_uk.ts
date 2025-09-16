@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const DeclassifiedUkSource: SourceConfig = {
 	id: "declassified_uk",
 	name: "Declassified UK",
-	type: "listing",
+	type: CrawlerType.Listing,
 	disableJavascript: true,
 	listing: {
 		url: "https://www.declassifieduk.org/category/archive/",

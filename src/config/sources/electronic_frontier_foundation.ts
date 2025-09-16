@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const ElectronicFrontierFoundationSource: SourceConfig = {
 	id: "electronic_frontier_foundation",
 	name: "Electronic Frontier Foundation",
-	type: "listing",
+	type: CrawlerType.Listing,
 	listing: {
 		url: "https://eff.org/updates",
 		pagination: {
