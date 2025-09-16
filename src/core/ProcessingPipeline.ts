@@ -1,4 +1,5 @@
 import type {
+	ContentSessionLinker,
 	CrawledData,
 	CrawlerRegistry,
 	CrawlOptions,
@@ -38,7 +39,7 @@ export interface ProcessingPipeline {
 async function handleItemStorage(
 	data: CrawledData,
 	contentStore: ContentStore,
-	metadataTracker?: any,
+	metadataTracker?: ContentSessionLinker,
 ): Promise<ProcessedData> {
 	try {
 		const storageResult = await contentStore.store(data);
@@ -79,7 +80,7 @@ async function handleItemStorage(
 async function processPageItems(
 	items: CrawledData[],
 	contentStore: ContentStore,
-	metadataTracker?: any,
+	metadataTracker?: ContentSessionLinker,
 ): Promise<ProcessedData[]> {
 	const processedData: ProcessedData[] = [];
 

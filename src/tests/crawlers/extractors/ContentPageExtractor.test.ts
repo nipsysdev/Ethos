@@ -457,7 +457,7 @@ describe("ContentPageExtractor", () => {
 
 		it("should handle missing URL gracefully", async () => {
 			const mockItem: CrawledData = {
-				url: undefined as any, // Intentionally missing URL
+				url: undefined as unknown as string, // Intentionally missing URL
 				title: "Article 1",
 				content: "Content 1",
 				crawledAt: new Date(),

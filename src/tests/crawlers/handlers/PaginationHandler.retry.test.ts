@@ -82,7 +82,7 @@ describe("PaginationHandler - Retry Logic", () => {
 		};
 
 		// Track states for different attempts
-		let navigationAttempt = 0;
+		let _navigationAttempt = 0;
 		let selectorAttempt = 0;
 		let urlState = "https://example.com/page/1"; // Initial URL
 
@@ -90,7 +90,7 @@ describe("PaginationHandler - Retry Logic", () => {
 			$: vi.fn().mockResolvedValue(mockButton),
 			evaluate: vi.fn().mockResolvedValue(false), // Button not disabled
 			waitForNavigation: vi.fn().mockImplementation(() => {
-				navigationAttempt++;
+				_navigationAttempt++;
 				// After navigation, URL should change
 				urlState = "https://example.com/page/2";
 				return Promise.resolve();

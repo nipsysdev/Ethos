@@ -1,4 +1,3 @@
-import type { Page } from "puppeteer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
 	CrawledData,
@@ -14,7 +13,6 @@ describe("ConcurrentContentExtractor", () => {
 	let mockBrowserHandler: BrowserHandler;
 	let mockExtractContentForSingleItem: ReturnType<typeof vi.fn>;
 	let concurrentExtractor: ReturnType<typeof createConcurrentContentExtractor>;
-	let mockPage: Page;
 	let mockMetadataStore: MetadataStore;
 
 	const mockConfig: SourceConfig = {
@@ -68,19 +66,19 @@ describe("ConcurrentContentExtractor", () => {
 			setupNewPage: mockNewPage,
 		} as unknown as BrowserHandler;
 
-		mockPage = {
-			browser: () => mockBrowserHandler,
-		} as unknown as Page;
-
 		// Create mock metadata store
 		mockMetadataStore = {
 			getExistingUrls: vi.fn().mockReturnValue(new Set()),
 		} as unknown as MetadataStore;
 
 		// Create concurrent extractor with proper dependencies
-		concurrentExtractor = createConcurrentContentExtractor(mockBrowserHandler, {
+		const extractorDependencies = {
 			extractContentForSingleItem: mockExtractContentForSingleItem,
-		});
+		};
+		concurrentExtractor = createConcurrentContentExtractor(
+			mockBrowserHandler,
+			extractorDependencies,
+		);
 	});
 
 	describe("extractConcurrently", () => {

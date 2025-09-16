@@ -386,7 +386,7 @@ describe("ListingPageExtractor", () => {
 			...mockConfig,
 			listing: {
 				...mockConfig.listing,
-				shouldExcludeItem: vi.fn().mockImplementation((html, values) => {
+				shouldExcludeItem: vi.fn().mockImplementation((_html, values) => {
 					return values?.title === "Excluded Article";
 				}),
 			},

@@ -65,7 +65,7 @@ describe("PaginationHandler - Button Detection", () => {
 		const mockButton = { click: vi.fn(), isVisible: true };
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
-			evaluate: vi.fn().mockImplementation((fn, selector) => {
+			evaluate: vi.fn().mockImplementation((_fn, selector) => {
 				// Simulate the disabled detection logic
 				if (selector === ".next-page") {
 					return true; // Button is disabled
@@ -88,7 +88,7 @@ describe("PaginationHandler - Button Detection", () => {
 		// Test the evaluate function that checks for disabled states
 		const mockPage = createMockPage({
 			$: vi.fn().mockResolvedValue(mockButton),
-			evaluate: vi.fn().mockImplementation((fn, selector) => {
+			evaluate: vi.fn().mockImplementation((_fn, selector) => {
 				// Simulate the disabled detection logic
 				// This should match the implementation in PaginationHandler.ts
 				if (selector === ".next-page") {

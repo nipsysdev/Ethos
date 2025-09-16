@@ -26,7 +26,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -71,13 +71,13 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			global.window = {
 				location: {
 					href: "https://example.com/page",
 				},
-			} as any;
+			} as unknown as typeof window;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -98,10 +98,10 @@ describe("BrowserFieldExtractor", () => {
 
 			// Mock browser context - container not found
 			global.document = {
-				querySelector: vi.fn().mockImplementation((selector: string) => {
+				querySelector: vi.fn().mockImplementation((_selector: string) => {
 					return null; // Always return null to simulate missing container
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".nonexistent",
@@ -124,7 +124,7 @@ describe("BrowserFieldExtractor", () => {
 
 			// Mock browser context - container exists but field element doesn't
 			const mockContainer = {
-				querySelector: vi.fn().mockImplementation((selector: string) => {
+				querySelector: vi.fn().mockImplementation((_selector: string) => {
 					return null; // Always return null for field elements
 				}),
 			};
@@ -136,7 +136,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -170,7 +170,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -203,7 +203,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -249,13 +249,13 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			global.window = {
 				location: {
 					href: "https://example.com/page",
 				},
-			} as any;
+			} as unknown as typeof window;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -296,7 +296,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -342,7 +342,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -392,7 +392,7 @@ describe("BrowserFieldExtractor", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",

@@ -164,11 +164,7 @@ export interface CrawlMetadata {
 	contentFieldStats: FieldExtractionStats[];
 	listingErrors: string[];
 	contentErrors: string[];
-	stoppedReason?:
-		| "max_pages"
-		| "no_next_button"
-		| "all_duplicates"
-		| "process_interrupted";
+	stoppedReason?: StoppedReason;
 }
 
 // Interface for junction table linking

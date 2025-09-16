@@ -4,7 +4,6 @@ import {
 	getPaginationDefaults,
 	parseQueryParams,
 	validateLimit,
-	validatePage,
 } from "@/server/utils/pagination.js";
 
 describe("Pagination Utils", () => {

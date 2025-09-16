@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleSessions } from "@/commands/sessions";
 import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
-import type { CrawlSession, MetadataStore } from "@/storage/index";
+import type { CrawlSession, MetadataStore } from "@/storage/MetadataStore";
 
 // Mock inquirer
 const mockPrompt = vi.fn();

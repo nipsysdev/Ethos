@@ -23,7 +23,7 @@ describe("BrowserFieldExtractor - Whitespace handling", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",
@@ -74,7 +74,7 @@ describe("BrowserFieldExtractor - Whitespace handling", () => {
 					}
 					return null;
 				}),
-			} as any;
+			} as unknown as Document;
 
 			const result = extractionFunction({
 				container_selector: ".container",

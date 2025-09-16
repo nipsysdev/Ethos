@@ -75,7 +75,9 @@ describe("BrowserHandler", () => {
 	it("should create a browser handler with correct methods", async () => {
 		const mockBrowser = createMockBrowser();
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const handler = await createBrowserHandler(mockConfig);
 
@@ -89,7 +91,9 @@ describe("BrowserHandler", () => {
 	it("should launch browser with correct configuration", async () => {
 		const mockBrowser = createMockBrowser();
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		await createBrowserHandler(mockConfig);
 
@@ -104,7 +108,7 @@ describe("BrowserHandler", () => {
 		const mockBrowser1 = createMockBrowser({ close: vi.fn() });
 		const mockBrowser2 = createMockBrowser();
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any)
+		(puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>)
 			.mockResolvedValueOnce(mockBrowser1)
 			.mockResolvedValueOnce(mockBrowser2);
 
@@ -127,7 +131,9 @@ describe("BrowserHandler", () => {
 			newPage: vi.fn().mockResolvedValue(mockPage),
 		});
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const handler = await createBrowserHandler(mockConfig);
 		const page = await handler.setupNewPage();
@@ -149,7 +155,9 @@ describe("BrowserHandler", () => {
 			newPage: vi.fn().mockResolvedValue(mockPage),
 		});
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const configWithDisabledJS: SourceConfig = {
 			...mockConfig,
@@ -170,9 +178,13 @@ describe("BrowserHandler", () => {
 			newPage: vi.fn().mockResolvedValue(mockPage),
 		});
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 		const mockAbsoluteUrl = "https://example.com/test-page";
-		(urlUtils.resolveAbsoluteUrl as any).mockReturnValue(mockAbsoluteUrl);
+		(
+			urlUtils.resolveAbsoluteUrl as unknown as ReturnType<typeof vi.fn>
+		).mockReturnValue(mockAbsoluteUrl);
 
 		const handler = await createBrowserHandler(mockConfig);
 		const url = "/test-page";
@@ -194,16 +206,19 @@ describe("BrowserHandler", () => {
 			newPage: vi.fn().mockResolvedValue(mockPage),
 		});
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const handler = await createBrowserHandler(mockConfig);
 		await handler.setupNewPage();
 
 		// Get the request event handler calls
-		const onCalls = (mockPage.on as any).mock.calls;
-		const requestEventHandler = onCalls.find(
-			(call: any) => call[0] === "request",
-		)[1];
+		const onCalls = (mockPage.on as unknown as ReturnType<typeof vi.fn>).mock
+			.calls;
+		const requestEventHandler = onCalls?.find(
+			(call) => call[0] === "request",
+		)?.[1];
 
 		// Test aborting media requests
 		const mockMediaRequest = {
@@ -255,16 +270,17 @@ describe("BrowserHandler", () => {
 			newPage: vi.fn().mockResolvedValue(mockPage),
 		});
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const handler = await createBrowserHandler(mockConfig);
 		await handler.setupNewPage();
 
 		// Get the error event handler calls
-		const onCalls = (mockPage.on as any).mock.calls;
-		const errorEventHandler = onCalls.find(
-			(call: any) => call[0] === "error",
-		)[1];
+		const onCalls = (mockPage.on as unknown as ReturnType<typeof vi.fn>).mock
+			.calls;
+		const errorEventHandler = onCalls?.find((call) => call[0] === "error")?.[1];
 
 		// Test error handling
 		const mockError = new Error("Test browser error");
@@ -283,9 +299,13 @@ describe("BrowserHandler", () => {
 		});
 		const mockBrowser = createMockBrowser();
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 		const mockAbsoluteUrl = "https://example.com/test-page";
-		(urlUtils.resolveAbsoluteUrl as any).mockReturnValue(mockAbsoluteUrl);
+		(
+			urlUtils.resolveAbsoluteUrl as unknown as ReturnType<typeof vi.fn>
+		).mockReturnValue(mockAbsoluteUrl);
 
 		const handler = await createBrowserHandler(mockConfig);
 		const url = "/test-page";
@@ -307,10 +327,12 @@ describe("BrowserHandler", () => {
 		});
 		const mockBrowser = createMockBrowser();
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
-		(urlUtils.resolveAbsoluteUrl as any).mockReturnValue(
-			"https://example.com/test-page",
-		);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
+		(
+			urlUtils.resolveAbsoluteUrl as unknown as ReturnType<typeof vi.fn>
+		).mockReturnValue("https://example.com/test-page");
 
 		const handler = await createBrowserHandler(mockConfig);
 		const url = "/test-page";
@@ -322,7 +344,9 @@ describe("BrowserHandler", () => {
 	it("should close the browser", async () => {
 		const mockBrowser = createMockBrowser({ close: vi.fn() });
 		const puppeteer = await import("puppeteer");
-		(puppeteer.default.launch as any).mockResolvedValue(mockBrowser);
+		(
+			puppeteer.default.launch as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValue(mockBrowser);
 
 		const handler = await createBrowserHandler(mockConfig);
 		await handler.close();
