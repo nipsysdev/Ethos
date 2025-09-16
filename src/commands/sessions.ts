@@ -3,6 +3,8 @@ import type {
 	ProcessingSummaryResult,
 } from "@/core/ProcessingPipeline";
 import type { CrawlMetadata, FieldExtractionStats } from "@/core/types";
+import type { ContentFieldName } from "@/crawlers/extractors/ContentPageExtractor";
+import type { ListingFieldName } from "@/crawlers/extractors/ListingPageExtractor";
 import type {
 	ContentMetadata,
 	CrawlSession,
@@ -206,7 +208,7 @@ function calculateFieldStats(
 ): FieldExtractionStats[] {
 	if (contents.length === 0) return [];
 
-	const fields = [
+	const fields: Array<{ name: ListingFieldName; isOptional: boolean }> = [
 		{ name: "title", isOptional: false },
 		{ name: "url", isOptional: false },
 		{ name: "author", isOptional: true },
@@ -251,7 +253,7 @@ function calculateContentFieldStats(
 
 	return [
 		{
-			fieldName: "content",
+			fieldName: "content" as ContentFieldName,
 			successCount,
 			totalAttempts: contents.length,
 			isOptional: false,

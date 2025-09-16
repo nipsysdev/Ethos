@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CrawlSummary, ProcessedData, SourceConfig } from "@/core/types";
+import { CrawlerType } from "@/core/types";
 import { displaySources, formatDataForViewing } from "@/ui/formatter";
 
 describe("Data Formatter", () => {
@@ -112,13 +113,11 @@ describe("displaySources", () => {
 			{
 				id: "source1",
 				name: "Source One",
-				type: "listing",
+				type: CrawlerType.Listing,
 				listing: {
 					url: "https://example.com",
-					items: {
-						container_selector: ".item",
-						fields: {},
-					},
+					container_selector: ".item",
+					fields: {},
 				},
 				content: {
 					container_selector: ".content",
@@ -128,13 +127,11 @@ describe("displaySources", () => {
 			{
 				id: "source2",
 				name: "Source Two",
-				type: "listing",
+				type: CrawlerType.Listing,
 				listing: {
 					url: "https://example.com",
-					items: {
-						container_selector: ".item",
-						fields: {},
-					},
+					container_selector: ".item",
+					fields: {},
 				},
 				content: {
 					container_selector: ".content",
@@ -144,13 +141,11 @@ describe("displaySources", () => {
 			{
 				id: "source3",
 				name: "Source Three",
-				type: "listing",
+				type: CrawlerType.Listing,
 				listing: {
 					url: "https://example.com",
-					items: {
-						container_selector: ".item",
-						fields: {},
-					},
+					container_selector: ".item",
+					fields: {},
 				},
 				content: {
 					container_selector: ".content",
@@ -176,13 +171,11 @@ describe("displaySources", () => {
 			{
 				id: "single-source",
 				name: "Single Source",
-				type: "listing",
+				type: CrawlerType.Listing,
 				listing: {
 					url: "https://example.com",
-					items: {
-						container_selector: ".item",
-						fields: {},
-					},
+					container_selector: ".item",
+					fields: {},
 				},
 				content: {
 					container_selector: ".content",

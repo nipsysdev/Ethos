@@ -11,7 +11,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 			// Check that it's a valid date
 			expect(resultDate).toBeInstanceOf(Date);
-			expect(isNaN(resultDate.getTime())).toBe(false);
+			expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 			// Check that it's close to the current date (within a few seconds)
 			const now = new Date();
@@ -27,7 +27,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 			// Check that it's a valid date
 			expect(resultDate).toBeInstanceOf(Date);
-			expect(isNaN(resultDate.getTime())).toBe(false);
+			expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 			// Check that it's close to yesterday (within a few seconds)
 			const yesterday = new Date();
@@ -44,7 +44,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 			// Check that it's a valid date
 			expect(resultDate).toBeInstanceOf(Date);
-			expect(isNaN(resultDate.getTime())).toBe(false);
+			expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 			// Check that it's close to the current date (within a few seconds)
 			const now = new Date();
@@ -60,7 +60,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 			// Check that it's a valid date
 			expect(resultDate).toBeInstanceOf(Date);
-			expect(isNaN(resultDate.getTime())).toBe(false);
+			expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 			// Check that it's close to yesterday (within a few seconds)
 			const yesterday = new Date();
@@ -77,7 +77,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 		// Check that it's a valid date
 		expect(resultDate).toBeInstanceOf(Date);
-		expect(isNaN(resultDate.getTime())).toBe(false);
+		expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 		// Check that it's close to the current date (within a few seconds)
 		const now = new Date();
@@ -93,7 +93,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 		// Check that it's a valid date
 		expect(resultDate).toBeInstanceOf(Date);
-		expect(isNaN(resultDate.getTime())).toBe(false);
+		expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 		// Check that it's close to yesterday (within a few seconds)
 		const yesterday = new Date();
@@ -110,7 +110,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 		// Check that it's a valid date
 		expect(resultDate).toBeInstanceOf(Date);
-		expect(isNaN(resultDate.getTime())).toBe(false);
+		expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 		// Check that it's close to the current date (within a few seconds)
 		const now = new Date();
@@ -126,7 +126,7 @@ describe("Date parsing utilities - Relative dates", () => {
 
 		// Check that it's a valid date
 		expect(resultDate).toBeInstanceOf(Date);
-		expect(isNaN(resultDate.getTime())).toBe(false);
+		expect(Number.isNaN(resultDate.getTime())).toBe(false);
 
 		// Check that it's close to yesterday (within a few seconds)
 		const yesterday = new Date();

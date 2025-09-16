@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/server/middleware/error.js";
 import {
@@ -47,17 +48,19 @@ const mockContentStore = {
 };
 
 describe("Content Handlers", () => {
-	let mockReq: any;
-	let mockRes: any;
+	let mockReq: Request;
+	let mockRes: Response;
 
 	beforeEach(() => {
 		mockReq = {
 			query: {},
 			params: {},
-		};
+		} as unknown as Request;
 		mockRes = {
 			json: vi.fn(),
-		};
+			status: vi.fn().mockReturnThis(),
+			send: vi.fn(),
+		} as unknown as Response;
 		vi.clearAllMocks();
 	});
 

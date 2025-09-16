@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { crawlWithOptions } from "@/commands/crawl";
 import { sources } from "@/config/sources/index.js";
+import type { ProcessingPipeline } from "@/core/ProcessingPipeline";
 import { ERROR_MESSAGES } from "@/ui/constants";
 import { displaySources } from "@/ui/formatter";
 import { validatePositiveIntegerOrEmpty } from "@/ui/utils";
@@ -96,8 +97,11 @@ describe("Crawl Command Validation", () => {
 describe("crawlWithOptions", () => {
 	it("should display available sources when source not found", async () => {
 		// Mock pipeline
-		const mockPipeline = {
+		const mockPipeline: ProcessingPipeline = {
 			processSummary: vi.fn(),
+			process: vi.fn(),
+			getMetadataStore: vi.fn(),
+			getContentStore: vi.fn(),
 		};
 
 		// Mock console.log
@@ -106,7 +110,7 @@ describe("crawlWithOptions", () => {
 		// Call crawlWithOptions with non-existent source
 		const result = await crawlWithOptions(
 			{ source: "non-existent-source" },
-			mockPipeline as any,
+			mockPipeline,
 		);
 
 		// Verify the error message and available sources are displayed
