@@ -61,7 +61,7 @@ export interface ContentExtractionData {
 	title?: string;
 	content?: string;
 	author?: string;
-	date?: string;
+	publishedDate?: string;
 }
 
 export interface ContentExtractionResult {

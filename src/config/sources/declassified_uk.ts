@@ -20,7 +20,7 @@ export const DeclassifiedUkSource: SourceConfig = {
 				selector: ".entry-title a",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".post-meta .published",
 				attribute: "text",
 			},

@@ -28,7 +28,7 @@ describe("ContentDataMapper", () => {
 				title: "Full Title",
 				content: "Full content",
 				author: "John Doe",
-				date: "2023-01-01",
+				publishedDate: "2023-01-01",
 			};
 
 			mergeContentData(item, contentData);
@@ -55,7 +55,7 @@ describe("ContentDataMapper", () => {
 				title: "Full Title",
 				// content is missing
 				// author is missing
-				date: "2023-01-01",
+				publishedDate: "2023-01-01",
 			};
 
 			mergeContentData(item, contentData);
@@ -126,7 +126,7 @@ describe("ContentDataMapper", () => {
 			};
 
 			const contentData = {
-				date: "invalid-date",
+				publishedDate: "invalid-date",
 			};
 
 			expect(() => mergeContentData(item, contentData)).toThrow(

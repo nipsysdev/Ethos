@@ -30,7 +30,7 @@ export const AccessNowSource: SourceConfig = {
 				selector: ".post-grid-item--link",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".post-grid-item--date",
 				attribute: "text",
 			},

@@ -19,7 +19,7 @@ export const TorrentFreakSource: SourceConfig = {
 				selector: "& > a",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".preview-article__published time",
 				attribute: "text",
 			},
