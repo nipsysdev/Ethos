@@ -13,9 +13,9 @@ export function mergeContentData(
 	if (contentData.content) item.content = contentData.content;
 	if (contentData.author) item.author = contentData.author;
 
-	if (contentData.date) {
+	if (contentData.publishedDate) {
 		try {
-			const parsedDate = parsePublishedDate(contentData.date);
+			const parsedDate = parsePublishedDate(contentData.publishedDate);
 			item.publishedDate = parsedDate;
 		} catch (error) {
 			throw new Error(

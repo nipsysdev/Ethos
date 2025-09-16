@@ -20,7 +20,7 @@ export const P2pFoundationSource: SourceConfig = {
 				selector: ".entry-title a",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".entry-date",
 				attribute: "text",
 			},

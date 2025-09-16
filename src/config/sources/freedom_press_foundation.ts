@@ -19,7 +19,7 @@ export const FreedomPressFoundationSource: SourceConfig = {
 				selector: ".heading .card-link",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".meta-info time",
 				attribute: "datetime",
 			},

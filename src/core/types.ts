@@ -1,7 +1,4 @@
-import type {
-	ContentFieldName,
-	ExtractedContentValues,
-} from "@/crawlers/extractors/ContentPageExtractor";
+import type { ContentFieldName } from "@/crawlers/extractors/ContentPageExtractor";
 import type {
 	ExtractedListingValues,
 	ListingFieldName,

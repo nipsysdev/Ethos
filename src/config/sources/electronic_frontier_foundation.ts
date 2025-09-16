@@ -29,7 +29,7 @@ export const ElectronicFrontierFoundationSource: SourceConfig = {
 				selector: ".node__title a",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".node-date",
 				attribute: "text",
 			},

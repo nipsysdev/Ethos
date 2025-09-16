@@ -21,7 +21,7 @@ export interface ListingExtractionResult {
 export interface ExtractedListingValues {
 	title: string | null;
 	url: string | null;
-	date: string | null;
+	publishedDate: string | null;
 	author: string | null;
 }
 export type ListingFieldName = keyof ExtractedListingValues;
@@ -141,7 +141,7 @@ async function extractItemsFromPage(
 					const extractedValues: ExtractedListingValues = {
 						title: null,
 						url: null,
-						date: null,
+						publishedDate: null,
 						author: null,
 					};
 					const fieldResults: Record<
@@ -313,8 +313,8 @@ async function extractItemsFromPage(
 		(result: ExtractionResult) => {
 			let publishedDate: string | undefined;
 			try {
-				publishedDate = result.values.date
-					? parsePublishedDate(result.values.date)
+				publishedDate = result.values.publishedDate
+					? parsePublishedDate(result.values.publishedDate)
 					: undefined;
 			} catch (error) {
 				throw new Error(

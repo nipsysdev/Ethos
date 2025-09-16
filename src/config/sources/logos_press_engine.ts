@@ -19,7 +19,7 @@ export const LogosPressEngineSource: SourceConfig = {
 				selector: ".post-card__title",
 				attribute: "href",
 			},
-			date: {
+			publishedDate: {
 				selector: ".post-card__label span:nth-of-type(2)",
 				attribute: "text",
 			},
