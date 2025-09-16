@@ -6,7 +6,7 @@ import type {
 	CrawlResult,
 	SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES, CrawlerError } from "@/core/types.js";
+import { CrawlerError, CrawlerType } from "@/core/types.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import type { ContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor.js";
 import { EXTRACTION_CONCURRENCY } from "@/crawlers/extractors/constants";
@@ -199,9 +199,9 @@ async function crawlListing(
 
 	interruptionHandler.setup();
 
-	if (config.type !== CRAWLER_TYPES.LISTING) {
+	if (config.type !== CrawlerType.Listing) {
 		throw new CrawlerError(
-			`Config type must be '${CRAWLER_TYPES.LISTING}' (only supported type in Phase 1)`,
+			`Config type must be '${CrawlerType.Listing}' (only supported type in Phase 1)`,
 			config.id,
 		);
 	}
@@ -344,7 +344,7 @@ async function extractItemsFromListing(
 
 export function createArticleListingCrawler(): Crawler {
 	return {
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		crawl: crawlListing,
 	};
 }

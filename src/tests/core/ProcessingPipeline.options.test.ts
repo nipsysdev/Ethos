@@ -8,7 +8,7 @@ import type {
 	CrawlResult,
 	SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 
 describe("ProcessingPipeline - Options and Configuration", () => {
 	beforeEach(async () => {
@@ -32,14 +32,12 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 	const testConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		listing: {
 			url: "https://example.com",
-			items: {
-				container_selector: "article",
-				fields: {
-					title: { selector: "h1", attribute: "text" },
-				},
+			container_selector: "article",
+			fields: {
+				title: { selector: "h1", attribute: "text" },
 			},
 		},
 		content: {
@@ -54,7 +52,7 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 		let receivedOptions: CrawlOptions | undefined;
 
 		const mockCrawler: Crawler = {
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			async crawl(
 				config: SourceConfig,
 				options?: CrawlOptions,
@@ -99,7 +97,7 @@ describe("ProcessingPipeline - Options and Configuration", () => {
 		let receivedOptions: CrawlOptions | undefined;
 
 		const mockCrawler: Crawler = {
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			async crawl(
 				config: SourceConfig,
 				options?: CrawlOptions,

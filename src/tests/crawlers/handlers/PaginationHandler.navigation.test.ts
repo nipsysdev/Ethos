@@ -1,7 +1,7 @@
 import type { Page } from "puppeteer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceConfig } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 import { navigateToNextPage } from "@/crawlers/handlers/PaginationHandler.js";
 
 describe("PaginationHandler - Navigation", () => {
@@ -17,7 +17,7 @@ describe("PaginationHandler - Navigation", () => {
 	const mockConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		listing: {
 			url: "https://example.com",
 			container_selector: ".article",

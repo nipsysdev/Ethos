@@ -1,14 +1,14 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const AccessNowSource: SourceConfig = {
 	id: "access_now",
 	name: "Access Now",
-	type: "listing",
+	type: CrawlerType.Listing,
 	listing: {
 		url: "https://www.accessnow.org/news-updates/?_language=english",
 		pagination: {
 			next_button_selector: ".post-grid-pagination .facetwp-page.next",
-			delaySec: 10, // Access Now blocks IP address when it recognizes a crawling operation
+			delaySec: 10, // Access Now blocks IP address when it detects aggressive crawling
 		},
 		container_selector: ".post-grid.facetwp-template .post-grid-item",
 		shouldExcludeItem: (containerHtml, values) => {

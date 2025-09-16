@@ -8,11 +8,9 @@ import type {
 } from "@/crawlers/extractors/ListingPageExtractor";
 import type { StoppedReason } from "@/crawlers/MetadataTracker";
 
-export const CRAWLER_TYPES = {
-	LISTING: "listing",
-} as const;
-
-export type CrawlerType = (typeof CRAWLER_TYPES)[keyof typeof CRAWLER_TYPES];
+export enum CrawlerType {
+	Listing = "listing",
+}
 
 // Core crawler interfaces
 export interface Crawler {

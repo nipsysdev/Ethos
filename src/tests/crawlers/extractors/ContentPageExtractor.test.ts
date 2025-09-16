@@ -5,7 +5,7 @@ import type {
 	FieldExtractionStats,
 	SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 import { createContentPageExtractor } from "@/crawlers/extractors/ContentPageExtractor";
 import type { BrowserHandler } from "@/crawlers/handlers/BrowserHandler";
 
@@ -44,7 +44,7 @@ describe("ContentPageExtractor", () => {
 		mockConfig = {
 			id: "test",
 			name: "Test Source",
-			type: CRAWLER_TYPES.LISTING,
+			type: CrawlerType.Listing,
 			listing: {
 				url: "https://example.com",
 				container_selector: ".article",

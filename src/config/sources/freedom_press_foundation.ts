@@ -1,9 +1,9 @@
-import type { SourceConfig } from "@/core/types";
+import { CrawlerType, type SourceConfig } from "@/core/types";
 
 export const FreedomPressFoundationSource: SourceConfig = {
 	id: "freedom_press_foundation",
 	name: "Freedom of the Press Foundation",
-	type: "listing",
+	type: CrawlerType.Listing,
 	listing: {
 		url: "https://freedom.press/issues/",
 		pagination: {

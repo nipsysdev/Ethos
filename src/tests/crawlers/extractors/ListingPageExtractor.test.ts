@@ -1,14 +1,14 @@
 import type { Page } from "puppeteer";
 import { describe, expect, it, vi } from "vitest";
 import type { FieldExtractionStats, SourceConfig } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
+import { CrawlerType } from "@/core/types.js";
 import { createListingPageExtractor } from "@/crawlers/extractors/ListingPageExtractor.js";
 
 describe("ListingPageExtractor", () => {
 	const mockConfig: SourceConfig = {
 		id: "test",
 		name: "Test Source",
-		type: CRAWLER_TYPES.LISTING,
+		type: CrawlerType.Listing,
 		listing: {
 			url: "https://example.com",
 			container_selector: ".article",

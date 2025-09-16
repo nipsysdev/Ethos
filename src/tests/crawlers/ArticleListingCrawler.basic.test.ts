@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CRAWLER_TYPES, type SourceConfig } from "@/core/types.js";
+import { CrawlerType, type SourceConfig } from "@/core/types.js";
 import { createArticleListingCrawler } from "@/crawlers/ArticleListingCrawler.js";
 
 // Mock the BrowserHandler to prevent Puppeteer from being called
@@ -17,7 +17,7 @@ vi.mock("@/crawlers/handlers/BrowserHandler.js", () => {
 describe("ArticleListingCrawler - Basic Functionality", () => {
 	it("should have correct type", () => {
 		const crawler = createArticleListingCrawler();
-		expect(crawler.type).toBe(CRAWLER_TYPES.LISTING);
+		expect(crawler.type).toBe(CrawlerType.Listing);
 	});
 
 	it("should reject non-listing config types", async () => {

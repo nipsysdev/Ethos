@@ -1,12 +1,12 @@
 import type { Page } from "puppeteer";
-import type {
-	CrawledData,
-	FieldConfig,
-	FieldExtractionStats,
-	ListingConfig,
-	SourceConfig,
+import {
+	type CrawledData,
+	CrawlerType,
+	type FieldConfig,
+	type FieldExtractionStats,
+	type ListingConfig,
+	type SourceConfig,
 } from "@/core/types.js";
-import { CRAWLER_TYPES } from "@/core/types.js";
 import { DYNAMIC_CONTENT_TIMEOUT } from "@/crawlers/extractors/constants";
 import { parsePublishedDate } from "@/utils/date.js";
 import type { ContentFieldName } from "./ContentPageExtractor";
@@ -331,7 +331,7 @@ async function extractItemsFromPage(
 				author: result.values.author || undefined,
 				publishedDate,
 				metadata: {
-					crawlerType: CRAWLER_TYPES.LISTING,
+					crawlerType: CrawlerType.Listing,
 					configId: config.id,
 					extractedFields: Object.keys(result.values),
 				},
