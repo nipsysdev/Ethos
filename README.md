@@ -221,8 +221,8 @@ Join the [Logos discord](https://discord.gg/logosnetwork), feel free to introduc
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nipsysdev"><img src="https://avatars.githubusercontent.com/u/10484855?s=100&v=4" width="100px;" alt="Kent C. Dodds"/><br /><sub><b>Xav (@nipsysdev)</b></sub></a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/JosiahWarren"><img src="https://avatars.githubusercontent.com/u/216360104?s=100&v=4" width="100px;" alt="Jeroen Engels"/><br /><sub><b>Josiah Warren</b></sub></a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nipsysdev"><img src="https://avatars.githubusercontent.com/u/10484855?s=100&v=4" width="100px;" alt="avatar"/><br /><sub><b>Xav (@nipsysdev)</b></sub></a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/JosiahWarren"><img src="https://avatars.githubusercontent.com/u/216360104?s=100&v=4" width="100px;" alt="avatar"/><br /><sub><b>Josiah Warren</b></sub></a></td>
     </tr>
   </tbody>
 </table>
