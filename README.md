@@ -1,26 +1,27 @@
 # Ethos
 
-This project is part of the [Logos](https://logos.co/) ecosystem. Let's protect freedom.
+This project started as an initiative by the [Logos Network](https://logos.co/) community.
 
 ## What is Ethos?
 
-In its current state, Ethos is a web crawler designed to browse specific sources in order to retrieve their publications. It has a built-in API serving the content, enabling the crawled data to be used for data analysis, notifications, etc...
+In its current state, Ethos is a web crawler designed to browse specific sources in order to retrieve publications about civil liberties and digital rights protection.\
+Ethos features a built-in Web API serving the retrieved content in Markdown. This enables algorithms and AI agents to easily use those publications for data analysis, notifications, or other purposes.
 
-## The censorship-resistant archiving mission
+### The censorship-resistant archiving mission
 
-The goal behind the development of Ethos is to build a tool which retrieves publications about civil liberties (currently mostly focused on digital rights), and preserve those in [Codex](https://codex.storage/), an incorruptible and persistent archive.
-
-Why? Because centralized freedom organisations are [too often](https://press.logos.co/article/save-the-songs) the target of powerful actors who feel threatened by their noble missions.
-
-Reports about human rights must, too, be protected and kept forever accessible.
+Beside serving those publications, another goal behind the development of Ethos is to preserve those publications in an immutable and decentralized storage network like [Codex](https://codex.storage/), an incorruptible and persistent archive.
 
 ## Current supported sources
 
-- Electronic Frontier Foundation (EFF): https://www.eff.org/updates
-- Freedom of the Press Foundation (FPF): https://freedom.press/issues
-- Logos Press Engine (LPE): https://press.logos.co/search?type=article
+- Access Now: https://www.accessnow.org/news-updates/?_language=english
+- Declassified UK: https://www.declassifieduk.org/category/archive/
+- Electronic Frontier Foundation: https://www.eff.org/updates
+- Freedom of the Press Foundation: https://freedom.press/issues
+- Logos Press Engine: https://press.logos.co/search?type=article
+- P2P Foundation: https://blog.p2pfoundation.net/
+- Torrent Freak: https://torrentfreak.com/
 
-## Using Ethos locally
+## Running Ethos locally
 
 ### Get started
 
@@ -120,17 +121,18 @@ Get list of available sources for crawling.
 ```json
 [
   {
-    "id": "eff",
+    "id": "electronic_frontier_foundation",
     "name": "Electronic Frontier Foundation"
   },
   {
-    "id": "fpf",
+    "id": "freedom_press_foundation",
     "name": "Freedom of the Press Foundation"
   },
   {
-    "id": "lpe",
+    "id": "logos_press_engine",
     "name": "Logos Press Engine"
-  }
+  },
+  ...
 ]
 ```
 
@@ -142,7 +144,7 @@ Retrieve publications with filtering and pagination.
 
 - `page` (number, default: 1) - Page number for pagination
 - `limit` (number, default: 10, max: 100) - Items per page
-- `source` (string) - Filter by source ID (eff, fpf, lpe)
+- `source` (string) - Filter by source ID
 - `startPublishedDate` (string) - Filter by start date (ISO 8601 format)
 - `endPublishedDate` (string) - Filter by end date (ISO 8601 format)
 
@@ -152,21 +154,22 @@ Retrieve publications with filtering and pagination.
 {
   "results": [
     {
-      "url": "https://eff.org/deeplinks/2023/12/example-article",
-      "title": "Example Article Title",
-      "content": "Full article content text extracted from the source...",
-      "author": "By Author Name",
-      "publishedDate": "2023-12-01T00:00:00.000Z",
-      "source": "eff",
-      "crawledAt": "2023-12-01T10:30:00.000Z",
-      "hash": "a1b2c3d4e5f6..."
+      "url": "https://www.eff.org/deeplinks/2025/09/our-stop-censoring-abortion-campaign-uncovers-social-media-censorship-crisis",
+      "title": "Our Stop Censoring Abortion Campaign Uncovers a Social Media Censorship Crisis",
+      "content": "BY **[JENNIFER PINSOF](https://www.eff.org/about/staff/jennifer-pinsof)** | September 15, 2025\n\n_This is the first installment in a blog series documenting EFF's findings from the_ [_Stop Censoring Abortion_](https://www.eff.org/deeplinks/2025/02/stop-censoring-abortion-fight-reproductive-rights-digital-age) _campaign...",
+      "author": "by Jennifer Pinsof",
+      "publishedDate": "2025-09-15T00:00:00.000Z",
+      "source": "electronic_frontier_foundation",
+      "crawledAt": "2025-09-16T18:26:36.831Z",
+      "hash": "e5b71cceb7f07494724cf3fd8e2417ad51397b52"
     }
+    ...
   ],
   "meta": {
-    "total": 150,
+    "total": 33,
     "page": 1,
     "limit": 10,
-    "totalPages": 15
+    "totalPages": 4
   }
 }
 ```
@@ -183,14 +186,14 @@ Retrieve a specific publication by its hash.
 
 ```json
 {
-  "url": "https://eff.org/deeplinks/2023/12/example-article",
-  "title": "Example Article Title",
-  "content": "Full article content text extracted from the source...",
-  "author": "By Author Name",
-  "publishedDate": "2023-12-01T00:00:00.000Z",
-  "source": "eff",
-  "crawledAt": "2023-12-01T10:30:00.000Z",
-  "hash": "a1b2c3d4e5f6..."
+  "url": "https://www.eff.org/deeplinks/2025/09/our-stop-censoring-abortion-campaign-uncovers-social-media-censorship-crisis",
+  "title": "Our Stop Censoring Abortion Campaign Uncovers a Social Media Censorship Crisis",
+  "content": "BY **[JENNIFER PINSOF](https://www.eff.org/about/staff/jennifer-pinsof)** | September 15, 2025\n\n_This is the first installment in a blog series documenting EFF's findings from the_ [_Stop Censoring Abortion_](https://www.eff.org/deeplinks/2025/02/stop-censoring-abortion-fight-reproductive-rights-digital-age) _campaign...",
+  "author": "by Jennifer Pinsof",
+  "publishedDate": "2025-09-15T00:00:00.000Z",
+  "source": "electronic_frontier_foundation",
+  "crawledAt": "2025-09-16T18:26:36.831Z",
+  "hash": "e5b71cceb7f07494724cf3fd8e2417ad51397b52"
 }
 ```
 
@@ -207,6 +210,25 @@ All endpoints return appropriate HTTP status codes and error objects:
 }
 ```
 
+## Contribute
+
+Join the [Logos discord](https://discord.gg/logosnetwork), feel free to introduce yourself, and get in touch with one of the contributors.
+
+## Contributors
+
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/nipsysdev"><img src="https://avatars.githubusercontent.com/u/10484855?s=100&v=4" width="100px;" alt="Kent C. Dodds"/><br /><sub><b>Xav (@nipsysdev)</b></sub></a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/JosiahWarren"><img src="https://avatars.githubusercontent.com/u/216360104?s=100&v=4" width="100px;" alt="Jeroen Engels"/><br /><sub><b>Josiah Warren</b></sub></a></td>
+    </tr>
+  </tbody>
+</table>
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
 ## License
 
-MIT
+### MIT
