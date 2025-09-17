@@ -8,7 +8,7 @@ export const AccessNowSource: SourceConfig = {
 		url: "https://www.accessnow.org/news-updates/?_language=english",
 		pagination: {
 			next_button_selector: ".post-grid-pagination .facetwp-page.next",
-			delaySec: 10, // Access Now blocks IP address when it detects aggressive crawling
+			delaySec: 30, // Access Now blocks IP address when it detects aggressive crawling
 		},
 		container_selector: ".post-grid.facetwp-template .post-grid-item",
 		shouldExcludeItem: (containerHtml, values) => {
