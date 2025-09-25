@@ -4,7 +4,7 @@ import { ApiError } from "@/server/middleware/error.js";
 import {
 	getPublicationByHashHandler,
 	getPublicationsHandler,
-} from "@/server/routes/publications.js";
+} from "@/server/routes/api/publications.js";
 import { ApiErrorType } from "@/server/types.js";
 
 // Mock storage
