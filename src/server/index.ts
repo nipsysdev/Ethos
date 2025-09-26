@@ -51,7 +51,12 @@ export function startServer(
 ): Promise<import("http").Server> {
 	return new Promise((resolve, reject) => {
 		const server = app.listen(config.port, config.host, () => {
-			console.log(`Ethos API running at http://${config.host}:${config.port}`);
+			console.log(
+				`Ethos API running at http://${config.host}:${config.port}/api/publications`,
+			);
+			console.log(
+				`Ethos site running at http://${config.host}:${config.port}/`,
+			);
 			resolve(server);
 		});
 
