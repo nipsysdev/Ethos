@@ -76,13 +76,13 @@ Options:
 
 - Avoid running multiple crawl operations at the same time, as currently encountering database lock triggers an exception which ends the crawling (could be improved)
 
-#### Serve - Starting the API server
+#### Serve - Runs the API server and site
 
 ```
 $ ethos serve --help
 Usage: ethos serve [options]
 
-Start the REST API server
+Start the REST API server and site
 
 Options:
   -p, --port <number>  Port to run the server on
@@ -99,7 +99,7 @@ Options:
 
 ### Endpoints
 
-#### GET `/health`
+#### GET `/api/health`
 
 Health check endpoint to verify the API is running.
 
@@ -112,7 +112,7 @@ Health check endpoint to verify the API is running.
 }
 ```
 
-#### GET `/sources`
+#### GET `/api/sources`
 
 Get list of available sources for crawling.
 
@@ -136,7 +136,7 @@ Get list of available sources for crawling.
 ]
 ```
 
-#### GET `/publications`
+#### GET `/api/publications`
 
 Retrieve publications with filtering and pagination.
 
@@ -174,7 +174,7 @@ Retrieve publications with filtering and pagination.
 }
 ```
 
-#### GET `/publications/:hash`
+#### GET `/api/publications/:hash`
 
 Retrieve a specific publication by its hash.
 
