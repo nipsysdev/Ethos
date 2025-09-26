@@ -11,7 +11,7 @@ html
   head
     title Ethos - #{publication.title}
     style!= PicoCSS
-  body
+  body(style="max-width: 1152px;margin: auto;")
     header
       nav
         ul
@@ -26,17 +26,21 @@ html
             - }
             a(href=backUrl) ← Back to Publications
     main
-      article.publication-detail
+      article
         h1= publication.title
-        .meta
-          if publication.author
-            .author #{publication.author}
+        div(role="group")
+          div
+            if publication.author
+              div
+                small #{publication.author}
+              div
+                small= publication.source
           if publication.publishedDate
-            .date Published on #{new Date(publication.publishedDate).toLocaleDateString()}
-          .source= publication.source
-          .url
-            a(href=publication.url target="_blank") View Original
-        .content
+            div(style="text-align: right;")
+              small Published on #{new Date(publication.publishedDate).toLocaleDateString()}
+        div
+          a(href=publication.url target="_blank") View Original
+        div
           p!= publication.content
 `);
 

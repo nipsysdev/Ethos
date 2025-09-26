@@ -56,8 +56,8 @@ describe("Listing View", () => {
 		expect(result).toContain("<h1>Publications</h1>");
 		expect(result).toContain("Test Article 1");
 		expect(result).toContain("Test Article 2");
-		expect(result).toContain("By Test Author 1");
-		expect(result).toContain("By Test Author 2");
+		expect(result).toContain("Test Author 1");
+		expect(result).toContain("Test Author 2");
 		expect(result).toContain("2022-12-31");
 		expect(result).toContain("2023-01-02");
 		expect(result).toContain("Source 1");

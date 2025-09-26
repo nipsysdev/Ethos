@@ -14,16 +14,16 @@ html
 head
   title Ethos - Publications
   style!= PicoCSS
-body
+body(style="max-width: 1152px;margin: auto;")
   header
     nav
       ul
         li
           strong
             a(href="/", aria-label="Home") Ethos
-  main.container
+  main
     h1 Publications
-    .filter-container
+    div
       form(method="get", action="/")
         label(for="source") Filter by source:
         select#source(name="source", onchange="this.form.submit()")
@@ -31,10 +31,10 @@ body
           each src in sources
             option(value=src.id, selected=currentSource === src.id)= src.name
     if publications.length > 0
-      .grid
+      div
         each publication in publications
           article
-            h2
+            h3
               - let articleUrl = \`/\${publication.hash}\`
               - if (currentSource || pagination.page > 1) {
               -   articleUrl += "?"
@@ -44,14 +44,19 @@ body
               -   articleUrl += params.join("&")
               - }
               a(href=articleUrl)= publication.title
-            .meta
-              if publication.author
-                small By #{publication.author}
+            div(role="group")
+              div
+                if publication.author
+                  div
+                    small #{publication.author}
+                div
+                  small= publication.source
               if publication.publishedDate
-                small= new Date(publication.publishedDate).toLocaleDateString()
-              small= publication.source
-            .content
+                div(style="text-align: right;")
+                  small Published on #{new Date(publication.publishedDate).toLocaleDateString()}
+            div(style="line-height: 1.5em; height: 4.5em; overflow: hidden;")
               p!= publication.content
+            div(style="text-align: right;")
               a(href=articleUrl, role="button", aria-label="Read more about #{publication.title}") Continue reading
       
       nav(role="navigation", aria-label="Pagination navigation")
@@ -65,7 +70,7 @@ body
             li
               a(href=\`/?page=\${pagination.page + 1}${currentSource ? "&source=" + currentSource : ""}\`, rel="next") Next
     else
-      .container
+      div
         p No publications found.
 `);
 

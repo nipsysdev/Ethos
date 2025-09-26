@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import * as jsdom from "jsdom";
 import { marked } from "marked";
 import { sources } from "@/config/sources";
 import { ApiError } from "@/server/middleware/error.js";
@@ -78,13 +79,15 @@ export const getListingViewHandler = (
 			const publications = publicationResults
 				.filter((pub): pub is NonNullable<typeof pub> => pub !== null)
 				.map((publication) => {
-					const maxLength = 200;
-					const text = publication.content;
-					if (text.length <= maxLength) return publication;
-					const truncated = `${text.substring(0, maxLength).trim()}...`;
+					const maxLength = 250;
+					const html =
+						(marked(publication.content) as string) ?? "<html></html>";
+					const content = new jsdom.JSDOM(html).window.document.body
+						.textContent;
+					const truncated = `${content.substring(0, maxLength).trim()}...`;
 					return {
 						...publication,
-						content: marked(truncated) as string,
+						content: truncated,
 					};
 				});
 
