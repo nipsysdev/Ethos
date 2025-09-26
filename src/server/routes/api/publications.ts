@@ -17,6 +17,7 @@ import type {
 	MetadataQueryOptions,
 	MetadataStore,
 } from "@/storage/MetadataStore.js";
+import { isHashValid } from "@/utils/hash";
 
 export const getPublicationsHandler = (
 	metadataStore: MetadataStore,
@@ -119,11 +120,9 @@ export const getPublicationByHashHandler = (
 		try {
 			const { hash } = req.params;
 
-			if (!hash || typeof hash !== "string") {
-				throw new ApiError(
-					ApiErrorType.VALIDATION_ERROR,
-					"Invalid content hash",
-				);
+			if (!hash || typeof hash !== "string" || !isHashValid(hash)) {
+				res.status(404).send();
+				return;
 			}
 
 			const metadata = metadataStore.getByHash(hash);
