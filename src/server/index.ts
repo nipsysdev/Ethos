@@ -5,10 +5,8 @@ import {
 	getPublicationsHandler,
 } from "@/server/routes/api/publications.js";
 import { getSourcesHandler } from "@/server/routes/api/sources.js";
-import {
-	getDetailViewHandler,
-	getListingViewHandler,
-} from "@/server/routes/views.js";
+import { getDetailViewHandler } from "@/server/routes/detail-handler.js";
+import { getListingViewHandler } from "@/server/routes/listing-handler.js";
 import type { ServerConfig } from "@/server/types.js";
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
