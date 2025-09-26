@@ -7,6 +7,7 @@ import { parseQueryParams } from "@/server/utils/pagination.js";
 import { renderDetail } from "@/server/views/detail.js";
 import type { ContentStore } from "@/storage/ContentStore.js";
 import type { MetadataStore } from "@/storage/MetadataStore.js";
+import { isHashValid } from "@/utils/hash.js";
 
 export const getDetailViewHandler = (
 	metadataStore: MetadataStore,
@@ -17,11 +18,9 @@ export const getDetailViewHandler = (
 			const { hash } = req.params;
 			const queryParams = parseQueryParams(req.query);
 
-			if (!hash || typeof hash !== "string") {
-				throw new ApiError(
-					ApiErrorType.VALIDATION_ERROR,
-					"Invalid content hash",
-				);
+			if (!hash || typeof hash !== "string" || !isHashValid(hash)) {
+				res.status(404).send();
+				return;
 			}
 
 			const metadata = metadataStore.getByHash(hash);

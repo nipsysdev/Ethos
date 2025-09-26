@@ -21,7 +21,7 @@ body
         li
           strong
             a(href="/", aria-label="Home") Ethos
-  main
+  main.container
     h1 Publications
     .filter-container
       form(method="get", action="/")

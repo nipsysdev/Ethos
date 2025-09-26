@@ -69,7 +69,8 @@ describe("getDetailViewHandler", () => {
 
 	it("should return HTML detail view for publication", async () => {
 		// Setup
-		mockReq.params = { hash: "hash1" };
+		const validHash = "d4e5f6789012345678901234567890abcdef0123";
+		mockReq.params = { hash: validHash };
 		mockReq.query = { page: "1", source: "test-source" };
 		const mockMetadata = {
 			id: 1,
@@ -79,7 +80,7 @@ describe("getDetailViewHandler", () => {
 			publishedDate: new Date("2023-01-01"),
 			source: "test-source",
 			crawledAt: new Date(),
-			hash: "hash1",
+			hash: validHash,
 		};
 		const mockContent = {
 			content: "Test content 1",
@@ -93,27 +94,30 @@ describe("getDetailViewHandler", () => {
 		await handler(mockReq, mockRes);
 
 		// Assert
-		expect(mockMetadataStore.getByHash).toHaveBeenCalledWith("hash1");
+		expect(mockMetadataStore.getByHash).toHaveBeenCalledWith(validHash);
 		expect(mockContentStore.retrieve).toHaveBeenCalledWith(
 			"https://example.com/1",
 		);
 		expect(mockRes.send).toHaveBeenCalledWith("<html>Detail View</html>");
 	});
 
-	it("should throw validation error for invalid hash in detail view", async () => {
+	it("should return 404 for invalid hash in detail view", async () => {
 		// Setup
-		mockReq.params = { hash: "" };
+		mockReq.params = { hash: "invalid-hash" };
 
-		// Execute & Assert
+		// Execute
 		const handler = getDetailViewHandler(mockMetadataStore, mockContentStore);
-		await expect(handler(mockReq, mockRes)).rejects.toThrow(
-			new ApiError(ApiErrorType.VALIDATION_ERROR, "Invalid content hash"),
-		);
+		await handler(mockReq, mockRes);
+
+		// Assert
+		expect(mockRes.status).toHaveBeenCalledWith(404);
+		expect(mockRes.send).toHaveBeenCalled();
 	});
 
 	it("should throw not found error for non-existent hash in detail view", async () => {
 		// Setup
-		mockReq.params = { hash: "nonexistenthash" };
+		const validHash = "e5f6789012345678901234567890abcdef012345";
+		mockReq.params = { hash: validHash };
 		mockMetadataStore.getByHash.mockReturnValue(null);
 
 		// Execute & Assert
@@ -125,14 +129,15 @@ describe("getDetailViewHandler", () => {
 
 	it("should throw not found error when content not found in detail view", async () => {
 		// Setup
-		mockReq.params = { hash: "hash1" };
+		const validHash = "c3d4e5f6789012345678901234567890abcdef01";
+		mockReq.params = { hash: validHash };
 		const mockMetadata = {
 			id: 1,
 			url: "https://example.com/1",
 			title: "Test Title 1",
 			source: "test-source",
 			crawledAt: new Date(),
-			hash: "hash1",
+			hash: validHash,
 		};
 
 		mockMetadataStore.getByHash.mockReturnValue(mockMetadata);
@@ -147,7 +152,8 @@ describe("getDetailViewHandler", () => {
 
 	it("should pass query parameters to detail view", async () => {
 		// Setup
-		mockReq.params = { hash: "hash1" };
+		const validHash = "789012345678901234567890abcdef0123456789";
+		mockReq.params = { hash: validHash };
 		mockReq.query = { page: "2", source: "test-source" };
 		const mockMetadata = {
 			id: 1,
@@ -157,7 +163,7 @@ describe("getDetailViewHandler", () => {
 			publishedDate: new Date("2023-01-01"),
 			source: "test-source",
 			crawledAt: new Date(),
-			hash: "hash1",
+			hash: validHash,
 		};
 		const mockContent = {
 			content: "Test content 1",

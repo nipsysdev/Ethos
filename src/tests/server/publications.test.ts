@@ -242,7 +242,8 @@ describe("Content Handlers", () => {
 	describe("getContentByHashHandler", () => {
 		it("should return content item by hash", async () => {
 			// Setup
-			mockReq.params = { hash: "hash1" };
+			const validHash = "a1b2c3d4e5f6789012345678901234567890abcd";
+			mockReq.params = { hash: validHash };
 			const mockMetadata = {
 				id: 1, // id is still part of ContentMetadata from storage
 				url: "https://example.com/1",
@@ -251,7 +252,7 @@ describe("Content Handlers", () => {
 				publishedDate: new Date("2023-01-01"),
 				source: "test-source",
 				crawledAt: new Date(),
-				hash: "hash1",
+				hash: validHash,
 			};
 			const mockContent = {
 				content: "Test content 1",
@@ -268,7 +269,7 @@ describe("Content Handlers", () => {
 			await handler(mockReq, mockRes);
 
 			// Assert
-			expect(mockMetadataStore.getByHash).toHaveBeenCalledWith("hash1");
+			expect(mockMetadataStore.getByHash).toHaveBeenCalledWith(validHash);
 			expect(mockContentStore.retrieve).toHaveBeenCalledWith(
 				"https://example.com/1",
 			);
@@ -280,27 +281,30 @@ describe("Content Handlers", () => {
 				publishedDate: new Date("2023-01-01").toISOString(),
 				source: "test-source",
 				crawledAt: mockMetadata.crawledAt,
-				hash: "hash1",
+				hash: validHash,
 			});
 		});
 
-		it("should throw validation error for invalid hash", async () => {
+		it("should return 404 for invalid hash", async () => {
 			// Setup
-			mockReq.params = { hash: "" };
+			mockReq.params = { hash: "invalid-hash" };
 
-			// Execute & Assert
+			// Execute
 			const handler = getPublicationByHashHandler(
 				mockMetadataStore,
 				mockContentStore,
 			);
-			await expect(handler(mockReq, mockRes)).rejects.toThrow(
-				new ApiError(ApiErrorType.VALIDATION_ERROR, "Invalid content hash"),
-			);
+			await handler(mockReq, mockRes);
+
+			// Assert
+			expect(mockRes.status).toHaveBeenCalledWith(404);
+			expect(mockRes.send).toHaveBeenCalled();
 		});
 
 		it("should throw not found error for non-existent hash", async () => {
 			// Setup
-			mockReq.params = { hash: "nonexistenthash" };
+			const validHash = "b2c3d4e5f6789012345678901234567890abcdef";
+			mockReq.params = { hash: validHash };
 			mockMetadataStore.getByHash.mockReturnValue(null);
 
 			// Execute & Assert
@@ -315,14 +319,15 @@ describe("Content Handlers", () => {
 
 		it("should throw not found error when content not found", async () => {
 			// Setup
-			mockReq.params = { hash: "hash1" };
+			const validHash = "c3d4e5f6789012345678901234567890abcdef01";
+			mockReq.params = { hash: validHash };
 			const mockMetadata = {
 				id: 1, // id is still part of ContentMetadata from storage
 				url: "https://example.com/1",
 				title: "Test Title 1",
 				source: "test-source",
 				crawledAt: new Date(),
-				hash: "hash1",
+				hash: validHash,
 			};
 
 			mockMetadataStore.getByHash.mockReturnValue(mockMetadata);
